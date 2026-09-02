@@ -5,9 +5,9 @@ personal information, or sensitive land-acquisition records.
 
 ## Steps to reproduce (for bugs)
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## Expected behavior
 
