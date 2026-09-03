@@ -15,7 +15,7 @@ export default function MapView({ points = [], center = [22.9734, 78.6569], zoom
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {points
-          .filter((p) => p.lat && p.lng)
+          .filter((p) => p.lat != null && p.lng != null)
           .map((p) => {
             const meta = statusMeta(p.status);
             return (

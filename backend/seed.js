@@ -7,6 +7,8 @@ import mongoose from "mongoose";
 import User from "./models/User.js";
 import Department from "./models/Department.js";
 import Project from "./models/Project.js";
+import Alert from "./models/Alert.js";
+import { recalculateProject } from "./controllers/projectController.js";
 
 dotenv.config();
 
@@ -21,7 +23,7 @@ const DEPARTMENTS = [
 
 const run = async () => {
   await connectDB();
-  await Promise.all([User.deleteMany(), Department.deleteMany(), Project.deleteMany()]);
+  await Promise.all([Alert.deleteMany(), User.deleteMany(), Department.deleteMany(), Project.deleteMany()]);
 
   const departments = await Department.insertMany(DEPARTMENTS);
   const byName = Object.fromEntries(departments.map((d) => [d.name, d]));
@@ -40,15 +42,26 @@ const run = async () => {
     role: "SeniorOfficer",
   });
 
-  const compOfficer = await User.create({
-    name: "Compensation Dept Officer",
-    email: "compensation@landacquisition.gov.in",
-    password: "password123",
-    role: "DepartmentOfficer",
-    department: byName.Compensation._id,
-  });
+  const officerAccounts = [
+    ["Survey", "Survey Officer", "survey@landacquisition.gov.in"],
+    ["LegalVerification", "Legal Verification Officer", "legal@landacquisition.gov.in"],
+    ["Compensation", "Compensation Officer", "compensation@landacquisition.gov.in"],
+    ["Rehabilitation", "Rehabilitation Officer", "rehabilitation@landacquisition.gov.in"],
+    ["Approvals", "Approvals Officer", "approvals@landacquisition.gov.in"],
+    ["Possession", "Possession Officer", "possession@landacquisition.gov.in"],
+  ];
 
-  await Project.create({
+  for (const [departmentName, name, email] of officerAccounts) {
+    await User.create({
+      name,
+      email,
+      password: "password123",
+      role: "DepartmentOfficer",
+      department: byName[departmentName]._id,
+    });
+  }
+
+  const highwayProject = await Project.create({
     name: "NH-44 Highway Expansion — Phase 2",
     code: "NH44-P2-2026",
     state: "Karnataka",
@@ -73,7 +86,7 @@ const run = async () => {
     ],
   });
 
-  await Project.create({
+  const freightProject = await Project.create({
     name: "Eastern Freight Corridor — Land Parcel Acquisition",
     code: "EFC-LP-2026",
     state: "Bihar",
@@ -98,10 +111,14 @@ const run = async () => {
     ],
   });
 
-  console.log("Seed complete.");
-  console.log("Login as admin@landacquisition.gov.in / password123");
-  console.log("Login as senior@landacquisition.gov.in / password123");
-  console.log("Login as compensation@landacquisition.gov.in / password123");
+  await recalculateProject(highwayProject);
+  await recalculateProject(freightProject);
+
+  console.log("✓ Departments created");
+  console.log("✓ Demo users created");
+  console.log("✓ Demo projects created");
+  console.log("BhoomiSetu demo environment ready.");
+  console.log("Demo password for every account: password123");
   await mongoose.disconnect();
   process.exit(0);
 };

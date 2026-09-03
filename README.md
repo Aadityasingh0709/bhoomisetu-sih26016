@@ -17,7 +17,7 @@ Aaditya Singh ([Aadityasingh0709](https://github.com/Aadityasingh0709))
 - **MongoDB** + Mongoose
 - **Express** REST API, JWT auth, role-based access control
 - **React 18** (Vite) + Tailwind CSS + React Router v6
-- **Node.js** 18+
+- **Node.js** 20 LTS
 
 Frontend libraries: `axios`, `zustand` (state), `react-hook-form` + `zod` (forms),
 `recharts` (charts), `react-leaflet` + `leaflet` (GIS map, OpenStreetMap tiles — no API
@@ -32,7 +32,29 @@ frontend/    Vite + React app (dashboard, project list/detail, department update
              form, alerts, GIS map)
 ```
 
-## Running locally
+## Quick start
+
+Prerequisites: Node.js 20 LTS, npm, Git, and either MongoDB Atlas or a local
+MongoDB instance. Use MongoDB Atlas when the team needs one shared demo database.
+
+```bash
+git clone https://github.com/Aadityasingh0709/bhoomisetu-sih26016.git
+cd bhoomisetu-sih26016
+npm run install:all
+```
+
+Create `backend/.env` from `backend/.env.example`, set `MONGO_URI` and a strong
+`JWT_SECRET`, then prepare demo data and start both apps:
+
+```bash
+npm run seed
+npm run dev
+```
+
+Open http://localhost:5173. Confirm the API and database are ready at
+http://localhost:5000/api/health.
+
+## Running components separately
 
 ### 1. Backend
 
@@ -44,10 +66,15 @@ npm run seed               # creates departments + demo users + 2 demo projects
 npm run dev                 # http://localhost:5000
 ```
 
-Seeded logins (password for all: `password123`):
+Seeded logins (password for all demo accounts: `password123`):
 - `admin@landacquisition.gov.in` — Administrator
 - `senior@landacquisition.gov.in` — Senior Officer (dashboard, alerts, all projects)
-- `compensation@landacquisition.gov.in` — Compensation Dept Officer (department workspace + update form)
+- `survey@landacquisition.gov.in` — Survey Officer
+- `legal@landacquisition.gov.in` — Legal Verification Officer
+- `compensation@landacquisition.gov.in` — Compensation Officer
+- `rehabilitation@landacquisition.gov.in` — Rehabilitation Officer
+- `approvals@landacquisition.gov.in` — Approvals Officer
+- `possession@landacquisition.gov.in` — Possession Officer
 
 ### 2. Frontend
 
@@ -88,7 +115,8 @@ needed in development.
 | GET | `/api/dashboard/summary` | Authenticated |
 | GET | `/api/dashboard/map` | Authenticated |
 | GET | `/api/alerts` | Authenticated |
-| PATCH | `/api/alerts/:id/resolve` | Authenticated |
+| PATCH | `/api/alerts/:id/resolve` | Administrator, Senior Officer, Project Manager |
+| GET | `/api/health` | Public — API and database status |
 
 ## Notes for the demo
 

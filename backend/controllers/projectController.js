@@ -6,7 +6,7 @@ import Alert from "../models/Alert.js";
 // Recalculates a project's weighted overall progress + status, and raises
 // bottleneck/dependency alerts. This is the core "system converts updates
 // into a clear picture" logic described in the problem statement.
-const recalculateProject = async (project) => {
+export const recalculateProject = async (project) => {
   const departments = await Department.find();
   const deptMap = Object.fromEntries(departments.map((d) => [String(d._id), d]));
 
@@ -131,7 +131,11 @@ export const createProject = asyncHandler(async (req, res) => {
     ...req.body,
     departments: departments.map((d) => ({ department: d._id })),
   });
-  res.status(201).json(project);
+  // Apply the same progress, risk, and alert rules at creation time as on a
+  // department update, so a newly created project is never left inconsistent.
+  const updated = await recalculateProject(project);
+  await updated.populate("departments.department");
+  res.status(201).json(updated);
 });
 
 // PATCH /api/projects/:id/departments/:deptId
