@@ -53,7 +53,7 @@ npm run dev
 
 ## Access the Dashboard Now
 
-**Frontend:** http://localhost:5174 (or http://localhost:5173 if port 5173 is free)
+**Frontend:** http://localhost:5174 
 **Backend API:** http://localhost:5000
 **Health Check:** http://localhost:5000/api/health
 
