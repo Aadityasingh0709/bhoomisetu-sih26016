@@ -51,8 +51,21 @@ npm run seed
 npm run dev
 ```
 
-Open http://localhost:5173. Confirm the API and database are ready at
-http://localhost:5000/api/health.
+## Access the Dashboard Now
+
+**Frontend:** http://localhost:5174 (or http://localhost:5173 if port 5173 is free)
+**Backend API:** http://localhost:5000
+**Health Check:** http://localhost:5000/api/health
+
+### Demo Accounts (Password: `password123`)
+- `admin@landacquisition.gov.in` — System Administrator
+- `senior@landacquisition.gov.in` — Senior Officer (Full Dashboard Access)
+- `survey@landacquisition.gov.in` — Survey Officer
+- `legal@landacquisition.gov.in` — Legal Verification Officer
+- `compensation@landacquisition.gov.in` — Compensation Officer
+- `rehabilitation@landacquisition.gov.in` — Rehabilitation Officer
+- `approvals@landacquisition.gov.in` — Approvals Officer
+- `possession@landacquisition.gov.in` — Possession Officer
 
 ## Running components separately
 
@@ -66,23 +79,17 @@ npm run seed               # creates departments + demo users + 2 demo projects
 npm run dev                 # http://localhost:5000
 ```
 
-Seeded logins (password for all demo accounts: `password123`):
-- `admin@landacquisition.gov.in` — Administrator
-- `senior@landacquisition.gov.in` — Senior Officer (dashboard, alerts, all projects)
-- `survey@landacquisition.gov.in` — Survey Officer
-- `legal@landacquisition.gov.in` — Legal Verification Officer
-- `compensation@landacquisition.gov.in` — Compensation Officer
-- `rehabilitation@landacquisition.gov.in` — Rehabilitation Officer
-- `approvals@landacquisition.gov.in` — Approvals Officer
-- `possession@landacquisition.gov.in` — Possession Officer
+**Demo accounts created:** See "Access the Dashboard Now" section above for login credentials.
 
 ### 2. Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev                 # http://localhost:5173
+npm run dev                 # http://localhost:5173 (or next available port like 5174)
 ```
+
+**Note:** If port 5173 is already in use, Vite automatically uses the next available port (5174, 5175, etc.).
 
 The Vite dev server proxies `/api/*` to `http://localhost:5000`, so no CORS config is
 needed in development.
