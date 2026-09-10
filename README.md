@@ -5,13 +5,14 @@ SIH 2026 · PS 26016 · Ministry of Rural Development, Dept. of Land Resources (
 A MERN-stack platform that digitizes the land acquisition lifecycle (Survey → Legal
 Verification → Compensation → Rehabilitation → Approvals → Possession), gives each
 department its own update workspace, and rolls those updates up into a weighted
-progress score, GIS-mapped dashboard, and automatic bottleneck/dependency alerts for
-senior officers.
+progress score, GIS-mapped dashboard, automatic bottleneck/dependency alerts, and a
+formal bottleneck & dispute resolution audit trail for senior officers.
 
 ## Contributor
 
 Aaditya Singh ([Aadityasingh0709](https://github.com/Aadityasingh0709))
 Kehsaw Jha   ([keshaw006](https://github.com/keshaw006))
+
 ## Stack
 
 - **MongoDB** + Mongoose
@@ -27,9 +28,9 @@ key needed), `react-hot-toast`, `lucide-react`.
 
 ```
 backend/     Express API, Mongoose models, JWT auth, business rules (progress %,
-             risk/delay/bottleneck detection, dependency alerts)
+             risk/delay/bottleneck detection, dependency alerts, resolution tracking)
 frontend/    Vite + React app (dashboard, project list/detail, department update
-             form, alerts, GIS map)
+             form, dispute & bottleneck resolution center, alerts, GIS map)
 ```
 
 ## Quick start
@@ -53,7 +54,7 @@ npm run dev
 
 ## Access the Dashboard Now
 
-**Frontend:** http://localhost:5174/
+**Frontend:** http://localhost:5174/ (or http://localhost:5173/)
 **Backend API:** http://localhost:5000
 **Health Check:** http://localhost:5000/api/health
 
@@ -80,7 +81,7 @@ Each role has a unique, secure password for testing:
 cd backend
 cp .env.example .env      # edit MONGO_URI / JWT_SECRET as needed
 npm install
-npm run seed               # creates departments + demo users + 2 demo projects
+npm run seed               # creates departments + demo users + resolutions + 2 demo projects
 npm run dev                 # http://localhost:5000
 ```
 
@@ -113,6 +114,15 @@ needed in development.
   delay may affect rehabilitation" from the problem statement.
 - **Delayed** (project-level): any department Delayed, or the planned completion date
   has passed without full completion.
+
+## ⚖️ Bottleneck & Dispute Resolution Center
+
+The **Bottleneck & Dispute Resolution Center** provides an auditable institutional record for how land disputes, court orders, inter-agency deadlocks, and procedural bottlenecks are formally resolved:
+
+- **Resolution Taxonomy**: Categorization across *Land Title Dispute*, *Bottleneck*, *Compensation Grievance*, *Boundary Demarcation*, *Clearance & NOC*, and *Inter-Agency Obstacle*.
+- **Corrective Action Tracking**: Records the exact steps taken to unblock progress (e.g. Lok Adalat mediation, Tahsildar joint inspection, DGPS re-survey, Section 28 consent award, bulk PFMS DBT verification).
+- **Executive Audit Trail**: Tracks the presiding officer, resolving user, date/timestamp, legal case or gazette order reference numbers (e.g. `REV/BLG-2026/894-LOKADALAT`).
+- **Two-Way Alert Synchronization**: Resolving a telemetry alert automatically prompts for resolution remarks, marks the alert as resolved, and creates an audit record linked to the project's permanent dossier.
 
 ## 🔐 Role-Based Access Control (RBAC)
 
@@ -166,6 +176,12 @@ See [RBAC_PASSWORD_RECOVERY_GUIDE.md](RBAC_PASSWORD_RECOVERY_GUIDE.md) for detai
 | GET | `/api/projects/:id` | Authenticated |
 | POST | `/api/projects` | Administrator, ProjectManager |
 | PATCH | `/api/projects/:id/departments/:deptId` | DepartmentOfficer, Administrator |
+| POST | `/api/projects/:id/resolutions` | DepartmentOfficer, Administrator, SeniorOfficer, ProjectManager |
+| DELETE | `/api/projects/:id/resolutions/:resolutionId` | Administrator, ProjectManager |
+| GET | `/api/resolutions` | Authenticated (filters: `projectId`, `departmentId`, `category`, `status`) |
+| GET | `/api/resolutions/:id` | Authenticated |
+| POST | `/api/resolutions` | DepartmentOfficer, Administrator, SeniorOfficer, ProjectManager |
+| DELETE | `/api/resolutions/:id` | Administrator, ProjectManager |
 | GET | `/api/dashboard/summary` | Authenticated |
 | GET | `/api/dashboard/map` | Authenticated |
 | GET | `/api/alerts` | Authenticated |

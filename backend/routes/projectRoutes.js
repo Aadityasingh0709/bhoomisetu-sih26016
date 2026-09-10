@@ -4,6 +4,8 @@ import {
   getProject,
   createProject,
   updateDepartmentProgress,
+  addProjectResolution,
+  deleteProjectResolution,
   deleteProject,
 } from "../controllers/projectController.js";
 import { protect, restrictTo } from "../middleware/auth.js";
@@ -19,6 +21,16 @@ router.patch(
   "/:id/departments/:deptId",
   restrictTo("DepartmentOfficer", "Administrator"),
   updateDepartmentProgress
+);
+router.post(
+  "/:id/resolutions",
+  restrictTo("DepartmentOfficer", "Administrator", "SeniorOfficer", "ProjectManager"),
+  addProjectResolution
+);
+router.delete(
+  "/:id/resolutions/:resolutionId",
+  restrictTo("Administrator", "ProjectManager"),
+  deleteProjectResolution
 );
 router.delete("/:id", restrictTo("Administrator"), deleteProject);
 

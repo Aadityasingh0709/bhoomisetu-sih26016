@@ -13,6 +13,7 @@ import projectRoutes from "./routes/projectRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
 import alertRoutes from "./routes/alertRoutes.js";
+import resolutionRoutes from "./routes/resolutionRoutes.js";
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -65,6 +66,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/alerts", alertRoutes);
+app.use("/api/resolutions", resolutionRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

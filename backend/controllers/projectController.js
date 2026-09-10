@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import Project from "../models/Project.js";
 import Department from "../models/Department.js";
 import Alert from "../models/Alert.js";
+import Resolution from "../models/Resolution.js";
 
 // Recalculates a project's weighted overall progress + status, and raises
 // bottleneck/dependency alerts. This is the core "system converts updates
@@ -131,13 +132,18 @@ export const getProjects = asyncHandler(async (req, res) => {
 
   const projects = await Project.find(filter)
     .populate("departments.department")
+    .populate("resolutions.department")
+    .populate("resolutions.resolvedBy", "name email role")
     .sort({ createdAt: -1 });
   res.json(projects);
 });
 
 // GET /api/projects/:id
 export const getProject = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id).populate("departments.department");
+  const project = await Project.findById(req.params.id)
+    .populate("departments.department")
+    .populate("resolutions.department")
+    .populate("resolutions.resolvedBy", "name email role");
   if (!project) {
     res.status(404);
     throw new Error("Project not found");
@@ -191,6 +197,7 @@ export const updateDepartmentProgress = asyncHandler(async (req, res) => {
     pendingCases,
     completedCases,
     delayReason,
+    resolutionNotes,
     expectedCompletionDate,
     status,
   } = req.body;
@@ -200,6 +207,24 @@ export const updateDepartmentProgress = asyncHandler(async (req, res) => {
   if (pendingCases !== undefined) entry.pendingCases = pendingCases;
   if (completedCases !== undefined) entry.completedCases = completedCases;
   if (delayReason !== undefined) entry.delayReason = delayReason;
+  if (resolutionNotes !== undefined) {
+    entry.resolutionNotes = resolutionNotes;
+    if (resolutionNotes.trim()) {
+      const deptInfo = await Department.findById(deptId);
+      if (!project.resolutions) project.resolutions = [];
+      project.resolutions.unshift({
+        title: `${deptInfo?.displayName || "Stage"} Progress & Resolution Update`,
+        category: "Bottleneck",
+        department: deptId,
+        issueDescription: entry.delayReason || "Pending backlog or milestone delay",
+        resolutionDetails: resolutionNotes.trim(),
+        actionTakenBy: req.user.name,
+        status: "Resolved",
+        resolvedBy: req.user._id,
+        resolvedAt: new Date(),
+      });
+    }
+  }
   // BUG FIX: Treat empty string as null to avoid Mongoose CastError on Date field.
   if (expectedCompletionDate !== undefined) {
     entry.expectedCompletionDate = expectedCompletionDate ? new Date(expectedCompletionDate) : null;
@@ -209,9 +234,125 @@ export const updateDepartmentProgress = asyncHandler(async (req, res) => {
   entry.lastUpdatedAt = new Date();
 
   const updated = await recalculateProject(project);
-  // BUG FIX: Populate departments so frontend gets displayName etc., not raw ObjectIds.
-  await updated.populate("departments.department");
+  // Populate departments and resolutions so frontend gets full display data
+  await updated.populate([
+    { path: "departments.department" },
+    { path: "resolutions.department" },
+    { path: "resolutions.resolvedBy", select: "name email role" },
+  ]);
   res.json(updated);
+});
+
+// POST /api/projects/:id/resolutions
+// Used when an officer writes how he resolved a particular bottleneck or dispute
+export const addProjectResolution = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const project = await Project.findById(id);
+  if (!project) {
+    res.status(404);
+    throw new Error("Project not found");
+  }
+
+  const {
+    title,
+    category,
+    departmentId,
+    issueDescription,
+    resolutionDetails,
+    actionTakenBy,
+    caseOrderReference,
+    status,
+  } = req.body;
+
+  if (!title || !resolutionDetails) {
+    res.status(400);
+    throw new Error("Title and resolution details are required");
+  }
+
+  // Create standalone document in the dedicated Resolution collection
+  const resolutionDoc = await Resolution.create({
+    project: project._id,
+    title: title.trim(),
+    category: category || "Bottleneck",
+    department: departmentId || (req.user.department?._id || null),
+    issueDescription: (issueDescription || "").trim(),
+    resolutionDetails: resolutionDetails.trim(),
+    actionTakenBy: actionTakenBy || req.user.name,
+    caseOrderReference: (caseOrderReference || "").trim(),
+    status: status || "Resolved",
+    resolvedBy: req.user._id,
+    resolvedAt: new Date(),
+  });
+
+  const newResolution = {
+    _id: resolutionDoc._id,
+    title: resolutionDoc.title,
+    category: resolutionDoc.category,
+    department: resolutionDoc.department,
+    issueDescription: resolutionDoc.issueDescription,
+    resolutionDetails: resolutionDoc.resolutionDetails,
+    actionTakenBy: resolutionDoc.actionTakenBy,
+    caseOrderReference: resolutionDoc.caseOrderReference,
+    status: resolutionDoc.status,
+    resolvedBy: resolutionDoc.resolvedBy,
+    resolvedAt: resolutionDoc.resolvedAt,
+  };
+
+  if (!project.resolutions) project.resolutions = [];
+  project.resolutions.unshift(newResolution);
+
+  // If status is Resolved and a department is specified, resolve matching active alerts
+  if (newResolution.status === "Resolved" && newResolution.department) {
+    await Alert.updateMany(
+      {
+        project: project._id,
+        department: newResolution.department,
+        isResolved: false,
+      },
+      {
+        isResolved: true,
+        resolvedAt: new Date(),
+        resolvedBy: req.user._id,
+        resolutionNotes: newResolution.resolutionDetails,
+      }
+    );
+  }
+
+  await project.save();
+  await project.populate([
+    { path: "departments.department" },
+    { path: "resolutions.department" },
+    { path: "resolutions.resolvedBy", select: "name email role" },
+  ]);
+
+  res.status(201).json(project);
+});
+
+// DELETE /api/projects/:id/resolutions/:resolutionId
+export const deleteProjectResolution = asyncHandler(async (req, res) => {
+  const { id, resolutionId } = req.params;
+  const project = await Project.findById(id);
+  if (!project) {
+    res.status(404);
+    throw new Error("Project not found");
+  }
+
+  if (project.resolutions) {
+    project.resolutions = project.resolutions.filter(
+      (r) => String(r._id) !== String(resolutionId)
+    );
+  }
+
+  await Resolution.findByIdAndDelete(resolutionId);
+
+  await project.save();
+  await project.populate([
+    { path: "departments.department" },
+    { path: "resolutions.department" },
+    { path: "resolutions.resolvedBy", select: "name email role" },
+  ]);
+
+  res.json(project);
 });
 
 // DELETE /api/projects/:id (Administrator only)
@@ -221,7 +362,8 @@ export const deleteProject = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Project not found");
   }
-  // Remove all alerts that belong to this project
+  // Remove all alerts and resolutions that belong to this project
   await Alert.deleteMany({ project: project._id });
+  await Resolution.deleteMany({ project: project._id });
   res.json({ message: "Project deleted" });
 });

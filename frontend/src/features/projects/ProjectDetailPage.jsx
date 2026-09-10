@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { fetchProject, deleteProject } from "../../api/projects.js";
+import {
+  fetchProject,
+  deleteProject,
+  addProjectResolution,
+  deleteProjectResolution,
+} from "../../api/projects.js";
 import Card from "../../components/Card.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import ProgressBar from "../../components/ProgressBar.jsx";
@@ -29,7 +34,33 @@ import {
   ChevronRight,
   Info,
   Layers,
+  PlusCircle,
+  FileText,
+  AlertCircle,
+  X,
+  ShieldCheck,
+  Award,
+  ExternalLink,
 } from "lucide-react";
+
+const categoryMeta = (cat) => {
+  switch (cat) {
+    case "Land Title Dispute":
+      return { bg: "bg-purple-100 text-purple-800 border-purple-200", label: "Land Title Dispute" };
+    case "Bottleneck":
+      return { bg: "bg-rose-100 text-rose-800 border-rose-200", label: "Bottleneck Unblocked" };
+    case "Compensation Grievance":
+      return { bg: "bg-amber-100 text-amber-800 border-amber-200", label: "Compensation Grievance" };
+    case "Boundary Demarcation":
+      return { bg: "bg-emerald-100 text-emerald-800 border-emerald-200", label: "Boundary Demarcation" };
+    case "Clearance & NOC":
+      return { bg: "bg-blue-100 text-blue-800 border-blue-200", label: "Clearance & NOC" };
+    case "Inter-Agency":
+      return { bg: "bg-indigo-100 text-indigo-800 border-indigo-200", label: "Inter-Agency Delay" };
+    default:
+      return { bg: "bg-slate-100 text-slate-800 border-slate-200", label: cat || "Dispute" };
+  }
+};
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -40,7 +71,23 @@ export default function ProjectDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const role = useAuthStore((s) => s.user?.role);
+  // Resolution state & modal
+  const [showResolutionModal, setShowResolutionModal] = useState(false);
+  const [submittingResolution, setSubmittingResolution] = useState(false);
+  const [resolutionFilter, setResolutionFilter] = useState("All");
+  const [resolutionForm, setResolutionForm] = useState({
+    title: "",
+    category: "Bottleneck",
+    departmentId: "",
+    issueDescription: "",
+    resolutionDetails: "",
+    actionTakenBy: "",
+    caseOrderReference: "",
+    status: "Resolved",
+  });
+
+  const currentUser = useAuthStore((s) => s.user);
+  const role = currentUser?.role;
   const canUpdate = ["DepartmentOfficer", "Administrator", "ProjectManager"].includes(role);
   const canDelete = role === "Administrator";
 
@@ -66,6 +113,59 @@ export default function ProjectDetailPage() {
       toast.error("Could not delete project");
       setDeleting(false);
       setShowDeleteModal(false);
+    }
+  };
+
+  const handleOpenResolutionModal = (defaultDeptId = "") => {
+    const deptId =
+      defaultDeptId ||
+      currentUser?.department?._id ||
+      project?.departments?.[selectedStageIndex]?.department?._id ||
+      project?.departments?.[0]?.department?._id ||
+      "";
+
+    setResolutionForm({
+      title: "",
+      category: "Bottleneck",
+      departmentId: String(deptId),
+      issueDescription: "",
+      resolutionDetails: "",
+      actionTakenBy: currentUser?.name || "",
+      caseOrderReference: "",
+      status: "Resolved",
+    });
+    setShowResolutionModal(true);
+  };
+
+  const handleSubmitResolution = async (e) => {
+    e.preventDefault();
+    if (!resolutionForm.title.trim() || !resolutionForm.resolutionDetails.trim()) {
+      toast.error("Please enter a title and describe how the issue was resolved");
+      return;
+    }
+    setSubmittingResolution(true);
+    try {
+      const updated = await addProjectResolution(project._id, resolutionForm);
+      setProject(updated);
+      toast.success("Resolution record documented successfully");
+      setShowResolutionModal(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to record resolution");
+    } finally {
+      setSubmittingResolution(false);
+    }
+  };
+
+  const handleDeleteResolution = async (resolutionId) => {
+    if (!window.confirm("Are you sure you want to permanently remove this resolution record?")) {
+      return;
+    }
+    try {
+      const updated = await deleteProjectResolution(project._id, resolutionId);
+      setProject(updated);
+      toast.success("Resolution record removed");
+    } catch {
+      toast.error("Could not remove resolution record");
     }
   };
 
@@ -238,17 +338,29 @@ export default function ProjectDetailPage() {
 
       {/* Recommended Attention Banner if Delayed or AtRisk */}
       {bottleneckDept && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50/80 p-4 text-amber-900 shadow-sm">
-          <AlertTriangle size={20} className="shrink-0 text-amber-600 mt-0.5" />
-          <div className="text-xs leading-relaxed">
-            <p className="font-bold text-sm text-amber-950">
-              Department Attention Required: {bottleneckDept.department?.displayName}
-            </p>
-            <p className="mt-0.5 text-amber-900">
-              {bottleneckDept.delayReason || "This stage is trailing planned milestones"} with{" "}
-              <span className="font-bold">{bottleneckDept.pendingCases} pending cases</span>. Upstream delays directly trigger downstream dependency alerts across subsequent lifecycle stages.
-            </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-amber-300 bg-amber-50/80 p-4 text-amber-900 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={20} className="shrink-0 text-amber-600 mt-0.5" />
+            <div className="text-xs leading-relaxed">
+              <p className="font-bold text-sm text-amber-950">
+                Department Attention Required: {bottleneckDept.department?.displayName}
+              </p>
+              <p className="mt-0.5 text-amber-900">
+                {bottleneckDept.delayReason || "This stage is trailing planned milestones"} with{" "}
+                <span className="font-bold">{bottleneckDept.pendingCases} pending cases</span>. Upstream delays directly trigger downstream dependency alerts across subsequent lifecycle stages.
+              </p>
+            </div>
           </div>
+          {canUpdate && (
+            <button
+              type="button"
+              onClick={() => handleOpenResolutionModal(bottleneckDept.department?._id)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-amber-700 transition-colors shrink-0"
+            >
+              <CheckCircle2 size={13} />
+              <span>Record Resolution</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -459,7 +571,421 @@ export default function ProjectDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Bottleneck & Dispute Resolution Center Section */}
+      <div id="resolution-section" className="space-y-4">
+        <Card
+          title="Bottleneck & Dispute Resolution Center"
+          subtitle="Official audit trail of resolved obstacles, court orders, inter-agency settlements & title hearings"
+          icon={Scale}
+          action={
+            canUpdate && (
+              <button
+                type="button"
+                onClick={() => handleOpenResolutionModal()}
+                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-ochre-500 to-ochre-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm shadow-ochre-500/20 hover:from-ochre-600 hover:to-ochre-700 transition-all"
+              >
+                <PlusCircle size={14} />
+                <span>Record Resolution</span>
+              </button>
+            )
+          }
+        >
+          {/* Filter Pills and Total Badge */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 pb-3 mb-4">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                "All",
+                "Land Title Dispute",
+                "Bottleneck",
+                "Compensation Grievance",
+                "Boundary Demarcation",
+                "Clearance & NOC",
+                "Inter-Agency",
+                "Other",
+              ].map((category) => {
+                const count =
+                  category === "All"
+                    ? (project.resolutions || []).length
+                    : (project.resolutions || []).filter((r) => r.category === category).length;
+                const active = resolutionFilter === category;
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setResolutionFilter(category)}
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+                      active
+                        ? "bg-ink-900 text-white shadow-sm"
+                        : "bg-ink-50 text-ink-600 hover:bg-ink-100"
+                    }`}
+                  >
+                    <span>{category}</span>
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
+                        active ? "bg-white/20 text-white" : "bg-ink-200 text-ink-700"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <span className="text-xs text-ink-400 font-medium">
+              {(project.resolutions || []).length} Resolution Record{(project.resolutions || []).length === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          {/* Resolutions List */}
+          {(!project.resolutions || project.resolutions.length === 0) ? (
+            <div className="rounded-xl border border-dashed border-ink-200 bg-ink-50/40 p-8 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 mb-2">
+                <Scale size={24} />
+              </div>
+              <p className="text-sm font-bold text-ink-900">No Bottleneck or Dispute Resolutions Recorded</p>
+              <p className="text-xs text-ink-400 max-w-md mx-auto mt-1">
+                Whenever title disputes, compensation grievances, or stage backlog bottlenecks are resolved, document the settlement narrative and action steps here for audit tracking.
+              </p>
+              {canUpdate && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenResolutionModal()}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-ink-900 px-4 py-2 text-xs font-bold text-white hover:bg-ochre-600 transition-colors shadow-sm"
+                >
+                  <PlusCircle size={14} />
+                  <span>Record First Resolution</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {(project.resolutions || [])
+                .filter((r) => resolutionFilter === "All" || r.category === resolutionFilter)
+                .map((res) => {
+                  const meta = categoryMeta(res.category);
+                  const isResolved = res.status === "Resolved";
+                  return (
+                    <div
+                      key={res._id}
+                      className="group relative rounded-2xl border border-ink-100 bg-white p-5 shadow-sm hover:shadow-cardHover hover:border-ink-200 transition-all"
+                    >
+                      {/* Top Meta Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`rounded-md px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider border ${meta.bg}`}
+                          >
+                            {meta.label}
+                          </span>
+
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                              isResolved
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-blue-50 text-blue-700 border border-blue-200"
+                            }`}
+                          >
+                            <CheckCircle2 size={11} className={isResolved ? "text-emerald-600" : "text-blue-600"} />
+                            <span>{res.status || "Resolved"}</span>
+                          </span>
+
+                          {res.department?.displayName && (
+                            <span className="rounded-md bg-ink-100/80 px-2 py-0.5 text-[10px] font-bold text-ink-700">
+                              {res.department.displayName}
+                            </span>
+                          )}
+
+                          {res.caseOrderReference && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-800">
+                              <FileText size={10} />
+                              <span>{res.caseOrderReference}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs text-ink-400">
+                          <span className="flex items-center gap-1">
+                            <Clock size={12} />
+                            {formatDate(res.resolvedAt || res.createdAt)}
+                          </span>
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteResolution(res._id)}
+                              className="rounded-lg p-1 text-ink-400 hover:text-rose-600 hover:bg-rose-50 transition-colors ml-1"
+                              title="Delete resolution record"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Title */}
+                      <h4 className="text-base font-bold text-ink-900 mb-2">
+                        {res.title}
+                      </h4>
+
+                      {/* Issue Statement */}
+                      {res.issueDescription && (
+                        <div className="mb-3 rounded-xl bg-ink-50/70 border border-ink-100 p-3 text-xs">
+                          <div className="flex items-center gap-1.5 font-bold text-ink-600 mb-0.5">
+                            <AlertTriangle size={13} className="text-amber-500" />
+                            <span>Obstacle / Dispute Encountered:</span>
+                          </div>
+                          <p className="text-ink-700 leading-relaxed pl-5">
+                            {res.issueDescription}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* HOW HE RESOLVED IT (Highlighted Resolution Box) */}
+                      <div className="rounded-xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/70 to-teal-50/40 p-4 text-xs">
+                        <div className="flex items-center gap-1.5 font-black uppercase tracking-wider text-[11px] text-emerald-900 mb-1">
+                          <ShieldCheck size={14} className="text-emerald-600" />
+                          <span>How It Was Resolved (Corrective Action Taken):</span>
+                        </div>
+                        <p className="text-emerald-950 font-medium leading-relaxed pl-5 whitespace-pre-line text-[13px]">
+                          {res.resolutionDetails}
+                        </p>
+                      </div>
+
+                      {/* Footer: Authorized & Recorded By */}
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-ink-100/60 pt-2.5 text-[11px] text-ink-400">
+                        <div>
+                          {res.actionTakenBy && (
+                            <span>
+                              Action taken / settled by:{" "}
+                              <strong className="text-ink-700">{res.actionTakenBy}</strong>
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span>Recorded by:</span>
+                          <strong className="text-ink-700">
+                            {res.resolvedBy?.name || "Verified Officer"}
+                          </strong>
+                          {res.resolvedBy?.role && (
+                            <span className="text-ink-400">({res.resolvedBy.role})</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
+
+      {/* Record Dispute / Bottleneck Resolution Modal */}
+      {showResolutionModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/60 backdrop-blur-sm overflow-y-auto"
+          onClick={() => !submittingResolution && setShowResolutionModal(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-ink-900 to-slate-900 px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ochre-500/20 text-ochre-400 border border-ochre-500/30">
+                  <Scale size={20} />
+                </div>
+                <div>
+                  <h2 className="text-base font-black text-white">Record Dispute / Bottleneck Resolution</h2>
+                  <p className="text-xs text-ink-300 mt-0.5">
+                    Write how a dispute, obstruction or bottleneck was resolved on this parcel
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowResolutionModal(false)}
+                className="rounded-lg p-1 text-ink-400 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSubmitResolution} className="p-6 space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-ink-700 mb-1">
+                  Resolution Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={resolutionForm.title}
+                  onChange={(e) => setResolutionForm({ ...resolutionForm, title: e.target.value })}
+                  placeholder="e.g. Survey Parcel #44B Boundary Dispute Settled"
+                  className="input font-medium"
+                />
+              </div>
+
+              {/* Category & Department */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-700 mb-1">
+                    Issue Category
+                  </label>
+                  <select
+                    value={resolutionForm.category}
+                    onChange={(e) => setResolutionForm({ ...resolutionForm, category: e.target.value })}
+                    className="input font-semibold"
+                  >
+                    <option value="Bottleneck">Bottleneck (Backlog / Delay)</option>
+                    <option value="Land Title Dispute">Land Title Dispute</option>
+                    <option value="Compensation Grievance">Compensation Grievance</option>
+                    <option value="Boundary Demarcation">Boundary Demarcation</option>
+                    <option value="Rehabilitation & Resettlement">Rehabilitation &amp; Resettlement</option>
+                    <option value="Clearance & NOC">Clearance &amp; NOC</option>
+                    <option value="Inter-Agency">Inter-Agency Obstacle</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-700 mb-1">
+                    Department / Lifecycle Stage
+                  </label>
+                  <select
+                    value={resolutionForm.departmentId}
+                    onChange={(e) => setResolutionForm({ ...resolutionForm, departmentId: e.target.value })}
+                    className="input font-semibold"
+                  >
+                    <option value="">Select Department (Optional)</option>
+                    {project.departments?.map((dp) => (
+                      <option key={dp.department?._id} value={dp.department?._id}>
+                        {dp.department?.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Dispute / Issue statement */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-ink-700 mb-1">
+                  Obstacle / Dispute Encountered
+                </label>
+                <textarea
+                  rows={2}
+                  value={resolutionForm.issueDescription}
+                  onChange={(e) => setResolutionForm({ ...resolutionForm, issueDescription: e.target.value })}
+                  placeholder="e.g. Boundary overlap between joint landholders delayed section 19 declaration"
+                  className="input resize-none text-xs"
+                />
+              </div>
+
+              {/* HOW HE RESOLVED IT */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-black uppercase tracking-wider text-emerald-800">
+                    How Was It Resolved? (Resolution Narrative) <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[10px] text-ink-400 font-medium">Audit verified</span>
+                </div>
+                <textarea
+                  rows={4}
+                  required
+                  value={resolutionForm.resolutionDetails}
+                  onChange={(e) => setResolutionForm({ ...resolutionForm, resolutionDetails: e.target.value })}
+                  placeholder="Write how the bottleneck or dispute was resolved in detail: e.g. Convened joint hearing with Tahsildar, re-surveyed parcel boundary with DGPS, reached consent award under Section 28, or released pending PFMS disbursement..."
+                  className="input resize-none font-medium text-xs leading-relaxed border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500 bg-emerald-50/20"
+                />
+              </div>
+
+              {/* Action Taken By & Order Reference */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-700 mb-1">
+                    Action Taken By / Authorities
+                  </label>
+                  <input
+                    type="text"
+                    value={resolutionForm.actionTakenBy}
+                    onChange={(e) => setResolutionForm({ ...resolutionForm, actionTakenBy: e.target.value })}
+                    placeholder="e.g. Tahsildar & Legal Verification Officer"
+                    className="input text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-700 mb-1">
+                    Order / Gazette Reference #
+                  </label>
+                  <input
+                    type="text"
+                    value={resolutionForm.caseOrderReference}
+                    onChange={(e) => setResolutionForm({ ...resolutionForm, caseOrderReference: e.target.value })}
+                    placeholder="e.g. REV/BLG-2026/894"
+                    className="input font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-ink-700 mb-1">
+                  Resolution Status
+                </label>
+                <div className="flex items-center gap-4 text-xs font-semibold">
+                  {["Resolved", "Mitigated", "In Hearing"].map((st) => (
+                    <label key={st} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="resolutionStatus"
+                        value={st}
+                        checked={resolutionForm.status === st}
+                        onChange={(e) => setResolutionForm({ ...resolutionForm, status: e.target.value })}
+                        className="text-ochre-600 focus:ring-ochre-500"
+                      />
+                      <span>{st}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-100">
+                <button
+                  type="button"
+                  onClick={() => setShowResolutionModal(false)}
+                  disabled={submittingResolution}
+                  className="rounded-xl border border-ink-200 px-4 py-2 text-xs font-bold text-ink-600 hover:bg-ink-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingResolution}
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-ochre-500 to-ochre-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-ochre-500/20 hover:from-ochre-600 hover:to-ochre-700 transition-all disabled:opacity-60"
+                >
+                  {submittingResolution ? (
+                    <>
+                      <span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      Saving Resolution…
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={14} />
+                      Save Resolution Record
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (

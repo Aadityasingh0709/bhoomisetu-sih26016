@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const ROLES = [
   "Administrator",
@@ -36,8 +37,8 @@ userSchema.methods.matchPassword = function (entered) {
 };
 
 userSchema.methods.generatePasswordResetToken = function () {
-  const resetToken = require("crypto").randomBytes(32).toString("hex");
-  this.passwordResetToken = require("crypto")
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  this.passwordResetToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
@@ -46,7 +47,7 @@ userSchema.methods.generatePasswordResetToken = function () {
 };
 
 userSchema.methods.matchResetToken = function (token) {
-  const hashedToken = require("crypto")
+  const hashedToken = crypto
     .createHash("sha256")
     .update(token)
     .digest("hex");

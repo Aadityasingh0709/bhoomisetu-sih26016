@@ -18,11 +18,50 @@ const departmentProgressSchema = new mongoose.Schema(
     pendingCases: { type: Number, min: 0, default: 0 },
     completedCases: { type: Number, min: 0, default: 0 },
     delayReason: { type: String, default: "" },
+    resolutionNotes: { type: String, default: "" },
     expectedCompletionDate: { type: Date },
     lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     lastUpdatedAt: { type: Date, default: Date.now },
   },
   { _id: false }
+);
+
+/**
+ * Tracks formal bottleneck and dispute resolutions where officers document
+ * how specific obstacles, land litigations, court orders, or stakeholder grievances
+ * were resolved.
+ */
+const resolutionSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    category: {
+      type: String,
+      enum: [
+        "Bottleneck",
+        "Land Title Dispute",
+        "Compensation Grievance",
+        "Boundary Demarcation",
+        "Rehabilitation & Resettlement",
+        "Clearance & NOC",
+        "Inter-Agency",
+        "Other",
+      ],
+      default: "Bottleneck",
+    },
+    department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
+    issueDescription: { type: String, required: true, trim: true },
+    resolutionDetails: { type: String, required: true, trim: true },
+    actionTakenBy: { type: String, default: "" },
+    caseOrderReference: { type: String, default: "" },
+    status: {
+      type: String,
+      enum: ["Resolved", "Mitigated", "In Hearing"],
+      default: "Resolved",
+    },
+    resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    resolvedAt: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
 );
 
 const projectSchema = new mongoose.Schema(
@@ -66,6 +105,8 @@ const projectSchema = new mongoose.Schema(
         uploadedAt: { type: Date, default: Date.now },
       },
     ],
+
+    resolutions: [resolutionSchema],
   },
   { timestamps: true }
 );

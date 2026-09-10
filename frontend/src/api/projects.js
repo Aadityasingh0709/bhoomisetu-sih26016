@@ -18,3 +18,8 @@ export const updateDepartmentProgress = (projectId, deptId, payload) =>
 export const deleteProject = (id) =>
   api.delete(`/projects/${id}`).then((res) => res.data);
 
+export const addProjectResolution = (projectId, payload) =>
+  api.post(`/projects/${projectId}/resolutions`, payload).then((res) => res.data);
+
+export const deleteProjectResolution = (projectId, resolutionId) =>
+  api.delete(`/projects/${projectId}/resolutions/${resolutionId}`).then((res) => res.data);

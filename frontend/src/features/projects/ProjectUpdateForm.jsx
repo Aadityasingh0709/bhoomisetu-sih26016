@@ -28,6 +28,7 @@ const schema = z.object({
   pendingCases: z.coerce.number().min(0),
   completedCases: z.coerce.number().min(0),
   delayReason: z.string().optional(),
+  resolutionNotes: z.string().optional(),
   expectedCompletionDate: z.string().optional(),
 });
 
@@ -77,6 +78,7 @@ export default function ProjectUpdateForm() {
         pendingCases: mine?.pendingCases ?? 0,
         completedCases: mine?.completedCases ?? 0,
         delayReason: mine?.delayReason || "",
+        resolutionNotes: mine?.resolutionNotes || "",
         expectedCompletionDate: mine?.expectedCompletionDate
           ? mine.expectedCompletionDate.slice(0, 10)
           : "",
@@ -98,6 +100,7 @@ export default function ProjectUpdateForm() {
         pendingCases: entry.pendingCases ?? 0,
         completedCases: entry.completedCases ?? 0,
         delayReason: entry.delayReason || "",
+        resolutionNotes: entry.resolutionNotes || "",
         expectedCompletionDate: entry.expectedCompletionDate
           ? entry.expectedCompletionDate.slice(0, 10)
           : "",
@@ -326,11 +329,24 @@ export default function ProjectUpdateForm() {
           {/* Delay reason */}
           <Field label="Reason for Delay or Bottleneck (Optional)">
             <textarea
-              rows={3}
+              rows={2}
               {...register("delayReason")}
               className="input resize-none"
               placeholder="e.g. Title disputes in survey parcel #44B, waiting for Tahsildar clearance"
             />
+          </Field>
+
+          {/* Bottleneck / Dispute Resolution Remarks */}
+          <Field label="Bottleneck or Dispute Resolution Remarks (Optional)">
+            <textarea
+              rows={3}
+              {...register("resolutionNotes")}
+              className="input resize-none border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500 bg-emerald-50/10 text-xs"
+              placeholder="If you resolved an earlier bottleneck, dispute, or backlog in this stage, write how it was resolved (actions taken, orders passed, settlement terms reached) to automatically log it into the project dossier."
+            />
+            <p className="text-[10px] text-emerald-700 mt-1 font-medium">
+              ✓ Documenting how you resolved an obstacle will record an entry in the Bottleneck &amp; Dispute Resolution Center.
+            </p>
           </Field>
 
           {/* Expected Date */}
@@ -378,4 +394,3 @@ function Field({ label, error, children }) {
     </div>
   );
 }
-
