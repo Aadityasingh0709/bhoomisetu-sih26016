@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "./components/AppLayout.jsx";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import LoginPage from "./features/auth/LoginPage.jsx";
+import ForgotPasswordPage from "./features/auth/ForgotPasswordPage.jsx";
+import ResetPasswordPage from "./features/auth/ResetPasswordPage.jsx";
 import DashboardPage from "./features/dashboard/DashboardPage.jsx";
 import ProjectListPage from "./features/projects/ProjectListPage.jsx";
 import ProjectDetailPage from "./features/projects/ProjectDetailPage.jsx";
@@ -13,6 +15,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>

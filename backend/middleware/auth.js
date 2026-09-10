@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import asyncHandler from "express-async-handler";
 import User from "../models/User.js";
+import { hasPermission, getStagePermissions } from "../config/rbac.js";
 
 // Verifies the JWT and attaches the user to req.user
 export const protect = asyncHandler(async (req, res, next) => {
@@ -37,3 +38,70 @@ export const restrictTo = (...roles) => (req, res, next) => {
   }
   next();
 };
+
+// Permission-based authorization using RBAC
+export const requirePermission = (permission) => (req, res, next) => {
+  if (!hasPermission(req.user.role, permission)) {
+    res.status(403);
+    throw new Error(`User does not have permission to '${permission}'`);
+  }
+  next();
+};
+
+// Multiple permissions (user must have at least one)
+export const requireAnyPermission = (...permissions) => (req, res, next) => {
+  const hasAny = permissions.some(perm => hasPermission(req.user.role, perm));
+  if (!hasAny) {
+    res.status(403);
+    throw new Error("User does not have required permissions");
+  }
+  next();
+};
+
+// Multiple permissions (user must have all)
+export const requireAllPermissions = (...permissions) => (req, res, next) => {
+  const hasAll = permissions.every(perm => hasPermission(req.user.role, perm));
+  if (!hasAll) {
+    res.status(403);
+    throw new Error("User does not have all required permissions");
+  }
+  next();
+};
+
+// Department-level access control
+export const requireDepartmentAccess = asyncHandler(async (req, res, next) => {
+  const { departmentId } = req.params;
+
+  // Administrators have access to all departments
+  if (req.user.role === "Administrator") {
+    return next();
+  }
+
+  // DepartmentOfficers can only access their own department
+  if (req.user.role === "DepartmentOfficer" && req.user.department) {
+    if (req.user.department._id.toString() !== departmentId) {
+      res.status(403);
+      throw new Error("You do not have access to this department");
+    }
+  }
+
+  next();
+});
+
+// Ownership-based access control for resources
+export const requireOwnership = (userField = "createdBy") => asyncHandler(async (req, res, next) => {
+  const resource = req.resource || req.params;
+
+  // Administrators have access to all resources
+  if (req.user.role === "Administrator") {
+    return next();
+  }
+
+  if (resource[userField]?.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error("You do not have access to this resource");
+  }
+
+  next();
+});
+

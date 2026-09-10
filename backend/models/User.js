@@ -17,6 +17,9 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ROLES, required: true },
     department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
     isActive: { type: Boolean, default: true },
+    passwordResetToken: { type: String, select: false },
+    passwordResetExpires: { type: Date, select: false },
+    lastPasswordChange: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
@@ -30,6 +33,24 @@ userSchema.pre("save", async function (next) {
 
 userSchema.methods.matchPassword = function (entered) {
   return bcrypt.compare(entered, this.password);
+};
+
+userSchema.methods.generatePasswordResetToken = function () {
+  const resetToken = require("crypto").randomBytes(32).toString("hex");
+  this.passwordResetToken = require("crypto")
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  return resetToken;
+};
+
+userSchema.methods.matchResetToken = function (token) {
+  const hashedToken = require("crypto")
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+  return this.passwordResetToken === hashedToken;
 };
 
 export const ROLE_LIST = ROLES;
