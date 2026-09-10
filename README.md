@@ -57,15 +57,20 @@ npm run dev
 **Backend API:** http://localhost:5000
 **Health Check:** http://localhost:5000/api/health
 
-### Demo Accounts (Password: `password123`)
-- `admin@landacquisition.gov.in` — System Administrator
-- `senior@landacquisition.gov.in` — Senior Officer (Full Dashboard Access)
-- `survey@landacquisition.gov.in` — Survey Officer
-- `legal@landacquisition.gov.in` — Legal Verification Officer
-- `compensation@landacquisition.gov.in` — Compensation Officer
-- `rehabilitation@landacquisition.gov.in` — Rehabilitation Officer
-- `approvals@landacquisition.gov.in` — Approvals Officer
-- `possession@landacquisition.gov.in` — Possession Officer
+### Demo Accounts
+
+Each role has a unique, secure password for testing:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Administrator | `admin@landacquisition.gov.in` | `Admin@2026Secure!` |
+| Senior Officer | `senior@landacquisition.gov.in` | `Senior@2026Officer!` |
+| Survey Officer | `survey@landacquisition.gov.in` | `Survey@2026Land!` |
+| Legal Verification | `legal@landacquisition.gov.in` | `Legal@2026Verify!` |
+| Compensation Officer | `compensation@landacquisition.gov.in` | `Compensation@2026!` |
+| Rehabilitation Officer | `rehabilitation@landacquisition.gov.in` | `Rehab@2026Support!` |
+| Approvals Officer | `approvals@landacquisition.gov.in` | `Approvals@2026!` |
+| Possession Officer | `possession@landacquisition.gov.in` | `Possession@2026!` |
 
 ## Running components separately
 
@@ -109,12 +114,54 @@ needed in development.
 - **Delayed** (project-level): any department Delayed, or the planned completion date
   has passed without full completion.
 
+## 🔐 Role-Based Access Control (RBAC)
+
+BhoomiSetu implements comprehensive **RBAC with 5 permission levels**:
+
+### Roles & Permissions
+
+1. **Administrator** - Full system access, user management, system settings
+2. **Senior Officer** - Executive analytics, progress tracking, alert management
+3. **Department Officer** - Stage-specific permissions (Survey, Legal, Compensation, etc.)
+4. **Project Manager** - Project creation, team management, progress tracking
+5. **District Officer** - District-level data access and reporting
+
+### RBAC Features
+
+- **Permission-based authorization** - Fine-grained control beyond roles
+- **Stage-specific permissions** - Different access for each workflow stage
+- **Department-level isolation** - DepartmentOfficers access only their department
+- **Ownership-based access** - Resource protection and accountability
+- **Audit trail support** - Track all permission-based access
+
+See [RBAC_PASSWORD_RECOVERY_GUIDE.md](RBAC_PASSWORD_RECOVERY_GUIDE.md) for detailed configuration.
+
+## 🔑 Password Recovery & Security
+
+- **Forgot Password** - Request password reset with email link (token expires in 10 minutes)
+- **Reset Password** - Secure password reset with token validation
+- **Change Password** - Authenticated users can change their password anytime
+- **Password Requirements** - Minimum 8 characters, mixed case, numbers, special characters recommended
+- **Password Reset Tokens** - Hashed, one-time use, with expiration for security
+
+### Password Recovery Flow
+
+1. Click "Forgot password?" on login page
+2. Enter registered email address
+3. Receive password reset link (demo mode shows token)
+4. Click link or paste token to reset
+5. Create new secure password
+6. Auto-login after successful reset
+
 ## API reference
 
 | Method | Route | Access |
 |---|---|---|
 | POST | `/api/auth/login` | Public |
 | GET | `/api/auth/me` | Authenticated |
+| POST | `/api/auth/forgot-password` | Public |
+| POST | `/api/auth/reset-password/:token` | Public |
+| POST | `/api/auth/change-password` | Authenticated |
 | GET | `/api/projects` | Authenticated (filters: `state`, `department`, `status`, `search`) |
 | GET | `/api/projects/:id` | Authenticated |
 | POST | `/api/projects` | Administrator, ProjectManager |
