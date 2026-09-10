@@ -39,31 +39,31 @@ const run = async () => {
   const admin = await User.create({
     name: "System Administrator",
     email: "admin@landacquisition.gov.in",
-    password: "password123",
+    password: "Admin@2026Secure!",
     role: "Administrator",
   });
 
   const seniorOfficer = await User.create({
     name: "Senior Officer",
     email: "senior@landacquisition.gov.in",
-    password: "password123",
+    password: "Senior@2026Officer!",
     role: "SeniorOfficer",
   });
 
   const officerAccounts = [
-    ["Survey", "Survey Officer", "survey@landacquisition.gov.in"],
-    ["LegalVerification", "Legal Verification Officer", "legal@landacquisition.gov.in"],
-    ["Compensation", "Compensation Officer", "compensation@landacquisition.gov.in"],
-    ["Rehabilitation", "Rehabilitation Officer", "rehabilitation@landacquisition.gov.in"],
-    ["Approvals", "Approvals Officer", "approvals@landacquisition.gov.in"],
-    ["Possession", "Possession Officer", "possession@landacquisition.gov.in"],
+    ["Survey", "Survey Officer", "survey@landacquisition.gov.in", "Survey@2026Land!"],
+    ["LegalVerification", "Legal Verification Officer", "legal@landacquisition.gov.in", "Legal@2026Verify!"],
+    ["Compensation", "Compensation Officer", "compensation@landacquisition.gov.in", "Compensation@2026!"],
+    ["Rehabilitation", "Rehabilitation Officer", "rehabilitation@landacquisition.gov.in", "Rehab@2026Support!"],
+    ["Approvals", "Approvals Officer", "approvals@landacquisition.gov.in", "Approvals@2026!"],
+    ["Possession", "Possession Officer", "possession@landacquisition.gov.in", "Possession@2026!"],
   ];
 
-  for (const [departmentName, name, email] of officerAccounts) {
+  for (const [departmentName, name, email, password] of officerAccounts) {
     await User.create({
       name,
       email,
-      password: "password123",
+      password,
       role: "DepartmentOfficer",
       department: byName[departmentName]._id,
     });
