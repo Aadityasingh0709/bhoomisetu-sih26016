@@ -126,7 +126,17 @@ const run = async () => {
   console.log("✓ Demo users created");
   console.log("✓ Demo projects created");
   console.log("BhoomiSetu demo environment ready.");
-  console.log("Demo password for every account: password123");
+  console.log("\n📋 Demo Account Credentials:");
+  console.log("─────────────────────────────────────────");
+  console.log("Admin: admin@landacquisition.gov.in → Admin@2026Secure!");
+  console.log("Senior Officer: senior@landacquisition.gov.in → Senior@2026Officer!");
+  console.log("Survey Officer: survey@landacquisition.gov.in → Survey@2026Land!");
+  console.log("Legal Officer: legal@landacquisition.gov.in → Legal@2026Verify!");
+  console.log("Compensation Officer: compensation@landacquisition.gov.in → Compensation@2026!");
+  console.log("Rehabilitation Officer: rehabilitation@landacquisition.gov.in → Rehab@2026Support!");
+  console.log("Approvals Officer: approvals@landacquisition.gov.in → Approvals@2026!");
+  console.log("Possession Officer: possession@landacquisition.gov.in → Possession@2026!");
+  console.log("─────────────────────────────────────────\n");
   await mongoose.disconnect();
   process.exit(0);
 };
