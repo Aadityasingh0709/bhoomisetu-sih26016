@@ -2,198 +2,171 @@
 
 SIH 2026 · PS 26016 · Ministry of Rural Development, Dept. of Land Resources (DoLR)
 
-A MERN-stack platform that digitizes the land acquisition lifecycle (Survey → Legal
-Verification → Compensation → Rehabilitation → Approvals → Possession), gives each
-department its own update workspace, and rolls those updates up into a weighted
-progress score, GIS-mapped dashboard, automatic bottleneck/dependency alerts, and a
-formal bottleneck & dispute resolution audit trail for senior officers.
+A full-stack enterprise governance platform that digitizes the multi-stage land acquisition lifecycle (**Survey → Legal Verification → Compensation → Rehabilitation → Approvals → Possession**), equips the **System Administrator** with granular powers to generate per-project departmental credentials, enforces a **2-step project-scoped authentication flow** for departmental officers, and aggregates live field telemetry into a weighted progress score, GIS-mapped dashboard, real-time bottleneck/dependency alerts, and an auditable dispute resolution trail.
 
-## Contributor
+---
 
-Aaditya Singh ([Aadityasingh0709](https://github.com/Aadityasingh0709))
-Kehsaw Jha   ([keshaw006](https://github.com/keshaw006))
+## Contributors
 
-## Stack
+- **Aaditya Singh** ([@Aadityasingh0709](https://github.com/Aadityasingh0709))
+- **Keshaw Jha** ([@keshaw006](https://github.com/keshaw006))
 
-- **MongoDB** + Mongoose
-- **Express** REST API, JWT auth, role-based access control
-- **React 18** (Vite) + Tailwind CSS + React Router v6
-- **Node.js** 20 LTS
+---
 
-Frontend libraries: `axios`, `zustand` (state), `react-hook-form` + `zod` (forms),
-`recharts` (charts), `react-leaflet` + `leaflet` (GIS map, OpenStreetMap tiles — no API
-key needed), `react-hot-toast`, `lucide-react`.
+## Core System Architecture & Features
 
-## Project structure
+### 1. 🛡️ System Administrator Power & Department Credentials Management
+- **Per-Project Department Credential Generation**: When creating a project in the system, the Administrator can configure or 1-click auto-generate login accounts and secure passwords for all 6 statutory departments specifically for that project:
+  1. **Survey** (15% Weight)
+  2. **Legal Verification** (15% Weight)
+  3. **Compensation** (30% Weight)
+  4. **Rehabilitation** (25% Weight)
+  5. **Approvals** (5% Weight)
+  6. **Possession** (10% Weight)
+- **Instant Credentials Dossier Export**: Upon project creation, the Administrator receives a complete Project Credentials Dossier with a **"Copy All Credentials"** button to immediately distribute access keys to ground officers.
+- **Assigned Officers Registry**: The project detail dossier displays the assigned officer, email, and Project ID for each stage.
 
-```
-backend/     Express API, Mongoose models, JWT auth, business rules (progress %,
-             risk/delay/bottleneck detection, dependency alerts, resolution tracking)
-frontend/    Vite + React app (dashboard, project list/detail, department update
-             form, dispute & bottleneck resolution center, alerts, GIS map)
-```
+### 2. 🔐 2-Step Project-Scoped Authentication
+Because a System Administrator oversees multiple national projects (e.g. Officer A manages Survey for *Project X*, while Officer B manages Survey for *Project Y*), the platform enforces strict project scoping:
+- **Departmental Officers (2-Step Login)**:
+  - **Step 1 — Project Verification**: The officer enters their assigned **Project ID / Project Code** (e.g. `NH44-P2-2026` or `EFC-LP-2026`). Live validation displays verified project metadata (name, state, district, agency).
+  - **Step 2 — Officer Sign-In**: The officer enters their official email and password. The system verifies that the officer is assigned to that specific project and department.
+- **System Administrators & Senior Officers (Direct Executive Access)**:
+  - Administrators and Senior Executives toggle to the **"Executive / Admin"** tab and sign in directly without needing a Project ID, granting them cross-project mission control oversight.
 
-## Quick start
+### 3. 🔍 Administrator Dashboard: Project ID / Code Search
+- A dedicated **Project ID Search Bar** at the top of the Administrator Dashboard enables instant lookup by Project ID (e.g. `NH44`, `EFC-LP-2026`), Project Name, or District.
+- Live dropdown previews show status badges, weighted progress meters, and direct links to open any project dossier.
 
-Prerequisites: Node.js 20 LTS, npm, Git, and either MongoDB Atlas or a local
-MongoDB instance. Use MongoDB Atlas when the team needs one shared demo database.
+### 4. ⚖️ Bottleneck & Dispute Resolution Center
+- Auditable institutional records for resolving land disputes, court orders, inter-agency deadlocks, and procedural bottlenecks.
+- Captures category (*Land Title Dispute*, *Compensation Grievance*, *Boundary Demarcation*, *Clearance & NOC*, etc.), corrective action narrative, resolving officer, and gazette/case order numbers (e.g. `REV/BLG-2026/894-LOKADALAT`).
+
+---
+
+## Tech Stack
+
+- **Backend**: Node.js 20 LTS, Express REST API, MongoDB + Mongoose, JWT Authentication, bcryptjs password hashing.
+- **Frontend**: React 18, Vite, Tailwind CSS, React Router v6, Zustand (session persistence), React Hook Form + Zod (schema validation), Recharts (stage telemetry), React Leaflet + Leaflet (OpenStreetMap GIS layer), Lucide React.
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Node.js 20 LTS & npm
+- Git
+- MongoDB (local instance on `mongodb://127.0.0.1:27017/land_acquisition` or MongoDB Atlas URI)
+
+### Installation & Setup
 
 ```bash
+# 1. Clone repository
 git clone https://github.com/Aadityasingh0709/bhoomisetu-sih26016.git
 cd bhoomisetu-sih26016
+
+# 2. Install backend and frontend dependencies
 npm run install:all
-```
 
-Create `backend/.env` from `backend/.env.example`, set `MONGO_URI` and a strong
-`JWT_SECRET`, then prepare demo data and start both apps:
+# 3. Configure backend environment
+cd backend
+cp .env.example .env    # Verify MONGO_URI and JWT_SECRET
 
-```bash
+# 4. Seed sample projects and project-scoped department accounts
 npm run seed
+
+# 5. Start development servers
+cd ..
 npm run dev
 ```
 
-## Access the Dashboard Now
+- **Frontend Portal**: http://localhost:5173
+- **Backend API**: http://localhost:5000
+- **Health Check**: http://localhost:5000/api/health
 
-**Frontend:** http://localhost:5173/
-**Backend API:** http://localhost:5000
-**Health Check:** http://localhost:5000/api/health
+---
 
-### Demo Accounts
+## Demo Accounts & Project Credentials
 
-Each role has a unique, secure password for testing:
+### 1. Sample Project IDs for Departmental Officers
 
-| Role | Email | Password |
-|------|-------|----------|
-| Administrator | `admin@landacquisition.gov.in` | `Admin@2026Secure!` |
-| Senior Officer | `senior@landacquisition.gov.in` | `Senior@2026Officer!` |
-| Survey Officer | `survey@landacquisition.gov.in` | `Survey@2026Land!` |
-| Legal Verification | `legal@landacquisition.gov.in` | `Legal@2026Verify!` |
-| Compensation Officer | `compensation@landacquisition.gov.in` | `Compensation@2026!` |
-| Rehabilitation Officer | `rehabilitation@landacquisition.gov.in` | `Rehab@2026Support!` |
-| Approvals Officer | `approvals@landacquisition.gov.in` | `Approvals@2026!` |
-| Possession Officer | `possession@landacquisition.gov.in` | `Possession@2026!` |
+| Project Code / ID | Project Name | Jurisdiction | Implementing Agency |
+|---|---|---|---|
+| **`NH44-P2-2026`** | NH-44 Highway Expansion — Phase 2 | Belagavi, Karnataka | NHAI |
+| **`EFC-LP-2026`** | Eastern Freight Corridor — Land Parcel Acquisition | Patna, Bihar | DFCCIL |
 
-## Running components separately
+---
 
-### 1. Backend
+### 2. Login Credentials Reference
 
-```bash
-cd backend
-cp .env.example .env      # edit MONGO_URI / JWT_SECRET as needed
-npm install
-npm run seed               # creates departments + demo users + resolutions + 2 demo projects
-npm run dev                 # http://localhost:5000
-```
+#### Executive & Administrative Accounts (Direct Sign-In — No Project ID Required)
 
-**Demo accounts created:** See "Access the Dashboard Now" section above for login credentials.
+| Role | Portal Tab | Email | Password | Access Scope |
+|---|---|---|---|---|
+| **System Administrator** | Executive / Admin | `admin@landacquisition.gov.in` | `Admin@2026Secure!` | Full platform control, project creation & credentials issuance, deletion |
+| **Senior Officer** | Executive / Admin | `senior@landacquisition.gov.in` | `Senior@2026Officer!` | National GIS telemetry, executive analytics & directives |
 
-### 2. Frontend
+#### Departmental Officer Accounts (Requires 2-Step Login with Project ID)
 
-```bash
-cd frontend
-npm install
-npm run dev                 # http://localhost:5173 (or next available port like 5174)
-```
+| Role / Department | Project ID (Step 1) | Email (Step 2) | Password | Stage & Weight |
+|---|---|---|---|---|
+| **Survey Officer** | `NH44-P2-2026` | `survey@landacquisition.gov.in` | `Survey@2026Land!` | Stage 1 (15%) |
+| **Legal Verification** | `NH44-P2-2026` | `legal@landacquisition.gov.in` | `Legal@2026Verify!` | Stage 2 (15%) |
+| **Compensation Officer** | `NH44-P2-2026` | `compensation@landacquisition.gov.in` | `Compensation@2026!` | Stage 3 (30%) |
+| **Rehabilitation Officer** | `NH44-P2-2026` | `rehabilitation@landacquisition.gov.in` | `Rehab@2026Support!` | Stage 4 (25%) |
+| **Approvals Officer** | `NH44-P2-2026` | `approvals@landacquisition.gov.in` | `Approvals@2026!` | Stage 5 (5%) |
+| **Possession Officer** | `NH44-P2-2026` | `possession@landacquisition.gov.in` | `Possession@2026!` | Stage 6 (10%) |
+| **EFC Survey Lead** | `EFC-LP-2026` | `survey.efc@landacquisition.gov.in` | `Survey@2026Efc!` | Stage 1 (15%) |
 
-**Note:** If port 5173 is already in use, Vite automatically uses the next available port (5174, 5175, etc.).
+---
 
-The Vite dev server proxies `/api/*` to `http://localhost:5000`, so no CORS config is
-needed in development.
+## Step-by-Step User Workflow Examples
 
-## Business rules implemented (backend/controllers/projectController.js)
+### Example 1: System Administrator Creates a Project & Issues IDs
+1. Log in as **System Administrator** (`admin@landacquisition.gov.in` / `Admin@2026Secure!`).
+2. Navigate to **Projects** → Click **"Create Project"**.
+3. Fill in Project Name (`e.g. Pune-Nashik Industrial Expressway`), Project ID (`PNIE-2026`), District, State, Agency, Dates, and GIS Coordinates.
+4. In Section 2 (**Department Officer Accounts & Passwords**), review the auto-generated emails (e.g. `survey.pnie2026@landacquisition.gov.in`) and click **"Generate Passwords"** to create unique passwords for all 6 departments.
+5. Click **"Create Project & Generate IDs"**.
+6. The **Credentials Dossier Card** appears. Click **"Copy All Credentials"** to export the access details for the 6 departmental leads.
 
-- **Overall progress** = Σ(department actual progress × department weight) — weights
-  default to Survey 15 / Legal 15 / Compensation 30 / Rehabilitation 25 / Approvals 5 /
-  Possession 10, editable per-department in MongoDB.
-- **At Risk**: a department is flagged when actual progress trails planned progress by
-  10 points or more.
-- **Bottleneck alert**: raised when a department has >20 pending cases and <60% actual
-  progress.
-- **Dependency alert**: raised when an upstream stage (per the fixed lifecycle order) is
-  At Risk/Delayed and the downstream stage isn't yet complete — mirrors "compensation
-  delay may affect rehabilitation" from the problem statement.
-- **Delayed** (project-level): any department Delayed, or the planned completion date
-  has passed without full completion.
+### Example 2: Department Officer 2-Step Login & Updating Progress
+1. Open the login portal at `http://localhost:5173/login`.
+2. On the **Department Officer** tab:
+   - **Step 1**: Enter Project ID `NH44-P2-2026` (or click the sample project badge) → Click **"Validate Project & Proceed"**.
+   - Verified project metadata for *NH-44 Highway Expansion* is confirmed.
+   - **Step 2**: Enter `survey@landacquisition.gov.in` and password `Survey@2026Land!` → Click **"Sign In to Project Workspace"**.
+3. The officer is directed straight to their **Survey Workspace** scoped to `NH44-P2-2026`.
+4. The officer can update boundary demarcation, pending/completed cases, upload drone coordinates, or report bottlenecks.
 
-## ⚖️ Bottleneck & Dispute Resolution Center
+### Example 3: Searching Projects by ID in Admin Dashboard
+1. Log in as **System Administrator** or **Senior Officer**.
+2. At the top of the **National Land Acquisition Overview**, type `NH44` or `EFC` into the **Project ID / Code Search** bar.
+3. The live search displays matching projects with their weighted progress bars, current SLA statuses, and direct links to open the dossiers.
 
-The **Bottleneck & Dispute Resolution Center** provides an auditable institutional record for how land disputes, court orders, inter-agency deadlocks, and procedural bottlenecks are formally resolved:
+---
 
-- **Resolution Taxonomy**: Categorization across *Land Title Dispute*, *Bottleneck*, *Compensation Grievance*, *Boundary Demarcation*, *Clearance & NOC*, and *Inter-Agency Obstacle*.
-- **Corrective Action Tracking**: Records the exact steps taken to unblock progress (e.g. Lok Adalat mediation, Tahsildar joint inspection, DGPS re-survey, Section 28 consent award, bulk PFMS DBT verification).
-- **Executive Audit Trail**: Tracks the presiding officer, resolving user, date/timestamp, legal case or gazette order reference numbers (e.g. `REV/BLG-2026/894-LOKADALAT`).
-- **Two-Way Alert Synchronization**: Resolving a telemetry alert automatically prompts for resolution remarks, marks the alert as resolved, and creates an audit record linked to the project's permanent dossier.
+## API Reference
 
-## 🔐 Role-Based Access Control (RBAC)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET` | `/api/auth/validate-project/:code` | Public | Validate Project ID / Code before credential entry in Step 1 |
+| `POST` | `/api/auth/login` | Public | Authenticate user (requires `projectCode` for DepartmentOfficers) |
+| `GET` | `/api/auth/me` | Authenticated | Get current authenticated user profile & active project scope |
+| `POST` | `/api/auth/forgot-password` | Public | Initiate password reset token |
+| `POST` | `/api/auth/reset-password/:token` | Public | Reset password with token |
+| `POST` | `/api/auth/change-password` | Authenticated | Change current user password |
+| `GET` | `/api/projects` | Authenticated | Search & list projects (supports `search` by ID/code/name, `state`, `status`) |
+| `GET` | `/api/projects/:id` | Authenticated | Fetch project dossier with assigned officers & resolutions |
+| `POST` | `/api/projects` | Administrator, ProjectManager | Create project & generate department officer accounts |
+| `PATCH` | `/api/projects/:id/departments/:deptId` | DepartmentOfficer, Administrator | Submit progress update for assigned department |
+| `POST` | `/api/projects/:id/resolutions` | DepartmentOfficer, Administrator, SeniorOfficer | Record dispute or bottleneck resolution order |
+| `GET` | `/api/dashboard/summary` | Authenticated | Overall KPI totals, bottlenecks, and active alerts |
+| `GET` | `/api/dashboard/map` | Authenticated | National GIS geo-tagged parcels |
+| `GET` | `/api/health` | Public | Telemetry and database connectivity check |
 
-BhoomiSetu implements comprehensive **RBAC with 5 permission levels**:
+---
 
-### Roles & Permissions
+## License
 
-1. **Administrator** - Full system access, user management, system settings
-2. **Senior Officer** - Executive analytics, progress tracking, alert management
-3. **Department Officer** - Stage-specific permissions (Survey, Legal, Compensation, etc.)
-4. **Project Manager** - Project creation, team management, progress tracking
-5. **District Officer** - District-level data access and reporting
-
-### RBAC Features
-
-- **Permission-based authorization** - Fine-grained control beyond roles
-- **Stage-specific permissions** - Different access for each workflow stage
-- **Department-level isolation** - DepartmentOfficers access only their department
-- **Ownership-based access** - Resource protection and accountability
-- **Audit trail support** - Track all permission-based access
-
-See [RBAC_PASSWORD_RECOVERY_GUIDE.md](RBAC_PASSWORD_RECOVERY_GUIDE.md) for detailed configuration.
-
-## 🔑 Password Recovery & Security
-
-- **Forgot Password** - Request password reset with email link (token expires in 10 minutes)
-- **Reset Password** - Secure password reset with token validation
-- **Change Password** - Authenticated users can change their password anytime
-- **Password Requirements** - Minimum 8 characters, mixed case, numbers, special characters recommended
-- **Password Reset Tokens** - Hashed, one-time use, with expiration for security
-
-### Password Recovery Flow
-
-1. Click "Forgot password?" on login page
-2. Enter registered email address
-3. Receive password reset link (demo mode shows token)
-4. Click link or paste token to reset
-5. Create new secure password
-6. Auto-login after successful reset
-
-## API reference
-
-| Method | Route | Access |
-|---|---|---|
-| POST | `/api/auth/login` | Public |
-| GET | `/api/auth/me` | Authenticated |
-| POST | `/api/auth/forgot-password` | Public |
-| POST | `/api/auth/reset-password/:token` | Public |
-| POST | `/api/auth/change-password` | Authenticated |
-| GET | `/api/projects` | Authenticated (filters: `state`, `department`, `status`, `search`) |
-| GET | `/api/projects/:id` | Authenticated |
-| POST | `/api/projects` | Administrator, ProjectManager |
-| PATCH | `/api/projects/:id/departments/:deptId` | DepartmentOfficer, Administrator |
-| POST | `/api/projects/:id/resolutions` | DepartmentOfficer, Administrator, SeniorOfficer, ProjectManager |
-| DELETE | `/api/projects/:id/resolutions/:resolutionId` | Administrator, ProjectManager |
-| GET | `/api/resolutions` | Authenticated (filters: `projectId`, `departmentId`, `category`, `status`) |
-| GET | `/api/resolutions/:id` | Authenticated |
-| POST | `/api/resolutions` | DepartmentOfficer, Administrator, SeniorOfficer, ProjectManager |
-| DELETE | `/api/resolutions/:id` | Administrator, ProjectManager |
-| GET | `/api/dashboard/summary` | Authenticated |
-| GET | `/api/dashboard/map` | Authenticated |
-| GET | `/api/alerts` | Authenticated |
-| PATCH | `/api/alerts/:id/resolve` | Administrator, Senior Officer, Project Manager |
-| GET | `/api/health` | Public — API and database status |
-
-## Notes for the demo
-
-- Map tiles come from the public OpenStreetMap tile server — fine for a hackathon demo,
-  swap for a paid tile provider before any production use.
-- File uploads for the document repository are stubbed as `fileUrl` strings in the
-  `Project.documents` schema — wire up `multer` + S3/local disk storage if the judges
-  ask for it live.
-- The seeded accounts are demo-only. Change all credentials and set a strong
-  `JWT_SECRET` before deploying anywhere beyond a local presentation.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
