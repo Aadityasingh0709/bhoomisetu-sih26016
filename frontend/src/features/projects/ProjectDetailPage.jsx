@@ -41,6 +41,10 @@ import {
   ShieldCheck,
   Award,
   ExternalLink,
+  Copy,
+  Check,
+  KeyRound,
+  Users,
 } from "lucide-react";
 
 const categoryMeta = (cat) => {
@@ -86,6 +90,7 @@ export default function ProjectDetailPage() {
     status: "Resolved",
   });
 
+  const [copiedOfficerInfo, setCopiedOfficerInfo] = useState(false);
   const currentUser = useAuthStore((s) => s.user);
   const role = currentUser?.role;
   const canUpdate = ["DepartmentOfficer", "Administrator", "ProjectManager"].includes(role);
@@ -280,10 +285,10 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* Project Banner Card */}
-      <div className="rounded-2xl border border-ink-100 bg-white p-6 shadow-card">
+      <div className="rounded-2xl border border-ink-100 bg-white p-4 sm:p-6 shadow-card">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
               <span className="rounded-md bg-ink-900 px-2.5 py-0.5 font-mono text-xs font-bold text-white">
                 {project.code}
               </span>
@@ -293,24 +298,24 @@ export default function ProjectDetailPage() {
               </span>
             </div>
 
-            <h1 className="text-2xl font-black tracking-tight text-ink-900 sm:text-3xl">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-ink-900">
               {project.name}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-4 text-xs text-ink-500 pt-1">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-ink-500 pt-1">
               <span className="flex items-center gap-1.5">
-                <Building size={14} className="text-ink-400" />
+                <Building size={14} className="text-ink-400 shrink-0" />
                 <span className="font-semibold text-ink-800">{project.implementingAgency}</span>
               </span>
               <span>·</span>
               <span className="flex items-center gap-1.5">
-                <Calendar size={14} className="text-ink-400" />
+                <Calendar size={14} className="text-ink-400 shrink-0" />
                 <span>Target: {formatDate(project.plannedCompletionDate)}</span>
               </span>
               {project.location?.coordinates && (
                 <>
-                  <span>·</span>
-                  <span className="font-mono text-ink-400">
+                  <span className="hidden sm:inline">·</span>
+                  <span className="font-mono text-ink-400 hidden sm:inline">
                     {project.location.coordinates[1].toFixed(4)}°N, {project.location.coordinates[0].toFixed(4)}°E
                   </span>
                 </>
@@ -319,13 +324,13 @@ export default function ProjectDetailPage() {
           </div>
 
           {/* Big Overall Velocity Gauge */}
-          <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-ink-950 to-slate-900 p-5 text-white shadow-xl min-w-[220px]">
+          <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-ink-950 to-slate-900 p-4 sm:p-5 text-white shadow-xl min-w-0 sm:min-w-[220px]">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-ochre-400">
                 Weighted Progress
               </p>
               <div className="flex items-baseline gap-1 mt-0.5">
-                <span className="text-3xl font-black data-figure text-white">
+                <span className="text-2xl sm:text-3xl font-black data-figure text-white">
                   {project.overallProgress}%
                 </span>
                 <span className="text-xs text-ink-300">completed</span>
@@ -372,7 +377,7 @@ export default function ProjectDetailPage() {
         subtitle="Click any stage below to inspect verified progress, pending backlog & delay diagnostics"
         icon={Layers}
       >
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 pt-2">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6 pt-2">
           {project.departments?.map((dp, idx) => {
             const isSelected = selectedStageIndex === idx;
             const meta = statusMeta(dp.status);
@@ -573,6 +578,73 @@ export default function ProjectDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Assigned Department Officers & Project ID Section */}
+      <Card
+        title="Project-Scoped Department Officers & Credentials"
+        subtitle="Department officers assigned by the Administrator to this project"
+        icon={Users}
+        action={
+          <button
+            type="button"
+            onClick={() => {
+              const text = [
+                `Project: ${project.name}`,
+                `Project ID / Code: ${project.code}`,
+                `----------------------------------------`,
+                ...(project.departments || []).map(
+                  (dp) =>
+                    `• ${dp.department?.displayName || "Stage"} (${dp.department?.weight || 0}% wt): ${
+                      dp.assignedOfficer?.name || "Assigned Officer"
+                    } (${dp.assignedOfficer?.email || "officer@landacquisition.gov.in"})`
+                ),
+              ].join("\n");
+              navigator.clipboard.writeText(text);
+              setCopiedOfficerInfo(true);
+              toast.success("Project Officers info copied to clipboard!");
+              setTimeout(() => setCopiedOfficerInfo(false), 3000);
+            }}
+            className="flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm hover:bg-ink-50 transition-colors"
+          >
+            {copiedOfficerInfo ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+            <span>{copiedOfficerInfo ? "Copied!" : "Copy Officers Info"}</span>
+          </button>
+        }
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {(project.departments || []).map((dp, idx) => {
+            const Icon = stageIcons[dp.department?.name] || Building;
+            return (
+              <div
+                key={dp.department?._id || idx}
+                className="rounded-xl border border-ink-100 bg-ink-50/50 p-3.5 text-xs space-y-2 hover:bg-white hover:shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold text-ink-900">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-ochre-500/15 text-ochre-700">
+                      <Icon size={13} />
+                    </div>
+                    <span>{dp.department?.displayName}</span>
+                  </div>
+                  <StatusBadge status={dp.status} size="sm" />
+                </div>
+
+                <div className="space-y-0.5 border-t border-ink-100 pt-2 text-[11px]">
+                  <p className="text-ink-500">
+                    Officer: <span className="font-bold text-ink-900">{dp.assignedOfficer?.name || `${dp.department?.displayName} Officer`}</span>
+                  </p>
+                  <p className="text-ink-500 truncate">
+                    Login ID: <span className="font-mono font-semibold text-ink-800">{dp.assignedOfficer?.email || `${dp.department?.name?.toLowerCase()}.${project.code?.toLowerCase().replace(/[^a-z0-9]/g, "")}@landacquisition.gov.in`}</span>
+                  </p>
+                  <p className="text-ink-400 text-[10px]">
+                    Project ID: <span className="font-mono font-bold text-ochre-700">{project.code}</span>
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
       {/* Bottleneck & Dispute Resolution Center Section */}
       <div id="resolution-section" className="space-y-4">
@@ -794,29 +866,29 @@ export default function ProjectDetailPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-ink-900 to-slate-900 px-6 py-5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ochre-500/20 text-ochre-400 border border-ochre-500/30">
-                  <Scale size={20} />
+            <div className="bg-gradient-to-r from-ink-900 to-slate-900 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-ochre-500/20 text-ochre-400 border border-ochre-500/30">
+                  <Scale size={18} className="sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-white">Record Dispute / Bottleneck Resolution</h2>
-                  <p className="text-xs text-ink-300 mt-0.5">
-                    Write how a dispute, obstruction or bottleneck was resolved on this parcel
+                  <h2 className="text-sm sm:text-base font-black text-white">Record Dispute / Bottleneck Resolution</h2>
+                  <p className="text-[11px] sm:text-xs text-ink-300 mt-0.5">
+                    Write how a dispute, obstruction or bottleneck was resolved
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowResolutionModal(false)}
-                className="rounded-lg p-1 text-ink-400 hover:text-white hover:bg-white/10 transition-colors"
+                className="rounded-lg p-1 text-ink-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
               >
                 <X size={18} />
               </button>
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleSubmitResolution} className="p-6 space-y-4">
+            <form onSubmit={handleSubmitResolution} className="p-4 sm:p-6 space-y-4">
               {/* Title */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-ink-700 mb-1">

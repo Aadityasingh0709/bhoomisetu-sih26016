@@ -57,6 +57,7 @@ const run = async () => {
     role: "SeniorOfficer",
   });
 
+  // Default Global Officers (assigned to NH-44 and EFC-LP)
   const officerAccounts = [
     ["Survey", "Survey Officer", "survey@landacquisition.gov.in", "Survey@2026Land!"],
     ["LegalVerification", "Legal Verification Officer", "legal@landacquisition.gov.in", "Legal@2026Verify!"],
@@ -66,15 +67,26 @@ const run = async () => {
     ["Possession", "Possession Officer", "possession@landacquisition.gov.in", "Possession@2026!"],
   ];
 
+  const officerMap = {};
   for (const [departmentName, name, email, password] of officerAccounts) {
-    await User.create({
+    const user = await User.create({
       name,
       email,
       password,
       role: "DepartmentOfficer",
       department: byName[departmentName]._id,
     });
+    officerMap[departmentName] = user;
   }
+
+  // Project-specific officer for Freight corridor (to demonstrate different officers for different projects)
+  const efcSurveyOfficer = await User.create({
+    name: "Dr. B. Patnaik (EFC Survey Lead)",
+    email: "survey.efc@landacquisition.gov.in",
+    password: "Survey@2026Efc!",
+    role: "DepartmentOfficer",
+    department: byName.Survey._id,
+  });
 
   const highwayProject = await Project.create({
     name: "NH-44 Highway Expansion — Phase 2",
@@ -92,12 +104,12 @@ const run = async () => {
     compensationAssessed: 185000000,
     compensationDisbursed: 96000000,
     departments: [
-      { department: byName.Survey._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 40 },
-      { department: byName.LegalVerification._id, status: "Completed", actualProgress: 92, plannedProgress: 90, pendingCases: 3, completedCases: 35 },
-      { department: byName.Compensation._id, status: "Delayed", actualProgress: 43, plannedProgress: 70, pendingCases: 32, completedCases: 18, delayReason: "Landowner verification pending" },
-      { department: byName.Rehabilitation._id, status: "AtRisk", actualProgress: 55, plannedProgress: 60, pendingCases: 12, completedCases: 20 },
-      { department: byName.Approvals._id, status: "Completed", actualProgress: 80, plannedProgress: 80, pendingCases: 1, completedCases: 8 },
-      { department: byName.Possession._id, status: "NotStarted", actualProgress: 0, plannedProgress: 10, pendingCases: 0, completedCases: 0 },
+      { department: byName.Survey._id, assignedOfficer: officerMap.Survey._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 40 },
+      { department: byName.LegalVerification._id, assignedOfficer: officerMap.LegalVerification._id, status: "Completed", actualProgress: 92, plannedProgress: 90, pendingCases: 3, completedCases: 35 },
+      { department: byName.Compensation._id, assignedOfficer: officerMap.Compensation._id, status: "Delayed", actualProgress: 43, plannedProgress: 70, pendingCases: 32, completedCases: 18, delayReason: "Landowner verification pending" },
+      { department: byName.Rehabilitation._id, assignedOfficer: officerMap.Rehabilitation._id, status: "AtRisk", actualProgress: 55, plannedProgress: 60, pendingCases: 12, completedCases: 20 },
+      { department: byName.Approvals._id, assignedOfficer: officerMap.Approvals._id, status: "Completed", actualProgress: 80, plannedProgress: 80, pendingCases: 1, completedCases: 8 },
+      { department: byName.Possession._id, assignedOfficer: officerMap.Possession._id, status: "NotStarted", actualProgress: 0, plannedProgress: 10, pendingCases: 0, completedCases: 0 },
     ],
     resolutions: [
       {
@@ -143,12 +155,12 @@ const run = async () => {
     compensationAssessed: 90000000,
     compensationDisbursed: 90000000,
     departments: [
-      { department: byName.Survey._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
-      { department: byName.LegalVerification._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
-      { department: byName.Compensation._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
-      { department: byName.Rehabilitation._id, status: "OnTrack", actualProgress: 68, plannedProgress: 65, pendingCases: 5, completedCases: 15 },
-      { department: byName.Approvals._id, status: "OnTrack", actualProgress: 60, plannedProgress: 55, pendingCases: 2, completedCases: 6 },
-      { department: byName.Possession._id, status: "OnTrack", actualProgress: 20, plannedProgress: 15, pendingCases: 1, completedCases: 2 },
+      { department: byName.Survey._id, assignedOfficer: efcSurveyOfficer._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
+      { department: byName.LegalVerification._id, assignedOfficer: officerMap.LegalVerification._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
+      { department: byName.Compensation._id, assignedOfficer: officerMap.Compensation._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
+      { department: byName.Rehabilitation._id, assignedOfficer: officerMap.Rehabilitation._id, status: "OnTrack", actualProgress: 68, plannedProgress: 65, pendingCases: 5, completedCases: 15 },
+      { department: byName.Approvals._id, assignedOfficer: officerMap.Approvals._id, status: "OnTrack", actualProgress: 60, plannedProgress: 55, pendingCases: 2, completedCases: 6 },
+      { department: byName.Possession._id, assignedOfficer: officerMap.Possession._id, status: "OnTrack", actualProgress: 20, plannedProgress: 15, pendingCases: 1, completedCases: 2 },
     ],
     resolutions: [
       {
@@ -165,6 +177,14 @@ const run = async () => {
       },
     ],
   });
+
+  // Assign projects to officers
+  for (const officer of Object.values(officerMap)) {
+    officer.assignedProjects = [highwayProject._id, freightProject._id];
+    await officer.save();
+  }
+  efcSurveyOfficer.assignedProjects = [freightProject._id];
+  await efcSurveyOfficer.save();
 
   await recalculateProject(highwayProject, { skipAlerts: true });
   await recalculateProject(freightProject, { skipAlerts: true });

@@ -239,7 +239,7 @@ export default function ProjectUpdateForm() {
 
           {/* Status Selection */}
           <Field label="Current Milestone Status" error={errors.status?.message}>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
               {["NotStarted", "OnTrack", "AtRisk", "Delayed", "Completed"].map((s) => {
                 const isSelected = currentStatus === s;
                 return (
@@ -247,7 +247,7 @@ export default function ProjectUpdateForm() {
                     key={s}
                     type="button"
                     onClick={() => setValue("status", s)}
-                    className={`rounded-xl border p-2.5 text-center text-xs font-bold transition-all ${
+                    className={`rounded-xl border p-2 sm:p-2.5 text-center text-xs font-bold transition-all ${
                       isSelected
                         ? "border-ochre-500 bg-ochre-50 text-ochre-900 ring-2 ring-ochre-500/20 shadow-sm"
                         : "border-ink-100 bg-white text-ink-600 hover:bg-ink-50"

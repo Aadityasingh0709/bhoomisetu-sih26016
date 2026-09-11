@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { LogOut, Landmark, Bell, Shield, User, ChevronDown, Check, Sparkles } from "lucide-react";
+import { LogOut, Landmark, Bell, Shield, User, ChevronDown, Check, Sparkles, Menu, X } from "lucide-react";
 import { useAuthStore } from "../store/authStore.js";
 import { useNavigate, Link } from "react-router-dom";
 import { DEMO_ACCOUNTS } from "../utils/demoAccounts.js";
@@ -7,7 +7,7 @@ import { loginRequest } from "../api/auth.js";
 import { fetchAlerts } from "../api/alerts.js";
 import toast from "react-hot-toast";
 
-export default function Navbar() {
+export default function Navbar({ sidebarOpen = false, onToggleSidebar }) {
   const { user, logout, setSession } = useAuthStore();
   const navigate = useNavigate();
 
@@ -115,30 +115,37 @@ export default function Navbar() {
         .toUpperCase()
     : "GOI";
 
-  // Compute action badge count
-  const actionCount = isAuthority
-    ? pendingDecisionForAuthority.length + pendingClosureForAuthority.length
-    : directivesForMyDept.length || alerts.length;
-
   return (
     <header className="relative z-40 bg-white border-b border-ink-100 shadow-sm">
       {/* Tricolor Government Top Strip */}
       <div className="h-1 w-full tricolor-stripe" />
 
-      <div className="flex h-16 items-center justify-between px-4 lg:px-6">
-        {/* Brand & Emblem */}
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-ochre-500 to-ochre-700 text-white shadow-md shadow-ochre-500/20 group-hover:scale-105 transition-transform">
-              <Landmark size={22} className="stroke-[2.2]" />
+      <div className="flex h-16 items-center justify-between px-3 sm:px-4 lg:px-6">
+        {/* Left Side: Mobile Hamburger Toggle + Brand */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Mobile Sidebar Hamburger Toggle */}
+          {onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-ink-200/80 bg-ink-50/50 text-ink-700 hover:bg-ink-100 hover:text-ink-900 transition-colors lg:hidden"
+              aria-label={sidebarOpen ? "Close navigation" : "Open navigation"}
+            >
+              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          )}
+
+          {/* Brand & Emblem */}
+          <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-gradient-to-br from-ochre-500 to-ochre-700 text-white shadow-md shadow-ochre-500/20 group-hover:scale-105 transition-transform shrink-0">
+              <Landmark size={20} className="stroke-[2.2]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-extrabold tracking-tight text-ink-900">
+                <span className="text-base sm:text-lg font-extrabold tracking-tight text-ink-900">
                   BhoomiSetu
                 </span>
               </div>
-              <p className="text-[11px] font-medium text-ink-400 leading-tight">
+              <p className="hidden sm:block text-[11px] font-medium text-ink-400 leading-tight">
                 National Land Acquisition &amp; Management Portal
               </p>
             </div>
@@ -152,29 +159,29 @@ export default function Navbar() {
         </div>
 
         {/* Right Action Bar */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Quick 1-Click Role Switcher */}
           <div className="relative" ref={roleMenuRef}>
             <button
               onClick={() => setRoleMenuOpen(!roleMenuOpen)}
               disabled={switchingRole}
-              className="flex items-center gap-2 rounded-xl border border-ochre-200 bg-ochre-50/70 hover:bg-ochre-100/80 px-3 py-1.5 text-xs font-semibold text-ochre-900 shadow-sm transition-all"
+              className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-ochre-200 bg-ochre-50/70 hover:bg-ochre-100/80 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-ochre-900 shadow-sm transition-all"
               title="Switch demo persona (Admin, Senior Officer, Department Officers)"
             >
-              <Sparkles size={14} className="text-ochre-600 animate-spin-slow" />
-              <span className="hidden md:inline">Demo Persona:</span>
-              <span className="max-w-[130px] truncate text-ochre-800 font-bold">
+              <Sparkles size={14} className="text-ochre-600 animate-spin-slow shrink-0" />
+              <span className="hidden md:inline text-ink-500">Demo Persona:</span>
+              <span className="max-w-[80px] sm:max-w-[130px] truncate text-ochre-800 font-bold">
                 {user?.role === "DepartmentOfficer"
                   ? `${user?.department?.displayName || "Officer"}`
                   : user?.role === "Administrator"
                   ? "Admin"
                   : "Senior Officer"}
               </span>
-              <ChevronDown size={14} className={`transition-transform ${roleMenuOpen ? "rotate-180" : ""}`} />
+              <ChevronDown size={14} className={`transition-transform shrink-0 ${roleMenuOpen ? "rotate-180" : ""}`} />
             </button>
 
             {roleMenuOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-ink-100 bg-white p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm rounded-2xl border border-ink-100 bg-white p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="border-b border-ink-100 pb-2 px-3 pt-1">
                   <p className="text-xs font-bold uppercase tracking-wider text-ink-400">
                     Switch Demo Persona
@@ -229,7 +236,7 @@ export default function Navbar() {
             </button>
 
             {alertsMenuOpen && (
-              <div className="absolute right-0 mt-2 w-88 sm:w-[400px] rounded-2xl border border-ink-100 bg-white p-3 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-[400px] max-w-[420px] rounded-2xl border border-ink-100 bg-white p-3 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="flex items-center justify-between border-b border-ink-100 pb-2 px-1">
                   <div className="flex items-center gap-1.5">
                     <Shield size={16} className="text-rose-500" />
@@ -358,7 +365,7 @@ export default function Navbar() {
           </div>
 
           {/* User Profile Card */}
-          <div className="hidden sm:flex items-center gap-2.5 pl-2 border-l border-ink-100">
+          <div className="hidden md:flex items-center gap-2.5 pl-2 border-l border-ink-100">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink-900 text-white font-bold text-xs shadow-inner">
               {currentInitials}
             </div>
@@ -386,4 +393,5 @@ export default function Navbar() {
     </header>
   );
 }
+
 

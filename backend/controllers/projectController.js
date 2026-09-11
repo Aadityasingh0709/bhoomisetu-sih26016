@@ -3,6 +3,7 @@ import Project from "../models/Project.js";
 import Department from "../models/Department.js";
 import Alert from "../models/Alert.js";
 import Resolution from "../models/Resolution.js";
+import User from "../models/User.js";
 
 // Recalculates a project's weighted overall progress + status, and raises
 // bottleneck/dependency alerts. This is the core "system converts updates
@@ -132,11 +133,18 @@ export const getProjects = asyncHandler(async (req, res) => {
   const filter = {};
   if (state) filter.state = state;
   if (status) filter.overallStatus = status;
-  if (search) filter.name = { $regex: search, $options: "i" };
+  if (search) {
+    filter.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { code: { $regex: search, $options: "i" } },
+      { district: { $regex: search, $options: "i" } },
+    ];
+  }
   if (department) filter["departments.department"] = department;
 
   const projects = await Project.find(filter)
     .populate("departments.department")
+    .populate("departments.assignedOfficer", "name email role")
     .populate("resolutions.department")
     .populate("resolutions.resolvedBy", "name email role")
     .sort({ createdAt: -1 });
@@ -147,6 +155,7 @@ export const getProjects = asyncHandler(async (req, res) => {
 export const getProject = asyncHandler(async (req, res) => {
   const project = await Project.findById(req.params.id)
     .populate("departments.department")
+    .populate("departments.assignedOfficer", "name email role")
     .populate("resolutions.department")
     .populate("resolutions.resolvedBy", "name email role");
   if (!project) {
@@ -158,15 +167,67 @@ export const getProject = asyncHandler(async (req, res) => {
 
 // POST /api/projects  (Administrator / ProjectManager)
 export const createProject = asyncHandler(async (req, res) => {
+  const { departmentOfficers, ...projectData } = req.body;
   const departments = await Department.find();
-  const project = await Project.create({
-    ...req.body,
-    departments: departments.map((d) => ({ department: d._id })),
+
+  // Create initial project document
+  const project = new Project({
+    ...projectData,
+    departments: departments.map((d) => ({
+      department: d._id,
+    })),
   });
+
+  // If department officers credentials were provided during creation
+  if (Array.isArray(departmentOfficers) && departmentOfficers.length > 0) {
+    for (const officerData of departmentOfficers) {
+      if (!officerData.email || !officerData.password) continue;
+
+      const dept = departments.find(
+        (d) =>
+          String(d._id) === String(officerData.departmentId) ||
+          d.name.toLowerCase() === String(officerData.departmentName || "").toLowerCase()
+      );
+      if (!dept) continue;
+
+      let user = await User.findOne({ email: officerData.email.toLowerCase().trim() });
+      if (user) {
+        // Associate this existing officer with this new project
+        if (!user.assignedProjects.includes(project._id)) {
+          user.assignedProjects.push(project._id);
+          await user.save();
+        }
+      } else {
+        // Create new project-specific department officer
+        user = await User.create({
+          name: officerData.name?.trim() || `${dept.displayName} Officer`,
+          email: officerData.email.toLowerCase().trim(),
+          password: officerData.password,
+          role: "DepartmentOfficer",
+          department: dept._id,
+          assignedProjects: [project._id],
+        });
+      }
+
+      // Link officer to the project's department progress item
+      const deptEntry = project.departments.find(
+        (dp) => String(dp.department) === String(dept._id)
+      );
+      if (deptEntry) {
+        deptEntry.assignedOfficer = user._id;
+      }
+    }
+  }
+
+  await project.save();
+
   // Apply the same progress, risk, and alert rules at creation time as on a
   // department update, so a newly created project is never left inconsistent.
   const updated = await recalculateProject(project);
-  await updated.populate("departments.department");
+  await updated.populate([
+    { path: "departments.department" },
+    { path: "departments.assignedOfficer", select: "name email role" },
+  ]);
   res.status(201).json(updated);
 });
 

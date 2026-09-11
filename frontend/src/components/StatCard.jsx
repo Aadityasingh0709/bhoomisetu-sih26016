@@ -20,7 +20,7 @@ export default function StatCard({
   return (
     <div
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 ${
+      className={`group relative overflow-hidden rounded-2xl border p-3.5 sm:p-5 transition-all duration-300 ${
         onClick ? "cursor-pointer select-none" : ""
       } ${
         active
@@ -28,28 +28,28 @@ export default function StatCard({
           : "border-ink-100/90 bg-white shadow-card hover:shadow-cardHover hover:-translate-y-0.5"
       } ${className}`}
     >
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{label}</p>
+      <div className="flex items-center justify-between gap-1">
+        <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-ink-400 truncate">{label}</p>
         {Icon && (
           <div
-            className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-300"
+            className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-300"
             style={{
               backgroundColor: `${accent}12`,
               color: accent,
             }}
           >
-            <Icon size={18} />
+            <Icon size={16} className="sm:w-[18px] sm:h-[18px]" />
           </div>
         )}
       </div>
 
-      <div className="mt-3 flex items-baseline gap-2">
-        <p className="text-3xl font-extrabold data-figure tracking-tight" style={{ color: accent }}>
+      <div className="mt-2 sm:mt-3 flex flex-wrap items-baseline gap-1.5 sm:gap-2">
+        <p className="text-2xl sm:text-3xl font-extrabold data-figure tracking-tight" style={{ color: accent }}>
           {value}
         </p>
         {trend && (
           <span
-            className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[11px] font-semibold ${
+            className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] sm:text-[11px] font-semibold ${
               trendColors[trendType] || trendColors.neutral
             }`}
           >
@@ -59,7 +59,7 @@ export default function StatCard({
       </div>
 
       {sublabel && (
-        <p className="mt-1 text-xs text-ink-400 font-medium">{sublabel}</p>
+        <p className="mt-1 text-[11px] sm:text-xs text-ink-400 font-medium line-clamp-1 sm:line-clamp-none">{sublabel}</p>
       )}
 
       {/* Subtle bottom accent line */}

@@ -77,13 +77,22 @@ export default function ForgotPasswordPage() {
       </div>
 
       {/* Right Column: Form */}
-      <div className="flex lg:w-1/2 flex-col justify-center px-8 py-12 sm:px-12 lg:px-16">
+      <div className="flex flex-1 flex-col justify-center px-4 py-8 sm:px-10 lg:px-16 min-h-screen">
         <div className="w-full max-w-md mx-auto">
+          {/* Mobile Header */}
+          <div className="lg:hidden text-center mb-6">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-ochre-500 text-white mb-2 shadow-lg">
+              <Landmark size={24} />
+            </div>
+            <h1 className="text-xl font-bold text-white">BhoomiSetu</h1>
+            <p className="text-xs text-ink-400">National Land Acquisition &amp; Management System</p>
+          </div>
+
           {!submitted ? (
             <>
-              <div className="mb-8">
-                <h1 className="text-2xl font-bold text-white">Reset Your Password</h1>
-                <p className="mt-2 text-sm text-ink-300">
+              <div className="mb-6 sm:mb-8">
+                <h1 className="text-xl sm:text-2xl font-bold text-white">Reset Your Password</h1>
+                <p className="mt-1.5 text-xs sm:text-sm text-ink-300">
                   We'll send a recovery link to your registered email address
                 </p>
               </div>

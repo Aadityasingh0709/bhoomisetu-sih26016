@@ -38,52 +38,52 @@ export default function MapView({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-ink-100 shadow-card bg-slate-900" style={{ height }}>
+    <div className="relative overflow-hidden rounded-2xl border border-ink-100 shadow-card bg-slate-900 w-full min-h-[300px] h-[340px] sm:h-[440px]">
       {/* Top Map Controls Overlay */}
-      <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2">
+      <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-[1000] flex items-center gap-2">
         {/* Layer toggle button */}
-        <div className="flex rounded-xl bg-white/95 p-1 shadow-lg backdrop-blur-md border border-ink-200/80 text-xs font-semibold">
+        <div className="flex rounded-xl bg-white/95 p-0.5 sm:p-1 shadow-lg backdrop-blur-md border border-ink-200/80 text-[11px] sm:text-xs font-semibold">
           <button
             type="button"
             onClick={() => setMapType("streets")}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition-colors ${
+            className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 transition-colors ${
               mapType === "streets"
                 ? "bg-ink-900 text-white shadow-sm"
                 : "text-ink-600 hover:text-ink-900"
             }`}
           >
-            <Layers size={13} />
+            <Layers size={12} className="sm:w-[13px] sm:h-[13px]" />
             <span>Street</span>
           </button>
           <button
             type="button"
             onClick={() => setMapType("satellite")}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition-colors ${
+            className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 transition-colors ${
               mapType === "satellite"
                 ? "bg-ink-900 text-white shadow-sm"
                 : "text-ink-600 hover:text-ink-900"
             }`}
           >
-            <Layers size={13} />
+            <Layers size={12} className="sm:w-[13px] sm:h-[13px]" />
             <span>Satellite</span>
           </button>
         </div>
       </div>
 
       {/* Bottom GIS Status Legend */}
-      <div className="absolute bottom-3 left-3 z-[1000] hidden sm:flex items-center gap-3 rounded-xl bg-white/95 px-3 py-1.5 shadow-md backdrop-blur-md border border-ink-100 text-[11px] font-medium text-ink-700">
-        <span className="font-bold text-ink-900">GIS Parcels:</span>
+      <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 z-[1000] flex flex-wrap items-center gap-1.5 sm:gap-3 rounded-xl bg-white/95 px-2 sm:px-3 py-1 sm:py-1.5 shadow-md backdrop-blur-md border border-ink-100 text-[10px] sm:text-[11px] font-medium text-ink-700 max-w-[85%] sm:max-w-none">
+        <span className="font-bold text-ink-900 hidden xs:inline">GIS:</span>
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" /> On Track
+          <span className="h-2 w-2 rounded-full bg-emerald-500" /> Track
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-amber-500" /> At Risk
+          <span className="h-2 w-2 rounded-full bg-amber-500" /> Risk
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-rose-500" /> Delayed
+          <span className="h-2 w-2 rounded-full bg-rose-500" /> Delay
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-blue-600" /> Completed
+          <span className="h-2 w-2 rounded-full bg-blue-600" /> Done
         </span>
       </div>
 

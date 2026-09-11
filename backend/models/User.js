@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, minlength: 6, select: false },
     role: { type: String, enum: ROLES, required: true },
     department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
+    assignedProjects: [{ type: mongoose.Schema.Types.ObjectId, ref: "Project" }],
     isActive: { type: Boolean, default: true },
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date, select: false },

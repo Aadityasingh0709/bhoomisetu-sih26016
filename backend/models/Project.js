@@ -20,6 +20,7 @@ const departmentProgressSchema = new mongoose.Schema(
     delayReason: { type: String, default: "" },
     resolutionNotes: { type: String, default: "" },
     expectedCompletionDate: { type: Date },
+    assignedOfficer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     lastUpdatedAt: { type: Date, default: Date.now },
   },

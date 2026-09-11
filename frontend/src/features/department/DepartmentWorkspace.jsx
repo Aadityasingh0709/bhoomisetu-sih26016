@@ -340,7 +340,7 @@ export default function DepartmentWorkspace() {
       )}
 
       {/* Quick KPI Stat Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           label="Assigned Projects"
           value={projects.length}
@@ -374,10 +374,10 @@ export default function DepartmentWorkspace() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-ink-100 pb-3">
+      <div className="flex items-center gap-2 border-b border-ink-100 pb-3 overflow-x-auto no-scrollbar flex-nowrap sm:flex-wrap">
         <button
           onClick={() => setFilterTab("all")}
-          className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+          className={`rounded-xl px-3.5 sm:px-4 py-2 text-xs font-bold transition-all shrink-0 ${
             filterTab === "all"
               ? "bg-ink-900 text-white shadow-sm"
               : "bg-white text-ink-600 hover:bg-ink-50 border border-ink-100"
@@ -387,7 +387,7 @@ export default function DepartmentWorkspace() {
         </button>
         <button
           onClick={() => setFilterTab("action")}
-          className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+          className={`rounded-xl px-3.5 sm:px-4 py-2 text-xs font-bold transition-all shrink-0 ${
             filterTab === "action"
               ? "bg-rose-600 text-white shadow-sm"
               : "bg-white text-ink-600 hover:bg-ink-50 border border-ink-100"
@@ -397,7 +397,7 @@ export default function DepartmentWorkspace() {
         </button>
         <button
           onClick={() => setFilterTab("healthy")}
-          className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+          className={`rounded-xl px-3.5 sm:px-4 py-2 text-xs font-bold transition-all shrink-0 ${
             filterTab === "healthy"
               ? "bg-emerald-700 text-white shadow-sm"
               : "bg-white text-ink-600 hover:bg-ink-50 border border-ink-100"

@@ -167,7 +167,7 @@ export default function ProjectListPage() {
       </div>
 
       {/* Interactive Status Filter Pills */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-ink-100 pb-3">
+      <div className="flex items-center gap-2 border-b border-ink-100 pb-3 overflow-x-auto no-scrollbar flex-nowrap sm:flex-wrap">
         {STATUS_TABS.map((tab) => {
           const isCurrent = status === tab.key;
           const count = counts[tab.key] ?? 0;
@@ -175,7 +175,7 @@ export default function ProjectListPage() {
             <button
               key={tab.key}
               onClick={() => setStatus(tab.key)}
-              className={`flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-3 sm:px-3.5 py-1.5 text-xs font-bold transition-all shrink-0 ${
                 isCurrent
                   ? "bg-ink-900 text-white shadow-md shadow-ink-900/20"
                   : "bg-white text-ink-600 hover:bg-ink-50 border border-ink-100"
@@ -195,9 +195,9 @@ export default function ProjectListPage() {
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-100 bg-white p-3 shadow-sm">
-        <div className="flex flex-1 items-center gap-2 min-w-[240px]">
-          <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-ink-100 bg-white p-3 shadow-sm">
+        <div className="flex flex-1 flex-col xs:flex-row items-stretch xs:items-center gap-2 min-w-0">
+          <div className="relative flex-1 min-w-0">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" />
             <input
               value={search}
@@ -219,7 +219,7 @@ export default function ProjectListPage() {
           <select
             value={stateFilter}
             onChange={(e) => setStateFilter(e.target.value)}
-            className="rounded-xl border border-ink-100 bg-ink-50/50 py-2 px-3 text-xs font-semibold text-ink-700 outline-none focus:border-ochre-500"
+            className="rounded-xl border border-ink-100 bg-ink-50/50 py-2 px-3 text-xs font-semibold text-ink-700 outline-none focus:border-ochre-500 shrink-0"
           >
             {stateOptions.map((s) => (
               <option key={s} value={s}>
@@ -229,14 +229,14 @@ export default function ProjectListPage() {
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between sm:justify-end gap-2">
           {/* Sort By */}
-          <div className="flex items-center gap-1.5 rounded-xl border border-ink-100 px-3 py-1.5 text-xs text-ink-700">
-            <ArrowUpDown size={13} className="text-ink-400" />
+          <div className="flex items-center gap-1.5 rounded-xl border border-ink-100 px-2.5 sm:px-3 py-1.5 text-xs text-ink-700 flex-1 sm:flex-none">
+            <ArrowUpDown size={13} className="text-ink-400 shrink-0" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-transparent outline-none font-semibold cursor-pointer"
+              className="bg-transparent outline-none font-semibold cursor-pointer text-xs w-full sm:w-auto"
             >
               <option value="newest">Latest Created</option>
               <option value="progressDesc">Progress: High to Low</option>
@@ -246,7 +246,7 @@ export default function ProjectListPage() {
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex rounded-xl border border-ink-100 p-0.5 bg-ink-50">
+          <div className="flex rounded-xl border border-ink-100 p-0.5 bg-ink-50 shrink-0">
             <button
               onClick={() => setViewMode("grid")}
               className={`rounded-lg p-1.5 transition-colors ${

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { fetchDashboardSummary, fetchMapData } from "../../api/dashboard.js";
+import { fetchProjects } from "../../api/projects.js";
 import { resolveAlert } from "../../api/alerts.js";
 import StatCard from "../../components/StatCard.jsx";
 import Card from "../../components/Card.jsx";
@@ -8,7 +9,7 @@ import ProgressBar from "../../components/ProgressBar.jsx";
 import BottleneckChart, { StatusDonutChart } from "../../components/ChartCard.jsx";
 import MapView from "../../components/MapView.jsx";
 import { formatDate } from "../../utils/status.js";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   FolderKanban,
@@ -22,9 +23,14 @@ import {
   Sparkles,
   MapPin,
   FileCheck,
+  Search,
+  X,
+  Building,
+  KeyRound,
 } from "lucide-react";
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [mapPoints, setMapPoints] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +38,11 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [stateFilter, setStateFilter] = useState("All");
   const [resolvingId, setResolvingId] = useState(null);
+
+  // Project ID Search State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
 
   const loadData = async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -51,6 +62,26 @@ export default function DashboardPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Handle Project ID search
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const results = await fetchProjects({ search: searchQuery.trim() });
+        setSearchResults(results || []);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleResolveAlert = async (alertId) => {
     setResolvingId(alertId);
@@ -126,55 +157,128 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Top Banner: Mission Control Header & Controls */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black tracking-tight text-ink-900">
-              National Land Acquisition Overview
-            </h1>
-            <span className="rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
-              Live GIS
-            </span>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-ink-900">
+                National Land Acquisition Overview
+              </h1>
+              <span className="rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
+                Live GIS
+              </span>
+            </div>
+            <p className="text-xs font-medium text-ink-400 mt-0.5">
+              DoLR weighted lifecycle telemetry · {totals.total} active national parcels · velocity{" "}
+              <span className="font-bold text-ink-800 font-mono">{totals.avgProgress}%</span>
+            </p>
           </div>
-          <p className="text-xs font-medium text-ink-400 mt-0.5">
-            DoLR weighted lifecycle telemetry · {totals.total} active national parcels · national average velocity{" "}
-            <span className="font-bold text-ink-800 font-mono">{totals.avgProgress}%</span>
-          </p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* State Filter */}
+            <div className="flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm">
+              <Filter size={13} className="text-ink-400" />
+              <span>State:</span>
+              <select
+                value={stateFilter}
+                onChange={(e) => setStateFilter(e.target.value)}
+                className="bg-transparent outline-none font-bold text-ink-900 cursor-pointer text-xs"
+              >
+                {availableStates.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Refresh Button */}
+            <button
+              onClick={() => loadData(true)}
+              disabled={refreshing}
+              className="flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm hover:bg-ink-50 hover:text-ink-900 transition-all disabled:opacity-60"
+              title="Refresh latest telemetry from all departments"
+            >
+              <RefreshCw size={13} className={`${refreshing ? "animate-spin text-ochre-600" : ""}`} />
+              <span>{refreshing ? "Syncing…" : "Refresh"}</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* State Filter */}
-          <div className="flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm">
-            <Filter size={13} className="text-ink-400" />
-            <span>State:</span>
-            <select
-              value={stateFilter}
-              onChange={(e) => setStateFilter(e.target.value)}
-              className="bg-transparent outline-none font-bold text-ink-900 cursor-pointer"
-            >
-              {availableStates.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+        {/* Administrator Search by Project ID / Code Bar */}
+        <div className="relative rounded-2xl border border-ink-200 bg-white p-3 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ochre-600" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search projects by Project ID / Code (e.g. NH44, EFC-LP-2026, Belagavi, Patna)..."
+                className="w-full rounded-xl border border-ink-100 bg-ink-50/70 py-2.5 pl-10 pr-9 text-xs font-semibold text-ink-900 outline-none focus:border-ochre-500 focus:bg-white focus:ring-1 focus:ring-ochre-500"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            {searching && <RefreshCw size={15} className="animate-spin text-ochre-600 mr-2" />}
           </div>
 
-          {/* Refresh Button */}
-          <button
-            onClick={() => loadData(true)}
-            disabled={refreshing}
-            className="flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-ink-700 shadow-sm hover:bg-ink-50 hover:text-ink-900 transition-all disabled:opacity-60"
-            title="Refresh latest telemetry from all departments"
-          >
-            <RefreshCw size={13} className={`${refreshing ? "animate-spin text-ochre-600" : ""}`} />
-            <span>{refreshing ? "Syncing…" : "Refresh"}</span>
-          </button>
+          {/* Live Search Results Dropdown */}
+          {searchQuery.trim() && (
+            <div className="mt-3 border-t border-ink-100 pt-3 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-ink-400 font-bold uppercase tracking-wider">
+                <span>Matching Projects ({searchResults.length})</span>
+                <span>Click project to open dossier &amp; officer credentials</span>
+              </div>
+
+              {searchResults.length === 0 && !searching ? (
+                <p className="py-2 text-xs text-ink-400 text-center">
+                  No projects found with Project ID / Name "{searchQuery}".
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+                  {searchResults.map((p) => (
+                    <Link
+                      key={p._id}
+                      to={`/projects/${p._id}`}
+                      className="group flex items-start justify-between gap-2 rounded-xl border border-ink-100 bg-ink-50/50 p-3 hover:border-ochre-400 hover:bg-ochre-50/30 transition-all text-xs"
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-ochre-700 bg-ochre-100/70 px-1.5 py-0.2 rounded text-[10px]">
+                            {p.code}
+                          </span>
+                          <StatusBadge status={p.overallStatus} size="sm" />
+                        </div>
+                        <p className="font-bold text-ink-900 group-hover:text-ochre-700 transition-colors mt-1 line-clamp-1">
+                          {p.name}
+                        </p>
+                        <p className="text-[10px] text-ink-400 flex items-center gap-1 mt-0.5">
+                          <MapPin size={10} />
+                          <span>{p.district}, {p.state}</span>
+                          <span>·</span>
+                          <span className="font-bold text-ink-700">{p.overallProgress}% progress</span>
+                        </p>
+                      </div>
+                      <ArrowUpRight size={14} className="shrink-0 text-ink-400 group-hover:text-ochre-600 group-hover:translate-x-0.5 transition-transform mt-1" />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* KPI Stat Cards (Clickable to Filter) */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           label="Total Projects"
           value={totals.total}

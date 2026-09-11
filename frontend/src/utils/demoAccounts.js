@@ -1,3 +1,18 @@
+export const DEMO_PROJECTS = [
+  {
+    code: "NH44-P2-2026",
+    name: "NH-44 Highway Expansion — Phase 2",
+    state: "Karnataka",
+    district: "Belagavi",
+  },
+  {
+    code: "EFC-LP-2026",
+    name: "Eastern Freight Corridor — Land Parcel Acquisition",
+    state: "Bihar",
+    district: "Patna",
+  },
+];
+
 export const DEMO_ACCOUNTS = [
   {
     role: "Administrator",
@@ -11,6 +26,7 @@ export const DEMO_ACCOUNTS = [
     pillBg: "bg-blue-50 text-blue-700 border-blue-200",
     desc: "Full access to national overview, all projects, creation, deletion & system settings.",
     permissions: ["all"],
+    requiresProject: false,
   },
   {
     role: "SeniorOfficer",
@@ -24,6 +40,7 @@ export const DEMO_ACCOUNTS = [
     pillBg: "bg-purple-50 text-purple-700 border-purple-200",
     desc: "Executive view: GIS tracking, weighted progress, bottleneck ranking & dependency alerts.",
     permissions: ["view_all_projects", "view_analytics", "view_alerts", "export_reports"],
+    requiresProject: false,
   },
   {
     role: "DepartmentOfficer",
@@ -32,6 +49,8 @@ export const DEMO_ACCOUNTS = [
     email: "survey@landacquisition.gov.in",
     password: "Survey@2026Land!",
     departmentName: "Survey",
+    defaultProjectCode: "NH44-P2-2026",
+    requiresProject: true,
     icon: "MapPin",
     color: "from-emerald-600 to-teal-700",
     pillBg: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -45,6 +64,8 @@ export const DEMO_ACCOUNTS = [
     email: "legal@landacquisition.gov.in",
     password: "Legal@2026Verify!",
     departmentName: "Legal Verification",
+    defaultProjectCode: "NH44-P2-2026",
+    requiresProject: true,
     icon: "Scale",
     color: "from-cyan-600 to-blue-700",
     pillBg: "bg-cyan-50 text-cyan-700 border-cyan-200",
@@ -58,6 +79,8 @@ export const DEMO_ACCOUNTS = [
     email: "compensation@landacquisition.gov.in",
     password: "Compensation@2026!",
     departmentName: "Compensation",
+    defaultProjectCode: "NH44-P2-2026",
+    requiresProject: true,
     icon: "Coins",
     color: "from-amber-600 to-orange-700",
     pillBg: "bg-amber-50 text-amber-700 border-amber-200",
@@ -71,6 +94,8 @@ export const DEMO_ACCOUNTS = [
     email: "rehabilitation@landacquisition.gov.in",
     password: "Rehab@2026Support!",
     departmentName: "Rehabilitation",
+    defaultProjectCode: "NH44-P2-2026",
+    requiresProject: true,
     icon: "Home",
     color: "from-pink-600 to-rose-700",
     pillBg: "bg-pink-50 text-pink-700 border-pink-200",
@@ -84,6 +109,8 @@ export const DEMO_ACCOUNTS = [
     email: "approvals@landacquisition.gov.in",
     password: "Approvals@2026!",
     departmentName: "Approvals",
+    defaultProjectCode: "NH44-P2-2026",
+    requiresProject: true,
     icon: "FileCheck",
     color: "from-teal-600 to-emerald-700",
     pillBg: "bg-teal-50 text-teal-700 border-teal-200",
@@ -97,6 +124,8 @@ export const DEMO_ACCOUNTS = [
     email: "possession@landacquisition.gov.in",
     password: "Possession@2026!",
     departmentName: "Possession",
+    defaultProjectCode: "NH44-P2-2026",
+    requiresProject: true,
     icon: "Flag",
     color: "from-indigo-600 to-violet-700",
     pillBg: "bg-indigo-50 text-indigo-700 border-indigo-200",
