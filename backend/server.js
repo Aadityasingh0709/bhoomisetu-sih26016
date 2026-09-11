@@ -80,14 +80,9 @@ const startServer = async () => {
     console.log("Attempting to connect to MongoDB...");
   });
 
-  // Try to connect to DB in the background
-  try {
-    await connectDB();
-    console.log("Database connected successfully!");
-  } catch (err) {
-    console.warn("⚠️  Database connection failed. Running in offline mode.");
-    console.warn("Some features may be unavailable until MongoDB is running.");
-  }
+  // Connect to DB - will throw and exit if connection fails
+  await connectDB();
+  console.log("Database connected successfully!");
 };
 
 startServer();

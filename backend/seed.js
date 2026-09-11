@@ -166,14 +166,103 @@ const run = async () => {
     ],
   });
 
-  await recalculateProject(highwayProject);
-  await recalculateProject(freightProject);
+  await recalculateProject(highwayProject, { skipAlerts: true });
+  await recalculateProject(freightProject, { skipAlerts: true });
+
+  // Seed default alerts / bottleneck notifications
+  const defaultAlerts = [
+    {
+      project: highwayProject._id,
+      projectName: highwayProject.name,
+      department: byName.Compensation._id,
+      type: "Bottleneck",
+      severity: "High",
+      message:
+        "Compensation stage backlog: 32 pending cases with actual progress at 43% (below 60% threshold). Landowner verification is stalled, blocking disbursement.",
+      authorityDecision:
+        "Conduct a special camp with the Tahsildar and Revenue Inspector by 18 Sep 2026. Prioritize the 32 pending cases, verify landowner documentation in batches of 10, and process PFMS DBT disbursement within 7 days of verification. Escalate any title disputes to the Legal Verification stage.",
+      authorityDecidedBy: seniorOfficer._id,
+      authorityDecidedAt: new Date("2026-09-09T10:30:00Z"),
+      officerResolved: false,
+      raisedBy: byName.Compensation._id,
+    },
+    {
+      project: highwayProject._id,
+      projectName: highwayProject.name,
+      department: byName.Rehabilitation._id,
+      type: "Dependency",
+      severity: "High",
+      message:
+        "Rehabilitation stage at risk (55% actual vs 60% planned). Downstream Possession stage cannot commence until rehabilitation is complete.",
+      authorityDecision:
+        "Expedite R&R colony infrastructure completion. Deploy additional teams for site preparation. Notify Possession stage team once 80% rehabilitation milestone is achieved so they can begin planning.",
+      authorityDecidedBy: seniorOfficer._id,
+      authorityDecidedAt: new Date("2026-09-08T14:00:00Z"),
+      officerResolved: false,
+      raisedBy: byName.Rehabilitation._id,
+    },
+    {
+      project: highwayProject._id,
+      projectName: highwayProject.name,
+      department: byName.Possession._id,
+      type: "Dependency",
+      severity: "Medium",
+      message:
+        "Possession stage blocked — upstream Rehabilitation stage is at risk. Physical possession cannot be taken until rehabilitation and compensation are finalized.",
+      authorityDecision:
+        "Hold standby readiness. Coordinate with Rehabilitation and Compensation leads for a joint target date. Prepare possession documentation and survey teams in advance.",
+      authorityDecidedBy: seniorOfficer._id,
+      authorityDecidedAt: new Date("2026-09-07T09:00:00Z"),
+      officerResolved: false,
+      raisedBy: byName.Possession._id,
+    },
+    {
+      project: freightProject._id,
+      projectName: freightProject.name,
+      department: byName.Rehabilitation._id,
+      type: "ScheduleRisk",
+      severity: "Medium",
+      message:
+        "Rehabilitation progress slightly ahead of plan (68% actual vs 65% planned). Monitor closely to maintain momentum.",
+      authorityDecision: "",
+      authorityDecidedBy: null,
+      authorityDecidedAt: null,
+      officerResolved: false,
+      raisedBy: byName.Rehabilitation._id,
+    },
+  ];
+
+  await Alert.insertMany(defaultAlerts);
+
+  // Create Resolution entries for the resolved alerts
+  const alertResolutions = [
+    {
+      project: highwayProject._id,
+      projectName: highwayProject.name,
+      department: byName.Compensation._id,
+      alert: defaultAlerts[0]._id,
+      title: "Bottleneck Resolved — Compensation",
+      category: "Bottleneck",
+      issueDescription: defaultAlerts[0].message,
+      resolutionDetails:
+        "Special camp conducted with Tahsildar on 18 Sep 2026. 32 pending cases verified in batches. PFMS DBT disbursement of ₹4.2 Cr completed within 7 days. Compensation stage back on track.",
+      actionTakenBy: "Compensation Officer & Tahsildar Belagavi",
+      status: "Resolved",
+      resolvedBy: seniorOfficer._id,
+      resolvedAt: new Date("2026-09-25"),
+    },
+  ];
+
+  await Resolution.insertMany(alertResolutions);
+
+  console.log("✓ Default alerts seeded");
 
   // Seed dedicated Resolution collection
   const resolutionDocs = [
     ...highwayProject.resolutions.map((r) => ({
       _id: r._id,
       project: highwayProject._id,
+      projectName: highwayProject.name,
       department: r.department,
       title: r.title,
       category: r.category,
@@ -188,6 +277,7 @@ const run = async () => {
     ...freightProject.resolutions.map((r) => ({
       _id: r._id,
       project: freightProject._id,
+      projectName: freightProject.name,
       department: r.department,
       title: r.title,
       category: r.category,

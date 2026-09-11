@@ -380,9 +380,9 @@ export default function DashboardPage() {
                   </p>
 
                   <div className="mt-2 flex items-center justify-between text-[11px] text-ink-400 border-t border-ink-100/80 pt-1.5">
-                    <span>{a.project?.name}</span>
+                    <span>{a.projectName || a.project?.name}</span>
                     <Link
-                      to={`/projects/${a.project?._id}`}
+                      to={`/projects/${a.project?._id || a.project}`}
                       className="font-bold text-ochre-600 hover:underline"
                     >
                       View parcel →

@@ -10,6 +10,7 @@ const api = axios.create({
 
 // Attach the JWT to every outgoing request
 api.interceptors.request.use((config) => {
+  // Read token fresh on each request (not at module load time)
   const token = useAuthStore.getState().token;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;

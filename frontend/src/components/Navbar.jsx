@@ -33,13 +33,59 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Poll / fetch unresolved alerts for the bell counter
-  useEffect(() => {
+  // Fetch unresolved alerts and handle live refresh
+  const loadAlerts = () => {
     if (!user) return;
     fetchAlerts({ resolved: false })
       .then((data) => setAlerts(data || []))
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadAlerts();
+    const timer = setInterval(loadAlerts, 10000);
+    const handleUpdate = () => loadAlerts();
+    window.addEventListener("alertsUpdated", handleUpdate);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("alertsUpdated", handleUpdate);
+    };
   }, [user]);
+
+  const isAuthority = ["Administrator", "SeniorOfficer", "ProjectManager"].includes(user?.role);
+  const myDeptId = String(user?.department?._id || user?.department || "");
+
+  // Authority actions needed:
+  const pendingDecisionForAuthority = isAuthority
+    ? alerts.filter((a) => !a.authorityDecision && !a.isResolved)
+    : [];
+  const pendingClosureForAuthority = isAuthority
+    ? alerts.filter((a) => a.officerResolved && !a.isResolved)
+    : [];
+
+  // Officer actions needed:
+  const directivesForMyDept = !isAuthority
+    ? alerts.filter(
+        (a) =>
+          String(a.department?._id || a.department || "") === myDeptId &&
+          a.authorityDecision &&
+          !a.officerResolved &&
+          !a.isResolved
+      )
+    : [];
+  const myDeptBottlenecks = !isAuthority
+    ? alerts.filter(
+        (a) =>
+          String(a.department?._id || a.department || "") === myDeptId &&
+          !a.authorityDecision &&
+          !a.isResolved
+      )
+    : [];
+  const otherDeptAlerts = !isAuthority
+    ? alerts.filter(
+        (a) => String(a.department?._id || a.department || "") !== myDeptId && !a.isResolved
+      )
+    : [];
 
   const handleRoleSwitch = async (account) => {
     if (user?.email === account.email) {
@@ -68,6 +114,11 @@ export default function Navbar() {
         .slice(0, 2)
         .toUpperCase()
     : "GOI";
+
+  // Compute action badge count
+  const actionCount = isAuthority
+    ? pendingDecisionForAuthority.length + pendingClosureForAuthority.length
+    : directivesForMyDept.length || alerts.length;
 
   return (
     <header className="relative z-40 bg-white border-b border-ink-100 shadow-sm">
@@ -167,54 +218,139 @@ export default function Navbar() {
             >
               <Bell size={18} />
               {alerts.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm animate-pulse">
+                <span className={`absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white shadow-sm animate-pulse ${
+                  directivesForMyDept.length > 0 || pendingDecisionForAuthority.length > 0
+                    ? "bg-rose-600 ring-2 ring-rose-200"
+                    : "bg-amber-500"
+                }`}>
                   {alerts.length}
                 </span>
               )}
             </button>
 
             {alertsMenuOpen && (
-              <div className="absolute right-0 mt-2 w-84 sm:w-96 rounded-2xl border border-ink-100 bg-white p-3 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute right-0 mt-2 w-88 sm:w-[400px] rounded-2xl border border-ink-100 bg-white p-3 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="flex items-center justify-between border-b border-ink-100 pb-2 px-1">
                   <div className="flex items-center gap-1.5">
                     <Shield size={16} className="text-rose-500" />
                     <h4 className="text-xs font-bold text-ink-900">
-                      Active Alerts ({alerts.length})
+                      Alerts &amp; Directives ({alerts.length})
                     </h4>
                   </div>
                   <Link
                     to="/alerts"
                     onClick={() => setAlertsMenuOpen(false)}
-                    className="text-xs font-semibold text-ochre-600 hover:underline"
+                    className="text-xs font-bold text-ochre-600 hover:underline"
                   >
-                    View all →
+                    View Center →
                   </Link>
                 </div>
 
-                <div className="max-h-64 overflow-y-auto py-2 divide-y divide-ink-50">
+                <div className="max-h-80 overflow-y-auto py-2 space-y-2">
                   {alerts.length === 0 ? (
-                    <p className="py-4 text-center text-xs text-ink-400">
+                    <p className="py-6 text-center text-xs text-ink-400">
                       No active alerts. All stages are operating within normal parameters.
                     </p>
                   ) : (
-                    alerts.slice(0, 5).map((a) => (
-                      <div key={a._id} className="py-2 px-1 hover:bg-ink-50 rounded-lg transition-colors">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600">
-                            {a.type}
-                          </span>
-                          <span className="text-[10px] text-ink-400">
-                            {a.severity} Severity
-                          </span>
+                    <>
+                      {/* Officer View: Directives Waiting for Action */}
+                      {!isAuthority && directivesForMyDept.length > 0 && (
+                        <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-2.5 space-y-1.5">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-blue-800 flex items-center gap-1">
+                            <span>⚡ Higher Authority Directives for You ({directivesForMyDept.length})</span>
+                          </p>
+                          {directivesForMyDept.map((a) => (
+                            <Link
+                              key={a._id}
+                              to="/department"
+                              onClick={() => setAlertsMenuOpen(false)}
+                              className="block rounded-lg bg-white p-2 border border-blue-200 hover:bg-blue-50/50 transition-colors"
+                            >
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className="font-bold text-blue-900 truncate">{a.projectName || a.project?.name}</span>
+                                <span className="text-blue-600 font-semibold">Action Required</span>
+                              </div>
+                              <p className="text-xs text-ink-800 font-medium mt-0.5 line-clamp-1">{a.message}</p>
+                              <p className="text-[11px] text-blue-700 font-medium mt-0.5 line-clamp-1">
+                                ↳ <em>Directive:</em> "{a.authorityDecision}"
+                              </p>
+                            </Link>
+                          ))}
                         </div>
-                        <p className="text-xs font-medium text-ink-800 line-clamp-2 mt-0.5">
-                          {a.message}
+                      )}
+
+                      {/* Authority View: Pending Decisions */}
+                      {isAuthority && pendingDecisionForAuthority.length > 0 && (
+                        <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-2.5 space-y-1.5">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-rose-800">
+                            🚨 Bottlenecks Pending Your Directive ({pendingDecisionForAuthority.length})
+                          </p>
+                          {pendingDecisionForAuthority.slice(0, 3).map((a) => (
+                            <Link
+                              key={a._id}
+                              to="/alerts"
+                              onClick={() => setAlertsMenuOpen(false)}
+                              className="block rounded-lg bg-white p-2 border border-rose-200 hover:bg-rose-50 transition-colors"
+                            >
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className="font-bold text-rose-900">{a.department?.displayName || "Stage"}</span>
+                                <span className="text-ink-400">{a.projectName || a.project?.name}</span>
+                              </div>
+                              <p className="text-xs text-ink-800 font-medium mt-0.5 line-clamp-1">{a.message}</p>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Authority View: Fixed by Officers */}
+                      {isAuthority && pendingClosureForAuthority.length > 0 && (
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-2.5 space-y-1.5">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                            ✅ Marked Fixed by Officers ({pendingClosureForAuthority.length})
+                          </p>
+                          {pendingClosureForAuthority.slice(0, 3).map((a) => (
+                            <Link
+                              key={a._id}
+                              to="/alerts"
+                              onClick={() => setAlertsMenuOpen(false)}
+                              className="block rounded-lg bg-white p-2 border border-emerald-200 hover:bg-emerald-50 transition-colors"
+                            >
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className="font-bold text-emerald-900">{a.department?.displayName}</span>
+                                <span className="text-ink-400">{a.projectName || a.project?.name}</span>
+                              </div>
+                              <p className="text-xs text-ink-800 font-medium mt-0.5 line-clamp-1">{a.message}</p>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* General Active Bottlenecks List */}
+                      <div className="space-y-1 pt-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-ink-400 px-1">
+                          {isAuthority ? "All Active Telemetry Alerts" : "Cross-Department Telemetry Alerts"}
                         </p>
-                        <p className="text-[10px] text-ink-400 mt-0.5">
-                          {a.project?.name}
-                        </p>
+                        {alerts.slice(0, 4).map((a) => (
+                          <Link
+                            key={a._id}
+                            to="/alerts"
+                            onClick={() => setAlertsMenuOpen(false)}
+                            className="block py-1.5 px-2 hover:bg-ink-50 rounded-lg transition-colors"
+                          >
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="font-bold uppercase tracking-wider text-rose-600">
+                                {a.type} · {a.department?.displayName || "General"}
+                              </span>
+                              <span className="text-ink-400">{a.severity}</span>
+                            </div>
+                            <p className="text-xs font-medium text-ink-800 line-clamp-1 mt-0.5">
+                              {a.message}
+                            </p>
+                            <p className="text-[10px] text-ink-400">{a.projectName || a.project?.name}</p>
+                          </Link>
+                        ))}
                       </div>
-                    ))
+                    </>
                   )}
                 </div>
               </div>

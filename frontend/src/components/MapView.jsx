@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import { Link } from "react-router-dom";
 import { statusMeta } from "../utils/status.js";
@@ -105,7 +105,7 @@ export default function MapView({
           const isUrgent = p.status === "Delayed" || p.status === "AtRisk";
 
           return (
-            <div key={p.id}>
+            <Fragment key={p.id}>
               {/* Outer halo for urgent items */}
               {isUrgent && (
                 <CircleMarker
@@ -166,7 +166,7 @@ export default function MapView({
                   </div>
                 </Popup>
               </CircleMarker>
-            </div>
+            </Fragment>
           );
         })}
       </MapContainer>
