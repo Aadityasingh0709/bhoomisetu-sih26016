@@ -108,7 +108,9 @@ npm run dev
 
 #### Departmental Officer Accounts (Requires 2-Step Login with Project ID)
 
-| Role / Department | Project ID (Step 1) | Email (Step 2) | Password | Stage & Weight |
+##### Project 1: NH-44 Highway Expansion — Phase 2 (`NH44-P2-2026` · Belagavi, Karnataka)
+
+| Role / Department | Project ID (Step 1) | Email / User ID (Step 2) | Password | Stage & Weight |
 |---|---|---|---|---|
 | **Survey Officer** | `NH44-P2-2026` | `survey@landacquisition.gov.in` | `Survey@2026Land!` | Stage 1 (15%) |
 | **Legal Verification** | `NH44-P2-2026` | `legal@landacquisition.gov.in` | `Legal@2026Verify!` | Stage 2 (15%) |
@@ -116,7 +118,17 @@ npm run dev
 | **Rehabilitation Officer** | `NH44-P2-2026` | `rehabilitation@landacquisition.gov.in` | `Rehab@2026Support!` | Stage 4 (25%) |
 | **Approvals Officer** | `NH44-P2-2026` | `approvals@landacquisition.gov.in` | `Approvals@2026!` | Stage 5 (5%) |
 | **Possession Officer** | `NH44-P2-2026` | `possession@landacquisition.gov.in` | `Possession@2026!` | Stage 6 (10%) |
-| **EFC Survey Lead** | `EFC-LP-2026` | `survey.efc@landacquisition.gov.in` | `Survey@2026Efc!` | Stage 1 (15%) |
+
+##### Project 2: Eastern Freight Corridor — Land Parcel Acquisition (`EFC-LP-2026` · Patna, Bihar)
+
+| Role / Department | Project ID (Step 1) | Email / User ID (Step 2) | Password | Stage & Weight |
+|---|---|---|---|---|
+| **Survey Lead (Dr. B. Patnaik)** | `EFC-LP-2026` | `survey.efc@landacquisition.gov.in` | `Survey@2026Efc!` | Stage 1 (15%) |
+| **Legal Lead (Adv. Ramesh Kumar)** | `EFC-LP-2026` | `legal.efc@landacquisition.gov.in` | `Legal@2026Efc!` | Stage 2 (15%) |
+| **Compensation Lead (S. K. Verma)** | `EFC-LP-2026` | `compensation.efc@landacquisition.gov.in` | `Compensation@2026Efc!` | Stage 3 (30%) |
+| **Rehabilitation Lead (Pooja Sharma)** | `EFC-LP-2026` | `rehabilitation.efc@landacquisition.gov.in` | `Rehab@2026Efc!` | Stage 4 (25%) |
+| **Clearance & NOC Lead (Amitabh Sen)** | `EFC-LP-2026` | `approvals.efc@landacquisition.gov.in` | `Approvals@2026Efc!` | Stage 5 (5%) |
+| **Possession Lead (Col. R. K. Singh)** | `EFC-LP-2026` | `possession.efc@landacquisition.gov.in` | `Possession@2026Efc!` | Stage 6 (10%) |
 
 ---
 
@@ -130,14 +142,22 @@ npm run dev
 5. Click **"Create Project & Generate IDs"**.
 6. The **Credentials Dossier Card** appears. Click **"Copy All Credentials"** to export the access details for the 6 departmental leads.
 
-### Example 2: Department Officer 2-Step Login & Updating Progress
+### Example 2A: Logging in as Officer for Project 1 (NH-44 Highway Expansion — `NH44-P2-2026`)
 1. Open the login portal at `http://localhost:5173/login`.
 2. On the **Department Officer** tab:
-   - **Step 1**: Enter Project ID `NH44-P2-2026` (or click the sample project badge) → Click **"Validate Project & Proceed"**.
-   - Verified project metadata for *NH-44 Highway Expansion* is confirmed.
+   - **Step 1**: Enter Project ID `NH44-P2-2026` (or click `NH44-P2-2026` sample badge) → Click **"Validate Project & Proceed"**.
+   - Verified project metadata for *NH-44 Highway Expansion (Belagavi, Karnataka)* is confirmed.
    - **Step 2**: Enter `survey@landacquisition.gov.in` and password `Survey@2026Land!` → Click **"Sign In to Project Workspace"**.
-3. The officer is directed straight to their **Survey Workspace** scoped to `NH44-P2-2026`.
-4. The officer can update boundary demarcation, pending/completed cases, upload drone coordinates, or report bottlenecks.
+3. The officer enters the **Survey Workspace** strictly scoped to `NH44-P2-2026`.
+
+### Example 2B: Logging in as Officer for Project 2 (Eastern Freight Corridor — `EFC-LP-2026`)
+1. Open the login portal at `http://localhost:5173/login`.
+2. On the **Department Officer** tab:
+   - **Step 1**: Enter Project ID `EFC-LP-2026` (or click `EFC-LP-2026` sample badge) → Click **"Validate Project & Proceed"**.
+   - Verified project metadata for *Eastern Freight Corridor (Patna, Bihar)* is confirmed.
+   - **Step 2**: Enter `survey.efc@landacquisition.gov.in` and password `Survey@2026Efc!` → Click **"Sign In to Project Workspace"**.
+3. The officer enters the **EFC Workspace** strictly scoped to `EFC-LP-2026`.
+4. *Cross-Project Isolation Check*: If this EFC officer attempts to log into `NH44-P2-2026`, the system blocks access with: *"Access denied: Officer is not assigned to Project NH-44"*.
 
 ### Example 3: Searching Projects by ID in Admin Dashboard
 1. Log in as **System Administrator** or **Senior Officer**.
