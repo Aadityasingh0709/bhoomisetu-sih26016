@@ -23,7 +23,7 @@ const departmentProgressSchema = new mongoose.Schema(
     lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     lastUpdatedAt: { type: Date, default: Date.now },
   },
-  { _id: false }
+  { timestamps: true }
 );
 
 /**
@@ -33,6 +33,7 @@ const departmentProgressSchema = new mongoose.Schema(
  */
 const resolutionSchema = new mongoose.Schema(
   {
+    projectName: { type: String, default: "", trim: true },
     title: { type: String, required: true, trim: true },
     category: {
       type: String,

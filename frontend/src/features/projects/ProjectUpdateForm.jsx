@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { fetchProject, fetchDepartments, updateDepartmentProgress } from "../../api/projects.js";
+import { createAlert } from "../../api/alerts.js";
 import { useAuthStore } from "../../store/authStore.js";
 import Card from "../../components/Card.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
@@ -63,7 +64,7 @@ export default function ProjectUpdateForm() {
       setDepartments(depts);
 
       const myDeptId = isOfficer
-        ? String(user?.department?._id)
+        ? String(user?.department?._id || user?.department || "")
         : String(depts[0]?._id || "");
 
       const mine = p.departments.find(
@@ -120,7 +121,7 @@ export default function ProjectUpdateForm() {
     const myEntry = project.departments.find(
       (d) =>
         String(d.department?._id || d.department) ===
-        String(user?.department?._id)
+        String(user?.department?._id || user?.department || "")
     );
     if (!myEntry) {
       return (
@@ -144,13 +145,31 @@ export default function ProjectUpdateForm() {
 
   const onSubmit = async (values) => {
     setSubmitting(true);
-    const { departmentId, expectedCompletionDate, ...rest } = values;
+    const { departmentId, expectedCompletionDate, delayReason, resolutionNotes, ...rest } = values;
     try {
       await updateDepartmentProgress(project._id, departmentId, {
         ...rest,
         expectedCompletionDate: expectedCompletionDate || null,
       });
-      toast.success("Progress update submitted and weighted score recalculated");
+
+      if (delayReason && delayReason.trim()) {
+        try {
+          await createAlert({
+            projectId: project._id,
+            departmentId: departmentId || user?.department?._id,
+            type: "Delay",
+            severity: "High",
+            message: delayReason.trim(),
+          });
+          toast.success("Delay reason submitted and authority notified");
+        } catch {
+          toast.error("Progress updated, but could not notify authority");
+        }
+      } else {
+        toast.success("Progress update submitted and weighted score recalculated");
+      }
+
+      window.dispatchEvent(new Event("alertsUpdated"));
       navigate(`/projects/${project._id}`);
     } catch (err) {
       toast.error(err.response?.data?.message || "Could not submit update");
@@ -327,7 +346,7 @@ export default function ProjectUpdateForm() {
           </div>
 
           {/* Delay reason */}
-          <Field label="Reason for Delay or Bottleneck (Optional)">
+          <Field label="Reason for Delay or Issue (Optional)">
             <textarea
               rows={2}
               {...register("delayReason")}
@@ -336,16 +355,16 @@ export default function ProjectUpdateForm() {
             />
           </Field>
 
-          {/* Bottleneck / Dispute Resolution Remarks */}
-          <Field label="Bottleneck or Dispute Resolution Remarks (Optional)">
+          {/* Resolution Remarks */}
+          <Field label="Resolution Remarks (Optional)">
             <textarea
               rows={3}
               {...register("resolutionNotes")}
               className="input resize-none border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500 bg-emerald-50/10 text-xs"
-              placeholder="If you resolved an earlier bottleneck, dispute, or backlog in this stage, write how it was resolved (actions taken, orders passed, settlement terms reached) to automatically log it into the project dossier."
+              placeholder="If you resolved an earlier bottleneck, dependency, delay, or dispute in this stage, write how it was resolved (actions taken, orders passed, settlement terms reached) to automatically log it into the project dossier."
             />
             <p className="text-[10px] text-emerald-700 mt-1 font-medium">
-              ✓ Documenting how you resolved an obstacle will record an entry in the Bottleneck &amp; Dispute Resolution Center.
+              ✓ Documenting how you resolved an issue will record an entry in the Resolution Center.
             </p>
           </Field>
 

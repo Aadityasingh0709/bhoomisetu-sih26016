@@ -13,6 +13,11 @@ const resolutionSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    projectName: {
+      type: String,
+      required: [true, "Project name is required"],
+      trim: true,
+    },
     department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",

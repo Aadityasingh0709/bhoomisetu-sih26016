@@ -19,7 +19,7 @@ router.get("/:id", getProject);
 router.post("/", restrictTo("Administrator", "ProjectManager"), createProject);
 router.patch(
   "/:id/departments/:deptId",
-  restrictTo("DepartmentOfficer", "Administrator"),
+  restrictTo("DepartmentOfficer", "Administrator", "ProjectManager"),
   updateDepartmentProgress
 );
 router.post(

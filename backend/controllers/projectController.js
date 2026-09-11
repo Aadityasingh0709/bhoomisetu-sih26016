@@ -7,7 +7,8 @@ import Resolution from "../models/Resolution.js";
 // Recalculates a project's weighted overall progress + status, and raises
 // bottleneck/dependency alerts. This is the core "system converts updates
 // into a clear picture" logic described in the problem statement.
-export const recalculateProject = async (project) => {
+export const recalculateProject = async (project, options = {}) => {
+  const { skipAlerts = false } = options;
   const departments = await Department.find();
   const deptMap = Object.fromEntries(departments.map((d) => [String(d._id), d]));
 
@@ -41,7 +42,7 @@ export const recalculateProject = async (project) => {
     if (dp.status === "AtRisk") hasAtRisk = true;
 
     // Rule: many pending cases + low progress => Bottleneck alert
-    if (dp.pendingCases > 20 && dp.actualProgress < 60) {
+    if (!skipAlerts && dp.pendingCases > 20 && dp.actualProgress < 60) {
       // BUG FIX: Do NOT upsert (which creates duplicates when an existing alert
       // was manually resolved). Instead, only insert when no active alert exists.
       const existing = await Alert.findOne({
@@ -53,6 +54,7 @@ export const recalculateProject = async (project) => {
       if (!existing) {
         await Alert.create({
           project: project._id,
+          projectName: project.name,
           department: dp.department,
           type: "Bottleneck",
           severity: "High",
@@ -99,20 +101,23 @@ export const recalculateProject = async (project) => {
       const upDept = deptMap[String(upstream.department)];
       const downDept = deptMap[String(downstream.department)];
       // BUG FIX: Only create if no active dependency alert already exists.
-      const existing = await Alert.findOne({
-        project: project._id,
-        department: downstream.department,
-        type: "Dependency",
-        isResolved: false,
-      });
-      if (!existing) {
-        await Alert.create({
+      if (!skipAlerts) {
+        const existing = await Alert.findOne({
           project: project._id,
           department: downstream.department,
           type: "Dependency",
-          severity: "Medium",
-          message: `${downDept?.displayName} may be affected because ${upDept?.displayName} is behind schedule.`,
+          isResolved: false,
         });
+        if (!existing) {
+          await Alert.create({
+            project: project._id,
+            projectName: project.name,
+            department: downstream.department,
+            type: "Dependency",
+            severity: "Medium",
+            message: `${downDept?.displayName} may be affected because ${upDept?.displayName} is behind schedule.`,
+          });
+        }
       }
     }
   }
@@ -211,8 +216,9 @@ export const updateDepartmentProgress = asyncHandler(async (req, res) => {
     entry.resolutionNotes = resolutionNotes;
     if (resolutionNotes.trim()) {
       const deptInfo = await Department.findById(deptId);
-      if (!project.resolutions) project.resolutions = [];
-      project.resolutions.unshift({
+      const resDoc = await Resolution.create({
+        project: project._id,
+        projectName: project.name,
         title: `${deptInfo?.displayName || "Stage"} Progress & Resolution Update`,
         category: "Bottleneck",
         department: deptId,
@@ -222,6 +228,20 @@ export const updateDepartmentProgress = asyncHandler(async (req, res) => {
         status: "Resolved",
         resolvedBy: req.user._id,
         resolvedAt: new Date(),
+      });
+      if (!project.resolutions) project.resolutions = [];
+      project.resolutions.unshift({
+        _id: resDoc._id,
+        projectName: project.name,
+        title: resDoc.title,
+        category: resDoc.category,
+        department: resDoc.department,
+        issueDescription: resDoc.issueDescription,
+        resolutionDetails: resDoc.resolutionDetails,
+        actionTakenBy: resDoc.actionTakenBy,
+        status: resDoc.status,
+        resolvedBy: resDoc.resolvedBy,
+        resolvedAt: resDoc.resolvedAt,
       });
     }
   }
@@ -272,6 +292,7 @@ export const addProjectResolution = asyncHandler(async (req, res) => {
   // Create standalone document in the dedicated Resolution collection
   const resolutionDoc = await Resolution.create({
     project: project._id,
+    projectName: project.name,
     title: title.trim(),
     category: category || "Bottleneck",
     department: departmentId || (req.user.department?._id || null),
@@ -286,6 +307,7 @@ export const addProjectResolution = asyncHandler(async (req, res) => {
 
   const newResolution = {
     _id: resolutionDoc._id,
+    projectName: project.name,
     title: resolutionDoc.title,
     category: resolutionDoc.category,
     department: resolutionDoc.department,

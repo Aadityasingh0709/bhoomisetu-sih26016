@@ -1,5 +1,6 @@
 import asyncHandler from "express-async-handler";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import User from "../models/User.js";
 
 const signToken = (id) =>
@@ -104,16 +105,17 @@ export const resetPassword = asyncHandler(async (req, res) => {
     throw new Error("Passwords do not match");
   }
 
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+
   const user = await User.findOne({
+    passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() },
   }).select("+passwordResetToken +passwordResetExpires");
 
   if (!user) {
-    res.status(400);
-    throw new Error("Token is invalid or has expired");
-  }
-
-  if (!user.matchResetToken(token)) {
     res.status(400);
     throw new Error("Token is invalid or has expired");
   }

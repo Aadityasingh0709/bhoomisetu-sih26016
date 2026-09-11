@@ -65,6 +65,7 @@ export const createResolution = asyncHandler(async (req, res) => {
 
   const resolution = await Resolution.create({
     project: projectId,
+    projectName: project.name,
     department: departmentId || req.user.department?._id || null,
     alert: alertId || null,
     title: title.trim(),
@@ -84,6 +85,7 @@ export const createResolution = asyncHandler(async (req, res) => {
   }
   project.resolutions.unshift({
     _id: resolution._id,
+    projectName: project.name,
     title: resolution.title,
     category: resolution.category,
     department: resolution.department,

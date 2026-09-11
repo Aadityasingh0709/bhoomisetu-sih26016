@@ -148,6 +148,7 @@ export default function ProjectDetailPage() {
       const updated = await addProjectResolution(project._id, resolutionForm);
       setProject(updated);
       toast.success("Resolution record documented successfully");
+      window.dispatchEvent(new Event("alertsUpdated"));
       setShowResolutionModal(false);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to record resolution");
@@ -164,6 +165,7 @@ export default function ProjectDetailPage() {
       const updated = await deleteProjectResolution(project._id, resolutionId);
       setProject(updated);
       toast.success("Resolution record removed");
+      window.dispatchEvent(new Event("alertsUpdated"));
     } catch {
       toast.error("Could not remove resolution record");
     }
