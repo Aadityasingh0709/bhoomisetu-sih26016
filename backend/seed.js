@@ -57,18 +57,18 @@ const run = async () => {
     role: "SeniorOfficer",
   });
 
-  // Default Global Officers (assigned to NH-44 and EFC-LP)
-  const officerAccounts = [
-    ["Survey", "Survey Officer", "survey@landacquisition.gov.in", "Survey@2026Land!"],
-    ["LegalVerification", "Legal Verification Officer", "legal@landacquisition.gov.in", "Legal@2026Verify!"],
-    ["Compensation", "Compensation Officer", "compensation@landacquisition.gov.in", "Compensation@2026!"],
-    ["Rehabilitation", "Rehabilitation Officer", "rehabilitation@landacquisition.gov.in", "Rehab@2026Support!"],
-    ["Approvals", "Approvals Officer", "approvals@landacquisition.gov.in", "Approvals@2026!"],
-    ["Possession", "Possession Officer", "possession@landacquisition.gov.in", "Possession@2026!"],
+  // NH-44 Highway Officers (Belagavi, Karnataka)
+  const nh44OfficerAccounts = [
+    ["Survey", "Survey Officer (NH-44)", "survey@landacquisition.gov.in", "Survey@2026Land!"],
+    ["LegalVerification", "Legal Officer (NH-44)", "legal@landacquisition.gov.in", "Legal@2026Verify!"],
+    ["Compensation", "Compensation Officer (NH-44)", "compensation@landacquisition.gov.in", "Compensation@2026!"],
+    ["Rehabilitation", "Rehabilitation Officer (NH-44)", "rehabilitation@landacquisition.gov.in", "Rehab@2026Support!"],
+    ["Approvals", "Approvals Officer (NH-44)", "approvals@landacquisition.gov.in", "Approvals@2026!"],
+    ["Possession", "Possession Officer (NH-44)", "possession@landacquisition.gov.in", "Possession@2026!"],
   ];
 
-  const officerMap = {};
-  for (const [departmentName, name, email, password] of officerAccounts) {
+  const nh44Map = {};
+  for (const [departmentName, name, email, password] of nh44OfficerAccounts) {
     const user = await User.create({
       name,
       email,
@@ -76,17 +76,30 @@ const run = async () => {
       role: "DepartmentOfficer",
       department: byName[departmentName]._id,
     });
-    officerMap[departmentName] = user;
+    nh44Map[departmentName] = user;
   }
 
-  // Project-specific officer for Freight corridor (to demonstrate different officers for different projects)
-  const efcSurveyOfficer = await User.create({
-    name: "Dr. B. Patnaik (EFC Survey Lead)",
-    email: "survey.efc@landacquisition.gov.in",
-    password: "Survey@2026Efc!",
-    role: "DepartmentOfficer",
-    department: byName.Survey._id,
-  });
+  // Eastern Freight Corridor Officers (Patna, Bihar)
+  const efcOfficerAccounts = [
+    ["Survey", "Dr. B. Patnaik (EFC Survey Lead)", "survey.efc@landacquisition.gov.in", "Survey@2026Efc!"],
+    ["LegalVerification", "Adv. Ramesh Kumar (EFC Legal Lead)", "legal.efc@landacquisition.gov.in", "Legal@2026Efc!"],
+    ["Compensation", "S. K. Verma (EFC Compensation Lead)", "compensation.efc@landacquisition.gov.in", "Compensation@2026Efc!"],
+    ["Rehabilitation", "Pooja Sharma (EFC R&R Officer)", "rehabilitation.efc@landacquisition.gov.in", "Rehab@2026Efc!"],
+    ["Approvals", "Amitabh Sen (EFC Clearances Lead)", "approvals.efc@landacquisition.gov.in", "Approvals@2026Efc!"],
+    ["Possession", "Col. R. K. Singh (EFC Possession Officer)", "possession.efc@landacquisition.gov.in", "Possession@2026Efc!"],
+  ];
+
+  const efcMap = {};
+  for (const [departmentName, name, email, password] of efcOfficerAccounts) {
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: "DepartmentOfficer",
+      department: byName[departmentName]._id,
+    });
+    efcMap[departmentName] = user;
+  }
 
   const highwayProject = await Project.create({
     name: "NH-44 Highway Expansion — Phase 2",
@@ -104,12 +117,12 @@ const run = async () => {
     compensationAssessed: 185000000,
     compensationDisbursed: 96000000,
     departments: [
-      { department: byName.Survey._id, assignedOfficer: officerMap.Survey._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 40 },
-      { department: byName.LegalVerification._id, assignedOfficer: officerMap.LegalVerification._id, status: "Completed", actualProgress: 92, plannedProgress: 90, pendingCases: 3, completedCases: 35 },
-      { department: byName.Compensation._id, assignedOfficer: officerMap.Compensation._id, status: "Delayed", actualProgress: 43, plannedProgress: 70, pendingCases: 32, completedCases: 18, delayReason: "Landowner verification pending" },
-      { department: byName.Rehabilitation._id, assignedOfficer: officerMap.Rehabilitation._id, status: "AtRisk", actualProgress: 55, plannedProgress: 60, pendingCases: 12, completedCases: 20 },
-      { department: byName.Approvals._id, assignedOfficer: officerMap.Approvals._id, status: "Completed", actualProgress: 80, plannedProgress: 80, pendingCases: 1, completedCases: 8 },
-      { department: byName.Possession._id, assignedOfficer: officerMap.Possession._id, status: "NotStarted", actualProgress: 0, plannedProgress: 10, pendingCases: 0, completedCases: 0 },
+      { department: byName.Survey._id, assignedOfficer: nh44Map.Survey._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 40 },
+      { department: byName.LegalVerification._id, assignedOfficer: nh44Map.LegalVerification._id, status: "Completed", actualProgress: 92, plannedProgress: 90, pendingCases: 3, completedCases: 35 },
+      { department: byName.Compensation._id, assignedOfficer: nh44Map.Compensation._id, status: "Delayed", actualProgress: 43, plannedProgress: 70, pendingCases: 32, completedCases: 18, delayReason: "Landowner verification pending" },
+      { department: byName.Rehabilitation._id, assignedOfficer: nh44Map.Rehabilitation._id, status: "AtRisk", actualProgress: 55, plannedProgress: 60, pendingCases: 12, completedCases: 20 },
+      { department: byName.Approvals._id, assignedOfficer: nh44Map.Approvals._id, status: "Completed", actualProgress: 80, plannedProgress: 80, pendingCases: 1, completedCases: 8 },
+      { department: byName.Possession._id, assignedOfficer: nh44Map.Possession._id, status: "NotStarted", actualProgress: 0, plannedProgress: 10, pendingCases: 0, completedCases: 0 },
     ],
     resolutions: [
       {
@@ -155,12 +168,12 @@ const run = async () => {
     compensationAssessed: 90000000,
     compensationDisbursed: 90000000,
     departments: [
-      { department: byName.Survey._id, assignedOfficer: efcSurveyOfficer._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
-      { department: byName.LegalVerification._id, assignedOfficer: officerMap.LegalVerification._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
-      { department: byName.Compensation._id, assignedOfficer: officerMap.Compensation._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
-      { department: byName.Rehabilitation._id, assignedOfficer: officerMap.Rehabilitation._id, status: "OnTrack", actualProgress: 68, plannedProgress: 65, pendingCases: 5, completedCases: 15 },
-      { department: byName.Approvals._id, assignedOfficer: officerMap.Approvals._id, status: "OnTrack", actualProgress: 60, plannedProgress: 55, pendingCases: 2, completedCases: 6 },
-      { department: byName.Possession._id, assignedOfficer: officerMap.Possession._id, status: "OnTrack", actualProgress: 20, plannedProgress: 15, pendingCases: 1, completedCases: 2 },
+      { department: byName.Survey._id, assignedOfficer: efcMap.Survey._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
+      { department: byName.LegalVerification._id, assignedOfficer: efcMap.LegalVerification._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
+      { department: byName.Compensation._id, assignedOfficer: efcMap.Compensation._id, status: "Completed", actualProgress: 100, plannedProgress: 100, pendingCases: 0, completedCases: 20 },
+      { department: byName.Rehabilitation._id, assignedOfficer: efcMap.Rehabilitation._id, status: "OnTrack", actualProgress: 68, plannedProgress: 65, pendingCases: 5, completedCases: 15 },
+      { department: byName.Approvals._id, assignedOfficer: efcMap.Approvals._id, status: "OnTrack", actualProgress: 60, plannedProgress: 55, pendingCases: 2, completedCases: 6 },
+      { department: byName.Possession._id, assignedOfficer: efcMap.Possession._id, status: "OnTrack", actualProgress: 20, plannedProgress: 15, pendingCases: 1, completedCases: 2 },
     ],
     resolutions: [
       {
@@ -178,13 +191,16 @@ const run = async () => {
     ],
   });
 
-  // Assign projects to officers
-  for (const officer of Object.values(officerMap)) {
-    officer.assignedProjects = [highwayProject._id, freightProject._id];
+  // Assign projects to respective officers
+  for (const officer of Object.values(nh44Map)) {
+    officer.assignedProjects = [highwayProject._id];
     await officer.save();
   }
-  efcSurveyOfficer.assignedProjects = [freightProject._id];
-  await efcSurveyOfficer.save();
+
+  for (const officer of Object.values(efcMap)) {
+    officer.assignedProjects = [freightProject._id];
+    await officer.save();
+  }
 
   await recalculateProject(highwayProject, { skipAlerts: true });
   await recalculateProject(freightProject, { skipAlerts: true });
