@@ -17,6 +17,8 @@ import {
   ArrowRight,
   Layers,
   Sparkles,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { loginRequest } from "../../api/auth.js";
 import { useAuthStore } from "../../store/authStore.js";
@@ -29,6 +31,7 @@ const schema = z.object({
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState(null);
   const setSession = useAuthStore((s) => s.setSession);
   const navigate = useNavigate();
@@ -60,9 +63,9 @@ export default function LoginPage() {
 
   const handleQuickPersona = (account) => {
     setSelectedPersona(account.email);
-    setValue("email", account.email);
-    setValue("password", account.password);
-    executeLogin(account.email, account.password);
+    setValue("email", account.email, { shouldValidate: true });
+    setValue("password", "");
+    toast.success(`Selected ${account.label}. Please enter password.`);
   };
 
   const stageIcons = [
@@ -171,17 +174,17 @@ export default function LoginPage() {
           <div>
             <h2 className="text-2xl font-bold text-white tracking-tight">Portal Authentication</h2>
             <p className="mt-1 text-sm text-ink-400">
-              Select a demo persona for instant access, or sign in with credentials.
+              Select a demo persona to fill credentials, or sign in with your email and password.
             </p>
           </div>
 
-          {/* Quick Demo Personas (1-Click Login) */}
+          {/* Quick Demo Personas */}
           <div className="rounded-2xl border border-ink-800 bg-ink-900/60 p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-bold uppercase tracking-wider text-ochre-400 flex items-center gap-1.5">
-                <Sparkles size={13} /> Quick 1-Click Demo Login
+                <Sparkles size={13} /> Select Role / Persona
               </p>
-              <span className="text-[10px] text-ink-400">Click to enter</span>
+              <span className="text-[10px] text-ink-400">Click to fill email</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -242,12 +245,22 @@ export default function LoginPage() {
                   Forgot password?
                 </a>
               </div>
-              <input
-                type="password"
-                {...register("password")}
-                placeholder="••••••••"
-                className="w-full rounded-xl border border-ink-700 bg-ink-950 px-3.5 py-2.5 text-sm text-white placeholder-ink-400 outline-none focus:border-ochre-500 focus:ring-1 focus:ring-ochre-500"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  {...register("password")}
+                  placeholder="••••••••"
+                  className="w-full rounded-xl border border-ink-700 bg-ink-950 px-3.5 py-2.5 pr-10 text-sm text-white placeholder-ink-400 outline-none focus:border-ochre-500 focus:ring-1 focus:ring-ochre-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-white transition-colors focus:outline-none"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               {errors.password && (
                 <p className="mt-1 text-xs text-rose-400">{errors.password.message}</p>
               )}
@@ -266,4 +279,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
