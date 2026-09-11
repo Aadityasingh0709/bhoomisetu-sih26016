@@ -43,6 +43,7 @@ const adminSchema = z.object({
 
 export default function LoginPage() {
   const [authMode, setAuthMode] = useState("officer"); // "officer" | "admin"
+  const [demoProjectTab, setDemoProjectTab] = useState("NH44-P2-2026"); // "NH44-P2-2026" | "EFC-LP-2026" | "ALL"
   const [step, setStep] = useState(1); // 1 = Enter Project ID, 2 = Enter Officer Credentials
   const [projectCodeInput, setProjectCodeInput] = useState("");
   const [validatingProject, setValidatingProject] = useState(false);
@@ -283,17 +284,58 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Quick Demo Persona Shortcuts */}
-          <div className="rounded-2xl border border-ink-800 bg-ink-900/60 p-4">
-            <div className="flex items-center justify-between mb-3">
+          {/* Quick Demo Persona Shortcuts with Project Tabs */}
+          <div className="rounded-2xl border border-ink-800 bg-ink-900/60 p-4 space-y-3">
+            <div className="flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wider text-ochre-400 flex items-center gap-1.5">
-                <Sparkles size={13} /> Quick Select Persona
+                <Sparkles size={13} /> Quick Select Demo Persona
               </p>
-              <span className="text-[10px] text-ink-400">Auto-fills credentials</span>
+              <span className="text-[10px] text-ink-400">1-Click Auto-Fill</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              {DEMO_ACCOUNTS.map((acc) => {
+            {/* Project Filter Tabs for Demo Personas */}
+            <div className="grid grid-cols-3 gap-1 rounded-xl bg-ink-950 p-1 border border-ink-800 text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => setDemoProjectTab("NH44-P2-2026")}
+                className={`py-1.5 px-2 rounded-lg transition-all truncate text-center ${
+                  demoProjectTab === "NH44-P2-2026"
+                    ? "bg-ochre-500 text-white shadow-sm"
+                    : "text-ink-400 hover:text-white"
+                }`}
+              >
+                NH-44 (Belagavi)
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoProjectTab("EFC-LP-2026")}
+                className={`py-1.5 px-2 rounded-lg transition-all truncate text-center ${
+                  demoProjectTab === "EFC-LP-2026"
+                    ? "bg-ochre-500 text-white shadow-sm"
+                    : "text-ink-400 hover:text-white"
+                }`}
+              >
+                EFC Corridor (Patna)
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoProjectTab("ALL")}
+                className={`py-1.5 px-2 rounded-lg transition-all truncate text-center ${
+                  demoProjectTab === "ALL"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-ink-400 hover:text-white"
+                }`}
+              >
+                Admins
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-0.5">
+              {DEMO_ACCOUNTS.filter((acc) =>
+                demoProjectTab === "ALL"
+                  ? acc.projectCode === "ALL"
+                  : acc.projectCode === demoProjectTab
+              ).map((acc) => {
                 const isCurrent = selectedPersona === acc.email;
                 return (
                   <button
@@ -310,7 +352,7 @@ export default function LoginPage() {
                     <div className="truncate">
                       <p className="text-xs font-bold text-white truncate">{acc.label}</p>
                       <p className="text-[10px] text-ink-400 truncate">
-                        {acc.requiresProject ? `Project-Scoped` : acc.badge}
+                        {acc.badge}
                       </p>
                     </div>
                     <ArrowRight
