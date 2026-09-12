@@ -1,27 +1,26 @@
 # BhoomiSetu AI Recommendation Microservice
 
-A lightweight **Flask + KNN** microservice that helps survey officers and admins resolve bottlenecks by finding similar historical cases and suggesting resolution actions.
+A dedicated **Flask + KNN** microservice that helps departmental officers, senior officers, and system administrators resolve land acquisition bottlenecks by finding similar historical precedent cases and prescribing actionable, statutory resolution directives.
 
 ## Architecture
 
 ```
 BhoomiSetu Backend (Node.js:5000)
     └── aiRecommendationService.js
-            ├── POST http://localhost:5001/suggest   ← get recommendations
-            ├── POST http://localhost:5001/learn     ← self-learning (auto-called on new resolution)
-            └── GET  http://localhost:5001/stats     ← model health
+            ├── POST http://localhost:5001/suggest   ← get precedent recommendations & action checklists
+            ├── POST http://localhost:5001/learn     ← self-learning (auto-called when an alert is resolved)
+            └── GET  http://localhost:5001/stats     ← model health & dataset metrics
 ```
 
-## How the KNN Model Works
+## How the Semantic KNN Engine Works
 
-| Feature | Role |
-|---------|------|
-| `task_type` + `cause` + `task_group` | TF-IDF vectorized issue text |
-| `task_type_original` | TF-IDF vectorized resolution text |
-| `safety_classification`, `urgency_level` | Label-encoded categorical features |
-| `description_length`, `overdue_label` | Scaled numerical features |
-
-Similarity is computed using **cosine distance** so it's invariant to text length.
+| Pipeline Step | Description |
+|---|---|
+| **Problem Feature Vector** | Unigrams + Bigrams TF-IDF vectorization with English stop-words filtering and sublinear term frequency over department + issue type + problem description (`cause`). |
+| **Domain Alignment** | Maps queries across the 6 existing statutory departments: `Survey`, `Legal Verification`, `Compensation`, `Rehabilitation`, `Approvals`, `Possession`. |
+| **Distance Metric** | Cosine distance across the TF-IDF feature space (`scikit-learn NearestNeighbors`). |
+| **Strict Out-of-Vocabulary / Gibberish Detection** | If an unrecognized problem (e.g. `jguigubuguj`) is submitted, the model identifies zero vocabulary overlap (`nnz == 0`) and returns `0% Match` (`is_low_confidence: true`) with helpful guidance instead of hallucinating. |
+| **Directive Synthesis** | Automatically extracts actionable steps directly from the highest-matching precedent resolution, attaches the governing statutory reference (RFCTLARR Act, Forest Conservation Act), and estimates turnaround duration. |
 
 ## Start the Server
 
@@ -30,57 +29,74 @@ cd bhoomisetu-ml-service
 start.bat
 ```
 
-Or directly:
+Or run directly with Python 3.13:
 ```bat
 C:\Users\HP\AppData\Local\Programs\Python\Python313\python.exe app.py
 ```
 
-Server starts on **http://localhost:5001**
+Server runs on **http://localhost:5001**
 
 ## API Reference
 
 ### `POST /suggest`
-Get top-K similar past cases for a bottleneck.
+Get top-K similar precedent cases and synthesized resolution directives.
 ```json
 {
-  "department": "Safety",
-  "issue_type": "PPE Violation",
-  "issue_description": "Workers not wearing helmets near scaffolding zone",
-  "severity": "Behavioural Failure",
+  "department": "Survey",
+  "issue_type": "Boundary Dispute",
+  "issue_description": "Survey boundary overlap between Khasra 45 and 46 causing demarcation conflict with adjoining landholders",
+  "severity": "System Failure",
   "urgency": "High",
   "is_overdue": false,
   "k": 5
 }
 ```
 
-### `POST /train`
-Retrain the model with a new CSV file (self-learning).
-```
-multipart/form-data  →  file: <csv>
+**Response:**
+```json
+{
+  "recommendation": {
+    "headline": "Directive: Resolution Protocol for Boundary Dispute",
+    "confidence_score": 93.3,
+    "is_low_confidence": false,
+    "statutory_precedent": "RFCTLARR Act 2013 & State Survey and Land Records Demarcation Manual",
+    "estimated_turnaround_days": "7-11 Days",
+    "steps": [
+      "Conducted joint DGPS survey with Revenue Inspector and Village Patwari",
+      "Erected permanent RCC boundary pillars at verified coordinates",
+      "Updated digitized Khasra map in state GIS portal",
+      "Issue resolved in 12 days"
+    ],
+    "resolution_template": "DIRECTIVE: Directive: Resolution Protocol for Boundary Dispute..."
+  },
+  "suggestions": [
+    {
+      "case_id": "LA_001",
+      "similarity": 93.3,
+      "department": "Survey & Land Records",
+      "issue_type": "Boundary Dispute",
+      "cause": "Survey boundary overlap between Khasra 45 and 46...",
+      "resolution_action": "Conducted joint DGPS survey with Revenue Inspector and Village Patwari..."
+    }
+  ]
+}
 ```
 
 ### `POST /learn`
-Add a single newly resolved case (called automatically by backend).
+Add a single newly resolved case (called automatically by the backend when an officer or admin marks an alert resolved).
 ```json
 {
-  "task_group": "Safety",
-  "task_type": "General Issue",
-  "cause": "PPE non-compliance",
-  "task_type_original": "PPE audit conducted + warning notices issued",
-  ...
+  "task_group": "Survey",
+  "task_type": "Boundary Demarcation",
+  "cause": "Overlap in boundary coordinates during joint DGPS survey",
+  "task_type_original": "Demarcated boundaries using DGPS rover with Village Patwari and signed Panchnama",
+  "urgency_level": "High",
+  "safety_classification": "System Failure"
 }
 ```
 
 ### `GET /health`
-Returns model status and case count.
+Returns model loading status and total precedent count.
 
 ### `GET /stats`
-Returns department/issue type distribution of training data.
-
-## Self-Learning Loop
-
-Every time an officer saves a resolution in BhoomiSetu:
-1. Backend calls `learnFromResolution(resolution)` 
-2. This POSTs the resolved case to `/learn`
-3. The model retrains in-place (takes ~2–5 seconds for 12K+ cases)
-4. Future `/suggest` calls are smarter with each new resolution
+Returns department distribution, issue categories, and training timestamp.

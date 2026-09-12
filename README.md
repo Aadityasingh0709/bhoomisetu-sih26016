@@ -99,19 +99,125 @@ The built-in AI microservice empowers ground officers and senior executives to r
 
 #### Technical Specifications:
 - **Algorithm**: Multi-Feature Cosine K-Nearest Neighbors (`scikit-learn NearestNeighbors`).
-- **Feature Pipeline**: TF-IDF Vectorization over unstructured issue descriptions + One-Hot Encoding over Department, Severity, and Urgency.
-- **Pre-Trained Knowledge Base**: **12,424 real-world cases** loaded from `BhoomiSetu_Cleaned_Final.csv`.
+- **Feature Pipeline**: Semantic TF-IDF Vectorization (unigrams + bigrams, English stop-words filtering, sublinear term frequency, L2 normalization) over unstructured problem descriptions with domain-weighted department token alignment.
+- **Knowledge Base**: 100 authentic infrastructure land acquisition bottleneck precedents across the 6 statutory departments with real-world dispute causes and proven statutory resolutions.
 - **Outputs**:
-  - **Similarity Match Percentage** ($\ge 90\%$ confidence).
-  - **Recommended Step-by-Step Action Plan**.
-  - **Predicted Resolution Turnaround Time (TAT)**.
-  - **Historical Precedent Dossiers**.
+  - **Similarity Match Percentage** (e.g. 74% to 95% semantic match).
+  - **Recommended Step-by-Step Action Plan** (extracted directly from proven precedent resolution).
+  - **Statutory Law Reference** (RFCTLARR Act 2013, Forest Conservation Act 1980, Land Records Manual).
+  - **Estimated Turnaround Time (TAT)** (e.g. 7–11 Days).
+  - **Precedent Case ID Reference** (e.g. `#LA_001`, `#LA_008`, `#LA_015`).
 
 #### 🔄 Continuous Self-Learning Loop:
-1. When a survey officer or administrator resolves an alert in the platform, they submit the root cause, action taken, and case order.
-2. The Node.js backend automatically triggers `/api/ai/learn` in the ML microservice.
-3. The ML engine appends the newly resolved case to the dataset and updates the model's in-memory TF-IDF index in real-time without restarting the service.
-4. Over time, the model becomes increasingly tailored to local dispute patterns and departmental workflows.
+1. When a departmental officer or higher authority resolves a bottleneck, they submit the resolution steps and official order number.
+2. The Node.js backend automatically calls `/api/ai/learn` on the Python ML service.
+3. The ML service dynamically appends the resolution to `data/cases.csv` and retrains the KNN model and TF-IDF index in under 1 second.
+4. Future alerts in that department immediately benefit from the newly learned resolution.
+
+---
+
+### 🧪 Step-by-Step Departmental Bottleneck Verification Guide
+
+Follow these exact steps to verify that the bottleneck reporting and AI suggestion engine are working end-to-end. Use **only the 6 existing statutory departments**:
+`Survey`, `Legal Verification`, `Compensation`, `Rehabilitation`, `Approvals`, `Possession`.
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                  HOW TO RUN THE END-TO-END TEST                                        │
+│  1. Officer / Admin raises Bottleneck in ALERTS section (selecting the specific Department)             │
+│  2. Senior Officer / Administrator opens ALERTS -> clicks "Post Decision"                               │
+│  3. Click "Generate AI Directive" -> AI reads problem & prescribes precedent action plan               │
+│  4. Click "Apply Suggestion to Decision Text" -> Auto-populates official directive for officer         │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 📌 Test Case 1: Survey Department (Boundary Overlap Demarcation)
+* **Target Department**: `Survey` (DisplayName: `Survey`)
+* **Issue Type**: `Boundary Dispute`
+* **Severity**: `High Priority`
+* **Test Issue Description to Enter**:
+  > `Survey boundary overlap between Khasra 45 and 46 causing demarcation conflict with adjoining landholders`
+* **How to Verify**:
+  1. Go to **Alerts** → click **"Report Bottleneck"**.
+  2. Select Project: `NH-44 Highway Expansion Phase 2` (or any project).
+  3. Select Department: **`Survey`**, Severity: **`High`**, paste the description above, and click **Submit**.
+  4. Sign in as **Senior Officer** (`senior@landacquisition.gov.in` / `Senior@2026Officer!`) or **Administrator** (`admin@landacquisition.gov.in` / `Admin@2026Secure!`).
+  5. Under the active alert, click **"Post Decision"**.
+  6. Click **"Generate AI Directive"**.
+* **Expected AI Output**:
+  - **Confidence**: `93.3% Match` (Matched Historical Case `#LA_001`)
+  - **Headline**: `Directive: Resolution Protocol for Boundary Dispute`
+  - **Statutory Precedent**: `RFCTLARR Act 2013 & State Survey and Land Records Demarcation Manual`
+  - **Action Checklist**:
+    1. Conduct joint DGPS survey with Revenue Inspector and Village Patwari.
+    2. Erect permanent RCC boundary pillars at verified coordinates.
+    3. Update digitized Khasra map in state GIS portal.
+    4. Issue resolved in 12 days.
+  - **1-Click Apply**: Click **"Apply Suggestion to Decision Text"** to insert into the directive box.
+
+---
+
+#### 📌 Test Case 2: Compensation Department (PFMS / DBT Payment Mismatch)
+* **Target Department**: `Compensation` (DisplayName: `Compensation`)
+* **Issue Type**: `Payment Disbursement Failure`
+* **Severity**: `High Priority`
+* **Test Issue Description to Enter**:
+  > `DBT payment stuck due to Aadhaar bank account mismatch in PFMS portal`
+* **How to Verify**:
+  1. Go to **Alerts** → click **"Report Bottleneck"**.
+  2. Select Department: **`Compensation`**, Severity: **`High`**, paste the description above, and Submit.
+  3. As **Senior Officer** or **Administrator**, open the alert and click **"Post Decision"**.
+  4. Click **"Generate AI Directive"**.
+* **Expected AI Output**:
+  - **Confidence**: `74.1% Match` (Matched Historical Case `#LA_008`)
+  - **Headline**: `Directive: Resolution Protocol for Payment Disbursement Failure`
+  - **Statutory Precedent**: `RFCTLARR Act 2013 Section 26-30 & First Schedule (Market Value Determination & 100% Solatium)`
+  - **Action Checklist**:
+    1. Organize special camp at village panchayat office with bank representatives and UIDAI verification team.
+    2. Correct Aadhaar-bank seeding mismatches on the spot.
+    3. Resolve remaining cases via manual NPCI mapper correction.
+    4. Complete full disbursement via PFMS e-payment gateway.
+
+---
+
+#### 📌 Test Case 3: Approvals Department (Stage-1 Forest Land Diversion)
+* **Target Department**: `Approvals` (DisplayName: `Approvals`)
+* **Issue Type**: `Forest Clearance Pending`
+* **Severity**: `High Priority`
+* **Test Issue Description to Enter**:
+  > `Stage-1 Forest Clearance for 23 hectare forest land diversion pending with MoEFCC`
+* **How to Verify**:
+  1. Go to **Alerts** → click **"Report Bottleneck"**.
+  2. Select Department: **`Approvals`**, Severity: **`High`**, paste the description above, and Submit.
+  3. As **Senior Officer** or **Administrator**, open the alert and click **"Post Decision"**.
+  4. Click **"Generate AI Directive"**.
+* **Expected AI Output**:
+  - **Confidence**: `75.2% Match` (Matched Historical Case `#LA_015`)
+  - **Headline**: `Directive: Resolution Protocol for Stage-1 Forest Clearance Pending`
+  - **Statutory Precedent**: `Forest Conservation Act 1980 & MoEFCC Parivesh Single-Window Regulatory Portal`
+  - **Action Checklist**:
+    1. File compliance report on Parivesh portal with complete documentation package.
+    2. Submit compensatory afforestation (CA) land proposal for non-forest land identified.
+    3. Deposit NPV amount in CAMPA account.
+    4. Coordinate with Regional Chief Conservator of Forests for formal Stage-1 Working Permission.
+
+---
+
+#### ⚠️ Edge Case Test 4: Unrecognized Problem / No Similar Old Case Found
+BhoomiSetu includes strict **semantic vocabulary verification** to prevent hallucinating solutions when gibberish or an unrecognized issue is submitted.
+
+* **Target Department**: `Survey` (or any department)
+* **Test Issue Description to Enter**:
+  > `jguigubuguj` (or non-domain random text)
+* **How to Verify**:
+  1. Raise an alert with description: `jguigubuguj`.
+  2. Click **"Post Decision"** → click **"Generate AI Directive"**.
+* **Expected AI Output**:
+  - **Confidence**: `0% Match` (`is_low_confidence: true`)
+  - **Headline**: `No Historical Precedent Found (0% Match)`
+  - **Notice**:
+    > *"⚠️ Unrecognized Issue: The description 'jguigubuguj' was not recognized in our 100 historical land acquisition bottleneck cases. Please provide a descriptive issue or select from standard precedents."*
+  - **Clickable Precedent Presets**: The UI presents 1-click shortcut buttons for **Survey (Demarcation overlap)**, **Compensation (PFMS DBT mismatch)**, and **Approvals (Stage-1 Forest Clearance)** so the user can immediately load a recognized precedent with one click.
 
 ---
 
@@ -191,27 +297,29 @@ npm run dev
 
 ---
 
-## 🔑 Demo Login Accounts
+## 🔑 Demo Accounts
 
-### 1. Executive & Administrative Access
-| Role | Email | Password | Access Scope |
-|---|---|---|---|
-| **System Administrator** | `admin@bhoomisetu.gov.in` | `Admin@123` | Full National Executive Access |
-| **Senior Officer** | `senior.officer@bhoomisetu.gov.in` | `Senior@123` | High-Level Multi-Project Oversight |
+Each role has a unique, secure password for testing:
 
-### 2. Project-Scoped Departmental Officers
-*Use 2-Step Login with Project Code:*
-- **Project 1**: `NH44-P2-2026` (NH-44 Highway Expansion Phase 2, Belagavi, Karnataka)
-- **Project 2**: `EFC-LP-2026` (Eastern Dedicated Freight Corridor, Patna, Bihar)
+| Role | Email | Password |
+|---|---|---|
+| **Administrator** | `admin@landacquisition.gov.in` | `Admin@2026Secure!` |
+| **Senior Officer** | `senior@landacquisition.gov.in` | `Senior@2026Officer!` |
+| **Survey Officer** | `survey@landacquisition.gov.in` | `Survey@2026Land!` |
+| **Legal Verification** | `legal@landacquisition.gov.in` | `Legal@2026Verify!` |
+| **Compensation Officer** | `compensation@landacquisition.gov.in` | `Compensation@2026!` |
+| **Rehabilitation Officer** | `rehabilitation@landacquisition.gov.in` | `Rehab@2026Support!` |
+| **Approvals Officer** | `approvals@landacquisition.gov.in` | `Approvals@2026!` |
+| **Possession Officer** | `possession@landacquisition.gov.in` | `Possession@2026!` |
 
-| Department | Officer Email | Password | Assigned Project |
-|---|---|---|---|
-| **Survey Officer** | `officer.survey@nh44.gov.in` | `Survey@123` | `NH44-P2-2026` |
-| **Legal Officer** | `officer.legal@nh44.gov.in` | `Legal@123` | `NH44-P2-2026` |
-| **Compensation Officer** | `officer.comp@nh44.gov.in` | `Comp@123` | `NH44-P2-2026` |
-| **Rehabilitation Officer** | `officer.rehab@nh44.gov.in` | `Rehab@123` | `NH44-P2-2026` |
-| **Approvals Officer** | `officer.approval@nh44.gov.in` | `Approval@123` | `NH44-P2-2026` |
-| **Possession Officer** | `officer.possession@nh44.gov.in` | `Possession@123` | `NH44-P2-2026` |
+### 📌 Project Scopes & 2-Step Sign-In
+To sign in as any of the departmental officers above, use the **Project Officer Login** tab:
+1. **Enter Project Code**: `NH44-P2-2026` *(NH-44 Highway Expansion Phase 2 — Belagavi, Karnataka)*
+2. **Enter Officer Email & Password** from the table above (e.g., `survey@landacquisition.gov.in` / `Survey@2026Land!`).
+
+*Note: For the second seeded project **Eastern Dedicated Freight Corridor (`EFC-LP-2026`)**, officer emails follow the format `<role>.efc@landacquisition.gov.in` with password `<Role>@2026Efc!` (e.g. `survey.efc@landacquisition.gov.in` / `Survey@2026Efc!`).*
+
+---
 
 ---
 

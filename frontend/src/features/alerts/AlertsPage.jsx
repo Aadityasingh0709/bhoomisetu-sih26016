@@ -88,7 +88,7 @@ export default function AlertsPage() {
     setAiRecommendation(null);
     setAiPrecedents([]);
     try {
-      const deptName = target.department?.displayName || target.department?.name || target.department || "Safety";
+      const deptName = target.department?.displayName || target.department?.name || target.department || "Survey & Land Records";
       const data = await getAISuggestions({
         department: deptName,
         issue_type: target.type || "Bottleneck",
@@ -847,52 +847,115 @@ export default function AlertsPage() {
                 </div>
 
                 {aiRecommendation && (
-                  <div className="rounded-lg border border-emerald-300 bg-white p-3.5 space-y-2.5 shadow-sm animate-fadeIn">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-100 pb-2">
-                      <span className="text-[11px] font-black text-emerald-900">
-                        {aiRecommendation.headline}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
-                          {aiRecommendation.confidence_score}% Match
+                  aiRecommendation.is_low_confidence ? (
+                    <div className="rounded-lg border border-amber-300 bg-amber-50/90 p-3.5 space-y-2.5 shadow-sm animate-fadeIn">
+                      <div className="flex items-center justify-between gap-2 border-b border-amber-200 pb-2">
+                        <span className="text-[11px] font-black text-amber-900 flex items-center gap-1.5">
+                          <AlertTriangle size={14} className="text-amber-600" />
+                          No Historical Precedent Found (0% Match)
                         </span>
-                        <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded">
-                          ETA: {aiRecommendation.estimated_turnaround_days}
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded">
+                          Unrecognized Issue
                         </span>
                       </div>
-                    </div>
-                    <p className="text-xs text-ink-700 font-medium leading-relaxed">
-                      {aiRecommendation.summary}
-                    </p>
-                    <div className="space-y-1.5 text-xs text-ink-800 bg-ink-50/60 p-2.5 rounded-lg border border-ink-100">
-                      <span className="text-[10px] font-black uppercase text-ink-600 block">Recommended Action Checklist:</span>
-                      {(aiRecommendation.steps || []).map((step, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-200 text-[10px] font-bold text-emerald-900">
-                            {idx + 1}
-                          </span>
-                          <span className="text-[11px] leading-snug">{step}</span>
+                      <p className="text-xs text-amber-950 font-medium leading-relaxed">
+                        {aiRecommendation.summary}
+                      </p>
+                      <div className="space-y-1.5 text-xs text-ink-800 bg-white/80 p-2.5 rounded-lg border border-amber-200">
+                        <span className="text-[10px] font-black uppercase text-amber-900 block">
+                          Try One of These Realistic BhoomiSetu Precedents:
+                        </span>
+                        <div className="flex flex-col gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleFetchAIDirective({
+                                ...decisionTarget,
+                                type: "Boundary Dispute",
+                                message: "Survey boundary overlap between Khasra 45 and 46 causing demarcation conflict with adjoining landholders"
+                              });
+                            }}
+                            className="text-left text-[11px] text-blue-700 hover:text-blue-900 hover:underline cursor-pointer flex items-center gap-1"
+                          >
+                            <span>👉</span> <strong>Survey:</strong> Demarcation overlap between Khasra 45 and 46
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleFetchAIDirective({
+                                ...decisionTarget,
+                                type: "Payment Disbursement Failure",
+                                message: "DBT payment stuck due to Aadhaar bank account mismatch in PFMS portal"
+                              });
+                            }}
+                            className="text-left text-[11px] text-blue-700 hover:text-blue-900 hover:underline cursor-pointer flex items-center gap-1"
+                          >
+                            <span>👉</span> <strong>Compensation:</strong> DBT PFMS disbursement failure due to Aadhaar mismatch
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleFetchAIDirective({
+                                ...decisionTarget,
+                                type: "Stage-1 Forest Clearance Pending",
+                                message: "Stage-1 Forest Clearance for 23 hectare forest land diversion pending with MoEFCC"
+                              });
+                            }}
+                            className="text-left text-[11px] text-blue-700 hover:text-blue-900 hover:underline cursor-pointer flex items-center gap-1"
+                          >
+                            <span>👉</span> <strong>Forest:</strong> Stage-1 Forest Clearance pending with MoEFCC
+                          </button>
                         </div>
-                      ))}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-ink-100">
-                      <span className="text-[10px] text-ink-500 font-medium">
-                        Statutory Precedent: {aiRecommendation.statutory_precedent}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const planText = `DIRECTIVE: ${aiRecommendation.headline}\nAction Plan:\n${(aiRecommendation.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}\nCompliance Deadline: ${aiRecommendation.estimated_turnaround_days}\nStatutory Reference: ${aiRecommendation.statutory_precedent}`;
-                          setDecisionText(planText);
-                          toast.success("AI directive applied to decision text!");
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700 transition-all cursor-pointer"
-                      >
-                        <CheckCircle2 size={13} />
-                        <span>Apply Suggestion to Decision Text</span>
-                      </button>
+                  ) : (
+                    <div className="rounded-lg border border-emerald-300 bg-white p-3.5 space-y-2.5 shadow-sm animate-fadeIn">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-100 pb-2">
+                        <span className="text-[11px] font-black text-emerald-900">
+                          {aiRecommendation.headline}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                            {aiRecommendation.confidence_score}% Match
+                          </span>
+                          <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded">
+                            ETA: {aiRecommendation.estimated_turnaround_days}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-ink-700 font-medium leading-relaxed">
+                        {aiRecommendation.summary}
+                      </p>
+                      <div className="space-y-1.5 text-xs text-ink-800 bg-ink-50/60 p-2.5 rounded-lg border border-ink-100">
+                        <span className="text-[10px] font-black uppercase text-ink-600 block">Recommended Action Checklist:</span>
+                        {(aiRecommendation.steps || []).map((step, idx) => (
+                          <div key={idx} className="flex items-start gap-2">
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-200 text-[10px] font-bold text-emerald-900">
+                              {idx + 1}
+                            </span>
+                            <span className="text-[11px] leading-snug">{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-ink-100">
+                        <span className="text-[10px] text-ink-500 font-medium">
+                          Statutory Precedent: {aiRecommendation.statutory_precedent}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const planText = aiRecommendation.resolution_template || `DIRECTIVE: ${aiRecommendation.headline}\nAction Plan:\n${(aiRecommendation.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}\nCompliance Deadline: ${aiRecommendation.estimated_turnaround_days}\nStatutory Reference: ${aiRecommendation.statutory_precedent}`;
+                            setDecisionText(planText);
+                            toast.success("AI directive applied to decision text!");
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700 transition-all cursor-pointer"
+                        >
+                          <CheckCircle2 size={13} />
+                          <span>Apply Suggestion to Decision Text</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )
                 )}
               </div>
 
@@ -994,50 +1057,6 @@ export default function AlertsPage() {
                 )}
               </div>
 
-              {/* ── AI Fix Suggestion Assistant ── */}
-              <div className="rounded-xl border border-emerald-300 bg-emerald-50/50 p-3.5 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles size={15} className="text-emerald-700" />
-                    <span className="text-xs font-black text-emerald-950">AI Corrective Action Guide</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleFetchAIDirective(officerResolveTarget)}
-                    disabled={aiLoading}
-                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-800 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-900 transition-all cursor-pointer"
-                  >
-                    <Sparkles size={11} />
-                    <span>{aiLoading ? "Analyzing…" : "Get AI Fix Plan"}</span>
-                  </button>
-                </div>
-
-                {aiRecommendation && (
-                  <div className="rounded-lg border border-emerald-200 bg-white p-3 space-y-2 text-xs">
-                    <p className="font-bold text-emerald-950">{aiRecommendation.headline}</p>
-                    <div className="space-y-1 text-ink-700 text-[11px]">
-                      {(aiRecommendation.steps || []).map((step, idx) => (
-                        <div key={idx} className="flex items-start gap-1.5">
-                          <span className="font-bold text-emerald-700">{idx + 1}.</span>
-                          <span>{step}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const note = `Fixed: Executed ${aiRecommendation.headline}. ${(aiRecommendation.steps || [])[0]} ${(aiRecommendation.steps || [])[1] || ''}`;
-                        setOfficerResolveNote(note);
-                        toast.success("AI fix note applied!");
-                      }}
-                      className="mt-1 inline-flex items-center gap-1 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-1 text-[11px] font-bold hover:bg-emerald-200 cursor-pointer"
-                    >
-                      <CheckCircle2 size={12} />
-                      <span>Apply to Fix Note</span>
-                    </button>
-                  </div>
-                )}
-              </div>
 
               {/* Officer note */}
               <div>
