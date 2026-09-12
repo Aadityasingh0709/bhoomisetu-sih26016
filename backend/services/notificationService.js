@@ -25,10 +25,11 @@ const getTransporter = async () => {
     cachedTransporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
+        user: process.env.GMAIL_USER.trim(),
+        pass: process.env.GMAIL_APP_PASSWORD.replace(/\s+/g, ""),
       },
     });
+    console.log(`[Email Service] Authenticated with Gmail SMTP via ${process.env.GMAIL_USER.trim()}`);
     return cachedTransporter;
   }
 
@@ -151,8 +152,12 @@ export const sendDirectEmail = async ({
 
   try {
     const transporter = await getTransporter();
+    const defaultFrom = process.env.GMAIL_USER 
+      ? `"BhoomiSetu National Portal" <${process.env.GMAIL_USER.trim()}>`
+      : `"BhoomiSetu National Portal" <noreply@bhoomisetu.gov.in>`;
+
     const info = await transporter.sendMail({
-      from: process.env.FROM_EMAIL || `"BhoomiSetu National Portal" <noreply@bhoomisetu.gov.in>`,
+      from: process.env.FROM_EMAIL || defaultFrom,
       to: recipient,
       subject,
       html,
