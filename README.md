@@ -132,7 +132,7 @@ The built-in AI microservice empowers ground officers and senior executives to r
 ### Prerequisites
 - **Node.js**: v18 or v20 LTS
 - **Python**: v3.10+ (with pip)
-- **MongoDB**: Local MongoDB on `mongodb://127.0.0.1:27017/land_acquisition` or MongoDB Atlas URI
+- **MongoDB**: Local MongoDB on `mongodb+srv://keshawjha2005_db_user:r27tZvcAHqCyUMak@cluster1.bsxiklt.mongodb.net/bhoomisetu?retryWrites=true&w=majority&appName=Cluster1` or MongoDB Atlas URI
 
 ### 1. Clone & Install Dependencies
 ```bash
@@ -148,7 +148,7 @@ npm run install:all
 Create `backend/.env` (or copy from `backend/.env.example`):
 ```env
 PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/land_acquisition
+MONGO_URI=mongodb+srv://keshawjha2005_db_user:r27tZvcAHqCyUMak@cluster1.bsxiklt.mongodb.net/bhoomisetu?retryWrites=true&w=majority&appName=Cluster1
 JWT_SECRET=bhoomisetu_super_secret_jwt_key_2026
 CLIENT_URL=http://localhost:5173
 ML_SERVICE_URL=http://localhost:5001
@@ -185,7 +185,7 @@ python app.py
 npm run dev
 ```
 
-- **Frontend Portal**: `http://localhost:5173`
+- **Frontend Portal**: `http://localhost:5174/`
 - **Backend REST API**: `http://localhost:5000`
 - **ML Microservice**: `http://localhost:5001`
 
@@ -253,7 +253,8 @@ Use this exact 6-slide structure to build your evaluation presentation for jury 
 │         │ • Problem Statement: SIH 26016 · Ministry of Rural Development (DoLR)        │
 │         │ • Core Pain Points: Multi-departmental silos, 40%+ national infra delays,   │
 │         │   untracked legal bottlenecks, repetitive disputes & paper-based reporting.  │
-│         │ • Team: Aaditya Singh & Keshaw Jha                                           │
+│         │ • Team: Anvesha Singh & Aaditya Singh & Keshaw Jha & Sudhanshu Singh
+              & Garima Gupta & Vivek kr Das                         │
 ├─────────┼──────────────────────────────────────────────────────────────────────────────┤
 │ Slide 2 │ THE BHOOMISETU SOLUTION & CORE VALUE PROPOSITION                             │
 │         │ • Unified 6-Stage Digital Lifecycle (Survey → Legal → Comp → Rehab → Poss.) │
