@@ -13,7 +13,7 @@ import { fetchDepartments } from "../../api/departments.js";
 import { useAuthStore } from "../../store/authStore.js";
 import Card from "../../components/Card.jsx";
 import StatCard from "../../components/StatCard.jsx";
-import AIRecommendationPanel from "../../components/AIRecommendationPanel.jsx";
+import { getAISuggestions } from "../../api/ai.js";
 import {
   ShieldAlert,
   AlertTriangle,
@@ -76,6 +76,36 @@ export default function AlertsPage() {
   const [officerResolveTarget, setOfficerResolveTarget] = useState(null);
   const [officerResolveNote, setOfficerResolveNote] = useState("");
   const [submittingOfficerResolve, setSubmittingOfficerResolve] = useState(false);
+
+  // ── In-Modal AI Resolution Assistant State ─────────────────────────────
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiRecommendation, setAiRecommendation] = useState(null);
+  const [aiPrecedents, setAiPrecedents] = useState([]);
+
+  const handleFetchAIDirective = async (target) => {
+    if (!target) return;
+    setAiLoading(true);
+    setAiRecommendation(null);
+    setAiPrecedents([]);
+    try {
+      const deptName = target.department?.displayName || target.department?.name || target.department || "Safety";
+      const data = await getAISuggestions({
+        department: deptName,
+        issue_type: target.type || "Bottleneck",
+        issue_description: target.message || "",
+        severity: target.severity === "High" ? "System Failure" : "Behavioural Failure",
+        urgency: target.severity === "High" ? "Critical" : "High",
+        k: 3,
+      });
+      setAiRecommendation(data.recommendation || null);
+      setAiPrecedents(data.suggestions || []);
+      toast.success("AI suggested resolution generated!");
+    } catch (err) {
+      toast.error("Could not fetch AI suggestions. Ensure ML service is running.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const load = () => {
     setLoading(true);
@@ -314,9 +344,6 @@ export default function AlertsPage() {
           trendType="warning"
         />
       </div>
-
-      {/* ── AI Recommendation Panel ───────────────────────────────────── */}
-      <AIRecommendationPanel />
 
       {/* ── Officer Action Required Banner (for DepartmentOfficer) ── */}
       {isOfficer && (() => {
@@ -753,32 +780,32 @@ export default function AlertsPage() {
           onClick={() => !submittingDecision && setDecisionTarget(null)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden"
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-700 to-indigo-700 px-6 py-5 flex items-center justify-between text-white">
+            <div className="bg-gradient-to-r from-blue-700 to-indigo-700 px-6 py-5 flex items-center justify-between text-white shrink-0">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
                   <MessageSquare size={20} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-base font-black">Post Authority Decision</h2>
+                  <h2 className="text-base font-black">Post Authority Decision &amp; Corrective Directive</h2>
                   <p className="text-xs text-blue-200 mt-0.5">
-                    Your directive will be visible to the responsible department officer
+                    Issue directives to {decisionTarget.department?.displayName || "responsible department"} with AI precedent assistance
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setDecisionTarget(null)}
+                onClick={() => { setDecisionTarget(null); setAiRecommendation(null); }}
                 className="rounded-lg p-1 text-blue-200 hover:text-white transition-colors"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitDecision} className="p-6 space-y-4">
+            <form onSubmit={handleSubmitDecision} className="p-6 space-y-4 overflow-y-auto flex-1">
               {/* Alert context */}
               <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs space-y-1">
                 <div className="flex items-center justify-between text-ink-400 font-medium">
@@ -787,6 +814,86 @@ export default function AlertsPage() {
                 </div>
                 <p className="font-bold text-ink-800">{decisionTarget.message}</p>
                 <p className="text-ink-500 text-[11px]">{decisionTarget.projectName}</p>
+              </div>
+
+              {/* ── AI Suggestion Assistant in Decision Modal ── */}
+              <div className="rounded-xl border border-ochre-300 bg-gradient-to-r from-amber-50/90 via-ochre-50/70 to-orange-50/60 p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ochre-600 text-white shadow-sm">
+                      <Sparkles size={15} className="animate-pulse" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-ink-900 flex items-center gap-1.5">
+                        <span>AI Bottleneck Resolution Advisor</span>
+                        <span className="text-[10px] font-bold text-ochre-800 bg-ochre-200/60 px-1.5 py-0.2 rounded">
+                          KNN 12.4k Cases
+                        </span>
+                      </h4>
+                      <p className="text-[10px] text-ink-500">
+                        Synthesizes historical precedent &amp; step-by-step resolution directives
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleFetchAIDirective(decisionTarget)}
+                    disabled={aiLoading}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-ink-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-ochre-600 transition-all cursor-pointer disabled:opacity-60 shrink-0"
+                  >
+                    <Sparkles size={12} />
+                    <span>{aiLoading ? "Analyzing Cases…" : "Generate AI Directive"}</span>
+                  </button>
+                </div>
+
+                {aiRecommendation && (
+                  <div className="rounded-lg border border-emerald-300 bg-white p-3.5 space-y-2.5 shadow-sm animate-fadeIn">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-100 pb-2">
+                      <span className="text-[11px] font-black text-emerald-900">
+                        {aiRecommendation.headline}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                          {aiRecommendation.confidence_score}% Match
+                        </span>
+                        <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded">
+                          ETA: {aiRecommendation.estimated_turnaround_days}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-ink-700 font-medium leading-relaxed">
+                      {aiRecommendation.summary}
+                    </p>
+                    <div className="space-y-1.5 text-xs text-ink-800 bg-ink-50/60 p-2.5 rounded-lg border border-ink-100">
+                      <span className="text-[10px] font-black uppercase text-ink-600 block">Recommended Action Checklist:</span>
+                      {(aiRecommendation.steps || []).map((step, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-200 text-[10px] font-bold text-emerald-900">
+                            {idx + 1}
+                          </span>
+                          <span className="text-[11px] leading-snug">{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-ink-100">
+                      <span className="text-[10px] text-ink-500 font-medium">
+                        Statutory Precedent: {aiRecommendation.statutory_precedent}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const planText = `DIRECTIVE: ${aiRecommendation.headline}\nAction Plan:\n${(aiRecommendation.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}\nCompliance Deadline: ${aiRecommendation.estimated_turnaround_days}\nStatutory Reference: ${aiRecommendation.statutory_precedent}`;
+                          setDecisionText(planText);
+                          toast.success("AI directive applied to decision text!");
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700 transition-all cursor-pointer"
+                      >
+                        <CheckCircle2 size={13} />
+                        <span>Apply Suggestion to Decision Text</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Decision textarea */}
@@ -799,27 +906,27 @@ export default function AlertsPage() {
                   required
                   value={decisionText}
                   onChange={(e) => setDecisionText(e.target.value)}
-                  placeholder="State the specific corrective action the officer must take to unblock this bottleneck. e.g.: 'Conduct joint hearing with the Tahsildar by 15 Sep, resolve the 44B boundary overlap, and clear 30 pending cases within 10 days. Escalate if court order is required.'"
-                  className="input resize-none text-xs font-medium border-blue-300 focus:border-blue-500 focus:ring-blue-500 bg-blue-50/20"
+                  placeholder="State the specific corrective action the officer must take. You can click 'Generate AI Directive' above to auto-prescribe an actionable resolution."
+                  className="input resize-none text-xs font-medium border-blue-300 focus:border-blue-500 focus:ring-blue-500 bg-blue-50/20 w-full"
                 />
                 <p className="text-[10px] text-ink-400 mt-1">
-                  This directive will be saved and shown prominently to the responsible officer.
+                  This directive will be saved and shown prominently to the responsible department officer.
                 </p>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-ink-100">
                 <button
                   type="button"
-                  onClick={() => setDecisionTarget(null)}
+                  onClick={() => { setDecisionTarget(null); setAiRecommendation(null); }}
                   disabled={submittingDecision}
-                  className="rounded-xl border border-ink-200 px-4 py-2 text-xs font-bold text-ink-600 hover:bg-ink-50 transition-colors"
+                  className="rounded-xl border border-ink-200 px-4 py-2 text-xs font-bold text-ink-600 hover:bg-ink-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingDecision}
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-600/20 hover:from-blue-700 hover:to-indigo-800 transition-all disabled:opacity-60"
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-600/20 hover:from-blue-700 hover:to-indigo-800 transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {submittingDecision ? (
                     <>
@@ -846,11 +953,11 @@ export default function AlertsPage() {
           onClick={() => !submittingOfficerResolve && setOfficerResolveTarget(null)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden"
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-5 flex items-center justify-between text-white">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-5 flex items-center justify-between text-white shrink-0">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
                   <CheckCircle2 size={20} className="text-white" />
@@ -858,20 +965,20 @@ export default function AlertsPage() {
                 <div>
                   <h2 className="text-base font-black">Mark Problem as Fixed</h2>
                   <p className="text-xs text-emerald-100 mt-0.5">
-                    Confirm you have implemented the authority's decision
+                    Confirm implementation with AI precedent remediation assistance
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setOfficerResolveTarget(null)}
+                onClick={() => { setOfficerResolveTarget(null); setAiRecommendation(null); }}
                 className="rounded-lg p-1 text-emerald-200 hover:text-white transition-colors"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitOfficerResolve} className="p-6 space-y-4">
+            <form onSubmit={handleSubmitOfficerResolve} className="p-6 space-y-4 overflow-y-auto flex-1">
               {/* Alert context + decision */}
               <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs space-y-2">
                 <p className="font-bold text-ink-800">{officerResolveTarget.message}</p>
@@ -887,6 +994,51 @@ export default function AlertsPage() {
                 )}
               </div>
 
+              {/* ── AI Fix Suggestion Assistant ── */}
+              <div className="rounded-xl border border-emerald-300 bg-emerald-50/50 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={15} className="text-emerald-700" />
+                    <span className="text-xs font-black text-emerald-950">AI Corrective Action Guide</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleFetchAIDirective(officerResolveTarget)}
+                    disabled={aiLoading}
+                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-800 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-900 transition-all cursor-pointer"
+                  >
+                    <Sparkles size={11} />
+                    <span>{aiLoading ? "Analyzing…" : "Get AI Fix Plan"}</span>
+                  </button>
+                </div>
+
+                {aiRecommendation && (
+                  <div className="rounded-lg border border-emerald-200 bg-white p-3 space-y-2 text-xs">
+                    <p className="font-bold text-emerald-950">{aiRecommendation.headline}</p>
+                    <div className="space-y-1 text-ink-700 text-[11px]">
+                      {(aiRecommendation.steps || []).map((step, idx) => (
+                        <div key={idx} className="flex items-start gap-1.5">
+                          <span className="font-bold text-emerald-700">{idx + 1}.</span>
+                          <span>{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const note = `Fixed: Executed ${aiRecommendation.headline}. ${(aiRecommendation.steps || [])[0]} ${(aiRecommendation.steps || [])[1] || ''}`;
+                        setOfficerResolveNote(note);
+                        toast.success("AI fix note applied!");
+                      }}
+                      className="mt-1 inline-flex items-center gap-1 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-1 text-[11px] font-bold hover:bg-emerald-200 cursor-pointer"
+                    >
+                      <CheckCircle2 size={12} />
+                      <span>Apply to Fix Note</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Officer note */}
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider text-ink-700 mb-1">
@@ -896,8 +1048,8 @@ export default function AlertsPage() {
                   rows={3}
                   value={officerResolveNote}
                   onChange={(e) => setOfficerResolveNote(e.target.value)}
-                  placeholder="Briefly describe what action you took: e.g. 'Cleared 32 pending verification cases, re-surveyed parcel 44B with DGPS, submitted updated records to Tahsildar on 12 Sep 2026.'"
-                  className="input resize-none text-xs font-medium"
+                  placeholder="Briefly describe what action you took or use the AI guide above."
+                  className="input resize-none text-xs font-medium w-full"
                 />
                 <p className="text-[10px] text-ink-400 mt-1">
                   A notification will be sent to the higher authority to verify and close this alert.
@@ -907,16 +1059,16 @@ export default function AlertsPage() {
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-ink-100">
                 <button
                   type="button"
-                  onClick={() => setOfficerResolveTarget(null)}
+                  onClick={() => { setOfficerResolveTarget(null); setAiRecommendation(null); }}
                   disabled={submittingOfficerResolve}
-                  className="rounded-xl border border-ink-200 px-4 py-2 text-xs font-bold text-ink-600 hover:bg-ink-50 transition-colors"
+                  className="rounded-xl border border-ink-200 px-4 py-2 text-xs font-bold text-ink-600 hover:bg-ink-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingOfficerResolve}
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-800 transition-all disabled:opacity-60"
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-800 transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {submittingOfficerResolve ? (
                     <>
@@ -943,16 +1095,16 @@ export default function AlertsPage() {
           onClick={() => !submittingResolve && setResolveTarget(null)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden"
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-5 flex items-center justify-between text-white">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-5 flex items-center justify-between text-white shrink-0">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
                   <BadgeCheck size={20} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-base font-black">Close Alert & Log Resolution</h2>
+                  <h2 className="text-base font-black">Close Alert &amp; Log Resolution</h2>
                   <p className="text-xs text-emerald-100 mt-0.5">
                     Final sign-off — saves to project dossier &amp; audit trail
                   </p>
@@ -960,14 +1112,14 @@ export default function AlertsPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setResolveTarget(null)}
+                onClick={() => { setResolveTarget(null); setAiRecommendation(null); }}
                 className="rounded-lg p-1 text-emerald-200 hover:text-white transition-colors"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleConfirmResolve} className="p-6 space-y-4">
+            <form onSubmit={handleConfirmResolve} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div className="rounded-xl border border-ink-100 bg-ink-50 p-3 text-xs space-y-1">
                 <div className="flex items-center justify-between text-ink-400 font-medium">
                   <span>{resolveTarget.department?.displayName || "Department Stage"}</span>
@@ -982,6 +1134,43 @@ export default function AlertsPage() {
                 )}
               </div>
 
+              {/* ── AI Closure Assist ── */}
+              <div className="rounded-xl border border-teal-300 bg-teal-50/50 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={15} className="text-teal-700" />
+                    <span className="text-xs font-black text-teal-950">AI Audit Resolution Synthesis</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleFetchAIDirective(resolveTarget)}
+                    disabled={aiLoading}
+                    className="inline-flex items-center gap-1 rounded-lg bg-teal-800 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-teal-900 transition-all cursor-pointer"
+                  >
+                    <Sparkles size={11} />
+                    <span>{aiLoading ? "Generating…" : "Generate Audit Note"}</span>
+                  </button>
+                </div>
+
+                {aiRecommendation && (
+                  <div className="rounded-lg border border-teal-200 bg-white p-3 space-y-2 text-xs">
+                    <p className="font-bold text-teal-950">{aiRecommendation.headline}</p>
+                    <p className="text-[11px] text-ink-600">{aiRecommendation.resolution_template}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResolveNotes(aiRecommendation.resolution_template);
+                        toast.success("AI closure note applied!");
+                      }}
+                      className="inline-flex items-center gap-1 rounded bg-teal-100 text-teal-900 border border-teal-300 px-2 py-1 text-[11px] font-bold hover:bg-teal-200 cursor-pointer"
+                    >
+                      <CheckCircle2 size={12} />
+                      <span>Apply to Official Closure Note</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider text-ink-700 mb-1">
                   Official Closure Note <span className="text-rose-500">*</span>
@@ -991,24 +1180,24 @@ export default function AlertsPage() {
                   required
                   value={resolveNotes}
                   onChange={(e) => setResolveNotes(e.target.value)}
-                  placeholder="Write the final closure narrative for the audit dossier: confirm what was done, verify the fix, and note any follow-up actions…"
-                  className="input resize-none text-xs font-medium border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500 bg-emerald-50/20"
+                  placeholder="Write the final closure narrative for the audit dossier or click 'Generate Audit Note' above…"
+                  className="input resize-none text-xs font-medium border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500 bg-emerald-50/20 w-full"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-ink-100">
                 <button
                   type="button"
-                  onClick={() => setResolveTarget(null)}
+                  onClick={() => { setResolveTarget(null); setAiRecommendation(null); }}
                   disabled={submittingResolve}
-                  className="rounded-xl border border-ink-200 px-4 py-2 text-xs font-bold text-ink-600 hover:bg-ink-50 transition-colors"
+                  className="rounded-xl border border-ink-200 px-4 py-2 text-xs font-bold text-ink-600 hover:bg-ink-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingResolve}
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-800 transition-all disabled:opacity-60"
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-800 transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {submittingResolve ? (
                     <>
@@ -1018,7 +1207,7 @@ export default function AlertsPage() {
                   ) : (
                     <>
                       <BadgeCheck size={14} />
-                      Confirm &amp; Close Alert
+                      Sign-off &amp; Close Alert
                     </>
                   )}
                 </button>
@@ -1027,6 +1216,7 @@ export default function AlertsPage() {
           </div>
         </div>
       )}
+
       {/* ── Report Bottleneck / Obstruction Modal ── */}
       {reportModalOpen && (
         <div
