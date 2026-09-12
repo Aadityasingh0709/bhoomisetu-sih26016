@@ -11,6 +11,7 @@ import MapView from "../../components/MapView.jsx";
 import { formatDate } from "../../utils/status.js";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useAuthStore } from "../../store/authStore.js";
 import {
   FolderKanban,
   CheckCircle2,
@@ -31,6 +32,8 @@ import {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const isOfficer = user?.role === "DepartmentOfficer";
   const [summary, setSummary] = useState(null);
   const [mapPoints, setMapPoints] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -158,18 +161,40 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Top Banner: Mission Control Header & Controls */}
       <div className="flex flex-col gap-4">
+        {isOfficer && (
+          <div className="flex items-center gap-3 rounded-2xl border border-ochre-200 bg-ochre-50/80 p-4 shadow-sm">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ochre-500 text-white font-bold">
+              <FolderKanban size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h4 className="text-xs font-bold text-ochre-900">
+                Department Officer Scoped Telemetry
+              </h4>
+              <p className="text-[11px] text-ochre-700 mt-0.5">
+                Dashboard metrics, pipeline velocity, and active alerts are isolated to{" "}
+                <span className="font-semibold text-ochre-900">
+                  {user?.activeProject?.name || user?.activeProject?.code || "your assigned project"}
+                </span>
+                .
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-ink-900">
-                National Land Acquisition Overview
+                {isOfficer ? "Project Operations Overview" : "National Land Acquisition Overview"}
               </h1>
               <span className="rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
                 Live GIS
               </span>
             </div>
             <p className="text-xs font-medium text-ink-400 mt-0.5">
-              DoLR weighted lifecycle telemetry · {totals.total} active national parcels · velocity{" "}
+              {isOfficer
+                ? `DoLR lifecycle telemetry for ${user?.activeProject?.name || "Assigned Project"} · velocity `
+                : `DoLR weighted lifecycle telemetry · ${totals.total} active national parcels · velocity `}
               <span className="font-bold text-ink-800 font-mono">{totals.avgProgress}%</span>
             </p>
           </div>

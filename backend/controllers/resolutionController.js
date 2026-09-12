@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import Resolution from "../models/Resolution.js";
 import Project from "../models/Project.js";
 import Alert from "../models/Alert.js";
+import { learnFromResolution } from "../services/aiRecommendationService.js";
 
 // GET /api/resolutions
 export const getResolutions = asyncHandler(async (req, res) => {
@@ -129,6 +130,9 @@ export const createResolution = asyncHandler(async (req, res) => {
     { path: "resolvedBy", select: "name email role" },
   ]);
 
+  // Self-learning: teach the AI model about this newly resolved case (fire-and-forget)
+  learnFromResolution(resolution).catch(() => {});
+
   res.status(201).json(resolution);
 });
 
@@ -138,6 +142,28 @@ export const deleteResolution = asyncHandler(async (req, res) => {
   if (!resolution) {
     res.status(404);
     throw new Error("Resolution not found");
+  }
+
+  // Security check: verify user can access the project this resolution belongs to
+  if (req.user.role === "DepartmentOfficer") {
+    if (!resolution.project) {
+      res.status(403);
+      throw new Error("Access denied: Resolution is not associated with a project");
+    }
+
+    const project = await Project.findById(resolution.project).select("_id");
+    if (!project) {
+      res.status(404);
+      throw new Error("Project not found for this resolution");
+    }
+
+    const isAssigned = (req.user.assignedProjects || []).some(
+      (p) => String(p._id || p) === String(project._id)
+    );
+    if (!isAssigned) {
+      res.status(403);
+      throw new Error("Access denied: You cannot delete resolutions for a project you are not assigned to");
+    }
   }
 
   await Resolution.findByIdAndDelete(req.params.id);

@@ -7,11 +7,13 @@ import {
   resetPassword,
   changePassword,
   validateProjectCode,
+  lookupProjects,
 } from "../controllers/authController.js";
 import { protect, restrictTo } from "../middleware/auth.js";
 
 const router = express.Router();
 
+router.get("/lookup-projects", lookupProjects);
 router.get("/validate-project/:code", validateProjectCode);
 router.post("/login", login);
 router.get("/me", protect, getMe);

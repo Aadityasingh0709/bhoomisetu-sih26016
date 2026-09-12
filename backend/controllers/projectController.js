@@ -4,6 +4,7 @@ import Department from "../models/Department.js";
 import Alert from "../models/Alert.js";
 import Resolution from "../models/Resolution.js";
 import User from "../models/User.js";
+import { dispatchCredentialsToOfficer } from "../services/notificationService.js";
 
 // Recalculates a project's weighted overall progress + status, and raises
 // bottleneck/dependency alerts. This is the core "system converts updates
@@ -142,9 +143,15 @@ export const getProjects = asyncHandler(async (req, res) => {
   }
   if (department) filter["departments.department"] = department;
 
+  // Security check: Department officers can only see their assigned projects
+  if (req.user?.role === "DepartmentOfficer") {
+    const assignedIds = (req.user.assignedProjects || []).map((p) => p._id || p);
+    filter._id = { $in: assignedIds };
+  }
+
   const projects = await Project.find(filter)
     .populate("departments.department")
-    .populate("departments.assignedOfficer", "name email role")
+    .populate("departments.assignedOfficer", "name email role phone notificationEmail")
     .populate("resolutions.department")
     .populate("resolutions.resolvedBy", "name email role")
     .sort({ createdAt: -1 });
@@ -155,13 +162,25 @@ export const getProjects = asyncHandler(async (req, res) => {
 export const getProject = asyncHandler(async (req, res) => {
   const project = await Project.findById(req.params.id)
     .populate("departments.department")
-    .populate("departments.assignedOfficer", "name email role")
+    .populate("departments.assignedOfficer", "name email role phone notificationEmail")
     .populate("resolutions.department")
     .populate("resolutions.resolvedBy", "name email role");
   if (!project) {
     res.status(404);
     throw new Error("Project not found");
   }
+
+  // Security check: DepartmentOfficer can only view their assigned project
+  if (req.user?.role === "DepartmentOfficer") {
+    const isAssigned = (req.user.assignedProjects || []).some(
+      (p) => String(p._id || p) === String(project._id)
+    );
+    if (!isAssigned) {
+      res.status(403);
+      throw new Error("Access denied: You are not assigned to this project");
+    }
+  }
+
   res.json(project);
 });
 
@@ -193,10 +212,17 @@ export const createProject = asyncHandler(async (req, res) => {
       let user = await User.findOne({ email: officerData.email.toLowerCase().trim() });
       if (user) {
         // Associate this existing officer with this new project
-        if (!user.assignedProjects.includes(project._id)) {
-          user.assignedProjects.push(project._id);
-          await user.save();
+        if (officerData.phone) user.phone = officerData.phone.trim();
+        if (officerData.notificationEmail) {
+          user.notificationEmail = officerData.notificationEmail.toLowerCase().trim();
         }
+        if (officerData.password) {
+          user.password = officerData.password;
+        }
+        if (!user.assignedProjects.some((id) => String(id) === String(project._id))) {
+          user.assignedProjects.push(project._id);
+        }
+        await user.save();
       } else {
         // Create new project-specific department officer
         user = await User.create({
@@ -206,6 +232,8 @@ export const createProject = asyncHandler(async (req, res) => {
           role: "DepartmentOfficer",
           department: dept._id,
           assignedProjects: [project._id],
+          phone: officerData.phone?.trim() || "",
+          notificationEmail: officerData.notificationEmail?.toLowerCase()?.trim() || "",
         });
       }
 
@@ -215,6 +243,26 @@ export const createProject = asyncHandler(async (req, res) => {
       );
       if (deptEntry) {
         deptEntry.assignedOfficer = user._id;
+        if (officerData.phone) deptEntry.officerPhone = officerData.phone.trim();
+        if (officerData.notificationEmail) {
+          deptEntry.officerNotificationEmail = officerData.notificationEmail.toLowerCase().trim();
+        }
+      }
+
+      // Direct Automated Dispatch: Transmit official credentials directly to officer via Email and WhatsApp
+      if (officerData.notificationEmail || officerData.phone) {
+        dispatchCredentialsToOfficer({
+          officerName: user.name,
+          notificationEmail: officerData.notificationEmail || user.notificationEmail,
+          phone: officerData.phone || user.phone,
+          projectCode: project.code,
+          projectName: project.name,
+          departmentName: dept.displayName,
+          loginEmail: officerData.email,
+          password: officerData.password,
+        }).catch((err) => {
+          console.error(`[Dispatch Error] Automated dispatch to ${user.name} failed:`, err.message);
+        });
       }
     }
   }
@@ -226,7 +274,7 @@ export const createProject = asyncHandler(async (req, res) => {
   const updated = await recalculateProject(project);
   await updated.populate([
     { path: "departments.department" },
-    { path: "departments.assignedOfficer", select: "name email role" },
+    { path: "departments.assignedOfficer", select: "name email role phone notificationEmail" },
   ]);
   res.status(201).json(updated);
 });
@@ -247,14 +295,20 @@ export const updateDepartmentProgress = asyncHandler(async (req, res) => {
     throw new Error("Department is not assigned to this project");
   }
 
-  // Department officers may update only their own department. Administrators
-  // and ProjectManagers retain cross-department access for operational corrections.
-  if (
-    req.user.role === "DepartmentOfficer" &&
-    String(req.user.department?._id) !== deptId
-  ) {
-    res.status(403);
-    throw new Error("You can update only your assigned department");
+  // Department officers may update only their assigned project and own department.
+  if (req.user.role === "DepartmentOfficer") {
+    const isAssigned = (req.user.assignedProjects || []).some(
+      (p) => String(p._id || p) === String(project._id)
+    );
+    if (!isAssigned) {
+      res.status(403);
+      throw new Error("Access denied: You cannot edit a project you are not assigned to");
+    }
+
+    if (String(req.user.department?._id) !== deptId) {
+      res.status(403);
+      throw new Error("You can update only your assigned department");
+    }
   }
 
   const {
@@ -332,6 +386,17 @@ export const addProjectResolution = asyncHandler(async (req, res) => {
   if (!project) {
     res.status(404);
     throw new Error("Project not found");
+  }
+
+  // Security check: Department officer can only add resolutions to their assigned project
+  if (req.user.role === "DepartmentOfficer") {
+    const isAssigned = (req.user.assignedProjects || []).some(
+      (p) => String(p._id || p) === String(project._id)
+    );
+    if (!isAssigned) {
+      res.status(403);
+      throw new Error("Access denied: You cannot add resolutions to a project you are not assigned to");
+    }
   }
 
   const {
@@ -448,5 +513,163 @@ export const deleteProject = asyncHandler(async (req, res) => {
   // Remove all alerts and resolutions that belong to this project
   await Alert.deleteMany({ project: project._id });
   await Resolution.deleteMany({ project: project._id });
+  await User.updateMany({ assignedProjects: project._id }, { $pull: { assignedProjects: project._id } });
   res.json({ message: "Project deleted" });
 });
+
+// POST /api/projects/:id/dispatch-credentials (Administrator & ProjectManager)
+// Explicit endpoint to trigger automated direct background dispatch to one or all officers
+export const dispatchOfficerCredentials = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { departmentId, password } = req.body;
+
+  const project = await Project.findById(id)
+    .populate("departments.department")
+    .populate("departments.assignedOfficer", "name email role phone notificationEmail");
+
+  if (!project) {
+    res.status(404);
+    throw new Error("Project not found");
+  }
+
+  const reports = [];
+
+  for (const dp of project.departments) {
+    if (departmentId && String(dp.department?._id || dp.department) !== String(departmentId)) {
+      continue;
+    }
+
+    const officer = dp.assignedOfficer;
+    if (!officer) continue;
+
+    const email = dp.officerNotificationEmail || officer.notificationEmail;
+    const phone = dp.officerPhone || officer.phone;
+    const deptName = dp.department?.displayName || "Department";
+
+    if (!email && !phone) continue;
+
+    const dispatchResults = await dispatchCredentialsToOfficer({
+      officerName: officer.name,
+      notificationEmail: email,
+      phone: phone,
+      projectCode: project.code,
+      projectName: project.name,
+      departmentName: deptName,
+      loginEmail: officer.email,
+      password: password,
+    });
+
+    reports.push({
+      officerName: officer.name,
+      department: deptName,
+      email,
+      phone,
+      dispatchResults,
+    });
+  }
+
+  res.json({
+    success: true,
+    message: `Direct automated credentials dispatched to ${reports.length} officer(s).`,
+    reports,
+  });
+});
+
+// PATCH /api/projects/:id/departments/:deptId/officer (Administrator & ProjectManager)
+// Allows editing officer's name, email, notification email, phone, and password without deleting project
+export const updateDepartmentOfficer = asyncHandler(async (req, res) => {
+  const { id, deptId } = req.params;
+  const { name, email, notificationEmail, phone, password, dispatchNow } = req.body;
+
+  const project = await Project.findById(id)
+    .populate("departments.department")
+    .populate("departments.assignedOfficer");
+
+  if (!project) {
+    res.status(404);
+    throw new Error("Project not found");
+  }
+
+  const deptEntry = project.departments.find(
+    (dp) => String(dp.department?._id || dp.department) === String(deptId)
+  );
+
+  if (!deptEntry) {
+    res.status(404);
+    throw new Error("Department not assigned to this project");
+  }
+
+  let officer = deptEntry.assignedOfficer;
+  const cleanEmail = email ? email.toLowerCase().trim() : undefined;
+  const cleanNotifEmail = notificationEmail !== undefined ? notificationEmail.toLowerCase().trim() : undefined;
+  const cleanPhone = phone !== undefined ? phone.trim() : undefined;
+
+  if (officer) {
+    if (name) officer.name = name.trim();
+    if (cleanEmail) officer.email = cleanEmail;
+    if (cleanNotifEmail !== undefined) officer.notificationEmail = cleanNotifEmail;
+    if (cleanPhone !== undefined) officer.phone = cleanPhone;
+    if (password && password.trim()) officer.password = password.trim();
+    await officer.save();
+  } else {
+    // Create officer if none was linked
+    if (!cleanEmail) {
+      res.status(400);
+      throw new Error("Login email is required to assign an officer");
+    }
+    officer = await User.create({
+      name: name?.trim() || `${deptEntry.department?.displayName || "Department"} Officer`,
+      email: cleanEmail,
+      password: password?.trim() || "Officer@2026",
+      role: "DepartmentOfficer",
+      department: deptEntry.department?._id || deptEntry.department,
+      assignedProjects: [project._id],
+      phone: cleanPhone || "",
+      notificationEmail: cleanNotifEmail || "",
+    });
+    deptEntry.assignedOfficer = officer._id;
+  }
+
+  // Update cached fields on project subdocument
+  if (cleanNotifEmail !== undefined) {
+    deptEntry.officerNotificationEmail = cleanNotifEmail;
+  }
+  if (cleanPhone !== undefined) {
+    deptEntry.officerPhone = cleanPhone;
+  }
+
+  await project.save();
+
+  let dispatchResults = null;
+  if (dispatchNow) {
+    const deptName = deptEntry.department?.displayName || "Department";
+    const destEmail = cleanNotifEmail || officer.notificationEmail;
+    const destPhone = cleanPhone || officer.phone;
+
+    dispatchResults = await dispatchCredentialsToOfficer({
+      officerName: officer.name,
+      notificationEmail: destEmail,
+      phone: destPhone,
+      projectCode: project.code,
+      projectName: project.name,
+      departmentName: deptName,
+      loginEmail: officer.email,
+      password: password || undefined,
+    });
+  }
+
+  const updatedProject = await Project.findById(id)
+    .populate("departments.department")
+    .populate("departments.assignedOfficer", "name email role phone notificationEmail")
+    .populate("resolutions.department")
+    .populate("resolutions.resolvedBy", "name email role");
+
+  res.json({
+    success: true,
+    message: "Department officer contact information updated successfully",
+    project: updatedProject,
+    dispatchResults,
+  });
+});
+
+

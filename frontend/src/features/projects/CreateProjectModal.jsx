@@ -19,8 +19,18 @@ import {
   FileCheck,
   Flag,
   UserCheck,
+  MessageCircle,
+  Mail,
+  Phone,
+  Send,
+  Edit3,
 } from "lucide-react";
-import { createProject, fetchDepartments } from "../../api/projects.js";
+import {
+  createProject,
+  fetchDepartments,
+  dispatchOfficerCredentials,
+  updateDepartmentOfficer,
+} from "../../api/projects.js";
 
 const STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa",
@@ -63,6 +73,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
   const [officerCredentials, setOfficerCredentials] = useState([]);
   const [createdProjectSummary, setCreatedProjectSummary] = useState(null);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [dispatching, setDispatching] = useState({});
 
   const {
     register,
@@ -79,7 +90,6 @@ export default function CreateProjectModal({ onClose, onCreated }) {
       .then((depts) => {
         const sorted = (depts || []).sort((a, b) => a.order - b.order);
         setDepartments(sorted);
-        // Initialize default credentials for each department
         initOfficerCredentials(sorted, watchedCode || "PROJ");
       })
       .catch(() => {});
@@ -97,6 +107,8 @@ export default function CreateProjectModal({ onClose, onCreated }) {
         name: `${d.displayName} Lead Officer`,
         email: `${deptSlug}.${cleanCode || "proj"}@landacquisition.gov.in`,
         password: `${d.name}@2026Secure!`,
+        phone: "",
+        notificationEmail: "",
       };
     });
     setOfficerCredentials(initial);
@@ -153,6 +165,8 @@ export default function CreateProjectModal({ onClose, onCreated }) {
           name: oc.name,
           email: oc.email,
           password: oc.password,
+          phone: oc.phone,
+          notificationEmail: oc.notificationEmail,
         })),
       });
 
@@ -182,7 +196,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
       `-----------------------------------------------------`,
       ...createdProjectSummary.credentials.map(
         (c) =>
-          `[${c.displayName}] (${c.weight}% Weight)\nOfficer Name: ${c.name}\nEmail / User ID: ${c.email}\nPassword: ${c.password}\n`
+          `[${c.displayName}] (${c.weight}% Weight)\nOfficer Name: ${c.name}\nEmail / User ID: ${c.email}\nPassword: ${c.password}${c.phone ? `\nWhatsApp/Phone: ${c.phone}` : ""}${c.notificationEmail ? `\nNotification Email: ${c.notificationEmail}` : ""}\n`
       ),
       `=====================================================`,
     ].join("\n");
@@ -193,11 +207,195 @@ export default function CreateProjectModal({ onClose, onCreated }) {
     setTimeout(() => setCopiedAll(false), 3000);
   };
 
+  // Build and open WhatsApp message for a single officer
+  const dispatchWhatsApp = (c, projectCode) => {
+    const rawPhone = c.phone || "";
+    // Strip non-numeric characters, add country code if missing
+    const cleaned = rawPhone.replace(/\D/g, "");
+    const phone = cleaned.startsWith("91") ? cleaned : cleaned ? `91${cleaned}` : "";
+    if (!phone) {
+      toast.error(`No WhatsApp number set for ${c.displayName} Officer`);
+      return;
+    }
+    const msg = [
+      `🏗️ *BhoomiSetu – Project Login Credentials*`,
+      ``,
+      `Dear *${c.name}*,`,
+      ``,
+      `Your login credentials for the land acquisition project have been created on the BhoomiSetu platform.`,
+      ``,
+      `📋 *Project ID:* \`${projectCode}\``,
+      `🏢 *Department:* ${c.displayName}`,
+      `📧 *Login Email / User ID:* ${c.email}`,
+      `🔑 *Password:* ${c.password}`,
+      ``,
+      `*Steps to Login:*`,
+      `1. Go to the BhoomiSetu portal`,
+      `2. Enter Project ID: *${projectCode}*`,
+      `3. Enter your Email and Password above`,
+      ``,
+      `Please change your password after first login.`,
+      ``,
+      `— System Administrator, BhoomiSetu`,
+    ].join("\n");
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
+    setDispatching((prev) => ({ ...prev, [`wa_${c.departmentName}`]: true }));
+    toast.success(`WhatsApp opened for ${c.displayName} Officer!`);
+    setTimeout(() => setDispatching((prev) => ({ ...prev, [`wa_${c.departmentName}`]: false })), 3000);
+  };
+
+  // Build and open Email client for a single officer
+  const dispatchEmail = (c, projectCode) => {
+    const toEmail = c.notificationEmail || c.email;
+    const subject = encodeURIComponent(`BhoomiSetu Login Credentials – Project ${projectCode}`);
+    const body = encodeURIComponent(
+      [
+        `Dear ${c.name},`,
+        ``,
+        `Your login credentials for the BhoomiSetu Land Acquisition Monitoring System have been created.`,
+        ``,
+        `Project ID: ${projectCode}`,
+        `Department: ${c.displayName}`,
+        `Login Email / User ID: ${c.email}`,
+        `Password: ${c.password}`,
+        ``,
+        `Steps to Login:`,
+        `1. Visit the BhoomiSetu portal`,
+        `2. Enter Project ID: ${projectCode}`,
+        `3. Enter your Email and Password as above`,
+        ``,
+        `Please change your password after your first login for security.`,
+        ``,
+        `Regards,`,
+        `System Administrator`,
+        `BhoomiSetu – SIH 26016`,
+      ].join("\n")
+    );
+    window.open(`mailto:${toEmail}?subject=${subject}&body=${body}`, "_blank");
+    setDispatching((prev) => ({ ...prev, [`em_${c.departmentName}`]: true }));
+    toast.success(`Email client opened for ${c.displayName} Officer!`);
+    setTimeout(() => setDispatching((prev) => ({ ...prev, [`em_${c.departmentName}`]: false })), 3000);
+  };
+
+  const [autoDispatching, setAutoDispatching] = useState(false);
+  const [directSent, setDirectSent] = useState({});
+
+  const [editingOfficerDept, setEditingOfficerDept] = useState(null);
+  const [officerEditForm, setOfficerEditForm] = useState({
+    name: "",
+    email: "",
+    notificationEmail: "",
+    phone: "",
+    password: "",
+    dispatchNow: true,
+  });
+  const [savingOfficer, setSavingOfficer] = useState(false);
+
+  const openOfficerEditModal = (c) => {
+    setEditingOfficerDept(c);
+    setOfficerEditForm({
+      name: c.name || `${c.displayName} Officer`,
+      email: c.email || "",
+      notificationEmail: c.notificationEmail || "",
+      phone: c.phone || "",
+      password: c.password || "",
+      dispatchNow: true,
+    });
+  };
+
+  const handleSaveOfficer = async (e) => {
+    e.preventDefault();
+    if (!createdProjectSummary || !editingOfficerDept) return;
+    const { project } = createdProjectSummary;
+    setSavingOfficer(true);
+    try {
+      const res = await updateDepartmentOfficer(project._id, editingOfficerDept.departmentId, officerEditForm);
+      toast.success(res.message || "Officer credentials updated successfully!");
+      
+      // Update local credentials state in createdProjectSummary
+      setCreatedProjectSummary((prev) => {
+        if (!prev) return prev;
+        const updatedCreds = prev.credentials.map((cr) => {
+          if (cr.departmentId === editingOfficerDept.departmentId) {
+            return {
+              ...cr,
+              name: officerEditForm.name,
+              email: officerEditForm.email,
+              notificationEmail: officerEditForm.notificationEmail,
+              phone: officerEditForm.phone,
+              password: officerEditForm.password || cr.password,
+            };
+          }
+          return cr;
+        });
+        return {
+          ...prev,
+          project: res.project || prev.project,
+          credentials: updatedCreds,
+        };
+      });
+
+      setEditingOfficerDept(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update officer details");
+    } finally {
+      setSavingOfficer(false);
+    }
+  };
+
+  // Direct automated background dispatch via backend notification service
+  const directAutoDispatch = async (deptId = null) => {
+    if (!createdProjectSummary) return;
+    const { project } = createdProjectSummary;
+    setAutoDispatching(true);
+    try {
+      const res = await dispatchOfficerCredentials(project._id, { departmentId: deptId });
+      toast.success(res.message || "Credentials dispatched directly via Email & WhatsApp!");
+
+      // Auto-open WhatsApp web if server returned WhatsApp links and not using paid cloud API
+      if (res.reports && res.reports.length > 0) {
+        res.reports.forEach((rep) => {
+          const waResult = (rep.dispatchResults || []).find((r) => r.channel === "whatsapp");
+          if (waResult?.whatsappUrl && waResult?.mode === "Automated Gateway Direct Dispatch") {
+            window.open(waResult.whatsappUrl, "_blank");
+          }
+          const emResult = (rep.dispatchResults || []).find((r) => r.channel === "email");
+          if (emResult?.previewUrl) {
+            console.log(`[BhoomiSetu] Live Email Preview for ${rep.officerName}: ${emResult.previewUrl}`);
+          }
+        });
+      }
+
+      if (deptId) {
+        setDirectSent((prev) => ({ ...prev, [deptId]: true }));
+        setTimeout(() => setDirectSent((prev) => ({ ...prev, [deptId]: false })), 4000);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Automated dispatch service failed");
+    } finally {
+      setAutoDispatching(false);
+    }
+  };
+
+  // Dispatch all credentials via WhatsApp and Email at once (client-side fallback)
+  const dispatchAll = () => {
+    if (!createdProjectSummary) return;
+    const { credentials, project } = createdProjectSummary;
+    let dispatched = 0;
+    credentials.forEach((c) => {
+      if (c.phone) { dispatchWhatsApp(c, project.code); dispatched++; }
+      if (c.notificationEmail || c.email) { dispatchEmail(c, project.code); dispatched++; }
+    });
+    if (dispatched === 0) toast.error("No contact info found. Please add phone/email before dispatching.");
+  };
+
   // If created, render Credentials Distribution Screen
   if (createdProjectSummary) {
+    const { project, credentials } = createdProjectSummary;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/70 backdrop-blur-sm p-3 sm:p-4">
-        <div className="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+        <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-emerald-100 bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 text-white">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
@@ -206,7 +404,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
               <div>
                 <h2 className="text-base font-bold">Project Created &amp; Credentials Generated</h2>
                 <p className="text-xs text-emerald-100">
-                  Project ID: <span className="font-mono font-bold">{createdProjectSummary.project.code}</span>
+                  Project ID: <span className="font-mono font-bold">{project.code}</span>
                 </p>
               </div>
             </div>
@@ -219,68 +417,331 @@ export default function CreateProjectModal({ onClose, onCreated }) {
           </div>
 
           <div className="p-6 space-y-4">
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-              <p className="text-xs font-bold text-emerald-900">
-                The project has been established in the national registry. Below are the generated login credentials for all 6 departmental officers.
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-xs font-bold text-emerald-900">
+                  🚀 Automated Direct Background Dispatch Activated
+                </p>
+              </div>
+              <p className="text-[11px] text-emerald-700">
+                Official credentials have been automatically dispatched directly to each departmental officer's email address and WhatsApp phone number via the background notification service. You do not need to manually send or open anything!
               </p>
-              <p className="text-[11px] text-emerald-700 mt-1">
-                Share the <strong>Project ID ({createdProjectSummary.project.code})</strong> and the corresponding ID/password with each department officer.
-              </p>
+            </div>
+
+            {/* Bulk dispatch banner */}
+            <div className="flex flex-wrap gap-2 items-center justify-between rounded-xl border border-ink-200 bg-ink-50 px-4 py-3">
+              <div>
+                <p className="text-xs font-bold text-ink-900">Direct Automated Dispatch Control</p>
+                <p className="text-[11px] text-ink-500">Re-send credentials directly to all officers via server in 1 click.</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={copyCredentialsToClipboard}
+                  className="flex items-center gap-1.5 rounded-xl bg-ink-900 px-3 py-2 text-xs font-bold text-white hover:bg-ink-800 transition-all"
+                >
+                  {copiedAll ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                  <span>{copiedAll ? "Copied!" : "Copy All"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => directAutoDispatch()}
+                  disabled={autoDispatching}
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3.5 py-2 text-xs font-bold text-white shadow hover:from-emerald-700 hover:to-teal-700 transition-all disabled:opacity-50"
+                >
+                  <Send size={13} />
+                  <span>{autoDispatching ? "Dispatching Directly..." : "Auto-Dispatch All Directly"}</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">
               <p className="text-xs font-bold uppercase tracking-wider text-ink-500">
                 Assigned Department Officers (6 Stages):
               </p>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                {createdProjectSummary.credentials.map((c) => {
+              <div className="grid grid-cols-1 gap-3">
+                {credentials.map((c) => {
                   const Icon = DEPT_ICONS[c.departmentName] || Building;
+                  const waDone = dispatching[`wa_${c.departmentName}`];
+                  const emDone = dispatching[`em_${c.departmentName}`];
                   return (
                     <div
                       key={c.departmentName}
-                      className="rounded-xl border border-ink-100 bg-ink-50/50 p-3 text-xs space-y-1"
+                      className="rounded-xl border border-ink-100 bg-ink-50/50 p-3.5 text-xs space-y-2"
                     >
+                      {/* Header row */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 font-bold text-ink-900">
                           <Icon size={14} className="text-ochre-600" />
                           <span>{c.displayName}</span>
                         </div>
-                        <span className="rounded bg-ink-100 px-1.5 py-0.2 text-[10px] font-bold text-ink-600">
-                          {c.weight}% wt
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-bold text-ink-600">
+                            {c.weight}% wt
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openOfficerEditModal(c)}
+                            title="Edit Officer Contact Info or Reset Password"
+                            className="flex items-center gap-1 rounded-md border border-ink-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-ink-600 hover:bg-ochre-50 hover:text-ochre-700 hover:border-ochre-200 transition-colors"
+                          >
+                            <Edit3 size={10} />
+                            <span>Edit</span>
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-ink-600 font-medium truncate">
-                        Email: <span className="font-mono font-bold text-ink-900">{c.email}</span>
-                      </p>
-                      <p className="text-ink-600 font-medium">
-                        Password: <span className="font-mono font-bold text-ink-900">{c.password}</span>
-                      </p>
+
+                      {/* Credential details */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                        <div>
+                          <span className="text-[10px] uppercase text-ink-400 font-bold">Login Email</span>
+                          <p className="font-mono font-bold text-ink-900 truncate">{c.email}</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase text-ink-400 font-bold">Password</span>
+                          <p className="font-mono font-bold text-ink-900">{c.password}</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase text-ink-400 font-bold">Notification Email</span>
+                          <p className="font-mono text-ink-700 truncate">{c.notificationEmail || <span className="italic text-ink-300">—</span>}</p>
+                        </div>
+                      </div>
+
+                      {/* Contact + Dispatch row */}
+                      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-ink-100">
+                        {c.phone ? (
+                          <span className="flex items-center gap-1 text-[10px] text-ink-500">
+                            <Phone size={10} /> {c.phone}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] italic text-ink-300">No phone set</span>
+                        )}
+
+                        <div className="ml-auto flex flex-wrap gap-1.5">
+                          {/* Direct Automated Dispatch */}
+                          <button
+                            type="button"
+                            onClick={() => directAutoDispatch(c.departmentId)}
+                            disabled={autoDispatching}
+                            title="Directly send credentials via background Email & WhatsApp service without manual apps"
+                            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                              directSent[c.departmentId]
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-ink-900 text-white hover:bg-ink-800"
+                            }`}
+                          >
+                            <Send size={11} />
+                            {directSent[c.departmentId] ? "Dispatched!" : "Direct Send"}
+                          </button>
+
+                          {/* WhatsApp Manual Fallback */}
+                          <button
+                            type="button"
+                            onClick={() => dispatchWhatsApp(c, project.code)}
+                            disabled={!c.phone}
+                            title={c.phone ? `Open WhatsApp Web to ${c.phone}` : "No phone number set"}
+                            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition-all ${
+                              c.phone
+                                ? waDone
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-green-600 text-white hover:bg-green-700"
+                                : "bg-ink-100 text-ink-300 cursor-not-allowed"
+                            }`}
+                          >
+                            <MessageCircle size={11} />
+                            {waDone ? "Sent!" : "WhatsApp"}
+                          </button>
+
+                          {/* Email Manual Fallback */}
+                          <button
+                            type="button"
+                            onClick={() => dispatchEmail(c, project.code)}
+                            title={`Open email client for ${c.notificationEmail || c.email}`}
+                            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition-all ${
+                              emDone
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-blue-600 text-white hover:bg-blue-700"
+                            }`}
+                          >
+                            <Mail size={11} />
+                            {emDone ? "Opened!" : "Email"}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-ink-100">
-              <button
-                type="button"
-                onClick={copyCredentialsToClipboard}
-                className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-ink-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-ink-800 transition-all shadow-sm"
-              >
-                {copiedAll ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                <span>{copiedAll ? "Copied to Clipboard!" : "Copy All Credentials"}</span>
-              </button>
-
+            <div className="flex justify-end pt-3 border-t border-ink-100">
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-ochre-500 to-ochre-600 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:from-ochre-600 hover:to-ochre-700"
+                className="rounded-xl bg-gradient-to-r from-ochre-500 to-ochre-600 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:from-ochre-600 hover:to-ochre-700"
               >
                 Done / View in Dashboard
               </button>
             </div>
           </div>
         </div>
+
+        {/* Edit Department Officer Modal inside Summary */}
+        {editingOfficerDept && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/60 backdrop-blur-sm"
+            onClick={() => !savingOfficer && setEditingOfficerDept(null)}
+          >
+            <div
+              className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden animate-fadeIn"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-ink-900 to-ink-800 px-6 py-4 flex items-center justify-between text-white border-b border-ink-700">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ochre-500/20 text-ochre-400">
+                    <Edit3 size={18} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white">
+                      Edit {editingOfficerDept.displayName} Officer
+                    </h2>
+                    <p className="text-xs text-ink-300">
+                      Update contact details or password
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingOfficerDept(null)}
+                  disabled={savingOfficer}
+                  className="rounded-lg p-1.5 text-ink-400 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleSaveOfficer} className="p-6 space-y-4">
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-ink-500 block mb-1">
+                    Officer Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={officerEditForm.name}
+                    onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g. Rajesh Kumar"
+                    className="input text-xs w-full"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-ink-500 block mb-1">
+                      Login Email / User ID
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={officerEditForm.email}
+                      onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, email: e.target.value }))}
+                      placeholder="officer@bhoomisetu.gov.in"
+                      className="input text-xs font-mono w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-ink-500 block mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="text"
+                      value={officerEditForm.password}
+                      onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, password: e.target.value }))}
+                      placeholder="New password"
+                      className="input text-xs font-mono w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-ink-100">
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-ink-500 block mb-1 flex items-center gap-1">
+                      <Mail size={12} className="text-blue-500" />
+                      Notification Email
+                    </label>
+                    <input
+                      type="email"
+                      value={officerEditForm.notificationEmail}
+                      onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, notificationEmail: e.target.value }))}
+                      placeholder="officer.personal@gmail.com"
+                      className="input text-xs w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-ink-500 block mb-1 flex items-center gap-1">
+                      <MessageCircle size={12} className="text-green-500" />
+                      WhatsApp / Mobile Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={officerEditForm.phone}
+                      onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, phone: e.target.value }))}
+                      placeholder="e.g. +91 98765 43210"
+                      className="input text-xs w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-ink-200 bg-ink-50/50 p-3 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="summaryDispatchNowCheck"
+                    checked={officerEditForm.dispatchNow}
+                    onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, dispatchNow: e.target.checked }))}
+                    className="rounded border-ink-300 text-ochre-600 focus:ring-ochre-500 h-4 w-4"
+                  />
+                  <label htmlFor="summaryDispatchNowCheck" className="text-xs font-semibold text-ink-800 cursor-pointer">
+                    Immediately dispatch credentials to updated Email & WhatsApp on save
+                  </label>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-ink-100">
+                  <button
+                    type="button"
+                    onClick={() => setEditingOfficerDept(null)}
+                    disabled={savingOfficer}
+                    className="rounded-xl border border-ink-200 bg-white px-4 py-2 text-xs font-bold text-ink-700 hover:bg-ink-100 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingOfficer}
+                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-ochre-600 to-ochre-700 px-5 py-2 text-xs font-bold text-white shadow-md shadow-ochre-600/20 hover:from-ochre-700 hover:to-ochre-800 transition-all disabled:opacity-70"
+                  >
+                    {savingOfficer ? (
+                      <>
+                        <span className="h-3 w-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        Saving & Dispatched…
+                      </>
+                    ) : (
+                      <>
+                        <Check size={14} />
+                        Save & Update Officer
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -390,7 +851,10 @@ export default function CreateProjectModal({ onClose, onCreated }) {
             }
           >
             <p className="text-xs text-ink-500 mb-3">
-              Configure credentials for officers handling each stage for this specific project. Departmental officers will use their <strong>Project ID ({watchedCode || "CODE"})</strong> and these credentials to log in.
+              Configure credentials for officers handling each stage. They will use the{" "}
+              <strong>Project ID ({watchedCode || "CODE"})</strong> and these credentials to log in.
+              Add the officer's <strong>current phone/WhatsApp</strong> and{" "}
+              <strong>notification email</strong> so credentials can be dispatched directly.
             </p>
 
             <div className="space-y-3">
@@ -399,7 +863,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
                 return (
                   <div
                     key={oc.departmentName}
-                    className="rounded-xl border border-ink-200 bg-ink-50/40 p-3.5 space-y-2 hover:border-ink-300 transition-colors"
+                    className="rounded-xl border border-ink-200 bg-ink-50/40 p-3.5 space-y-2.5 hover:border-ink-300 transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -409,12 +873,13 @@ export default function CreateProjectModal({ onClose, onCreated }) {
                         <span className="text-xs font-bold text-ink-900">
                           Stage #{idx + 1}: {oc.displayName}
                         </span>
-                        <span className="rounded bg-white border border-ink-200 px-1.5 py-0.2 text-[10px] font-bold text-ink-600">
+                        <span className="rounded bg-white border border-ink-200 px-1.5 py-0.5 text-[10px] font-bold text-ink-600">
                           {oc.weight}% Weight
                         </span>
                       </div>
                     </div>
 
+                    {/* Row 1: Name, Login Email, Password */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <div>
                         <label className="text-[10px] font-bold uppercase text-ink-400 block mb-0.5">
@@ -451,6 +916,42 @@ export default function CreateProjectModal({ onClose, onCreated }) {
                           placeholder="Password"
                           className="input text-xs py-1.5 font-mono"
                         />
+                      </div>
+                    </div>
+
+                    {/* Row 2: Notification Email + WhatsApp/Phone — NEW */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-ink-100">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-ink-400 block mb-0.5 flex items-center gap-1">
+                          <Mail size={9} className="text-blue-500" />
+                          Officer's Current Notification Email
+                        </label>
+                        <input
+                          type="email"
+                          value={oc.notificationEmail}
+                          onChange={(e) => handleOfficerChange(idx, "notificationEmail", e.target.value)}
+                          placeholder="personal@gmail.com (for sending credentials)"
+                          className="input text-xs py-1.5"
+                        />
+                        <p className="text-[9px] text-ink-400 mt-0.5">
+                          Credentials will be sent here. Leave blank to use login email.
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-ink-400 block mb-0.5 flex items-center gap-1">
+                          <MessageCircle size={9} className="text-green-500" />
+                          WhatsApp / Mobile Number
+                        </label>
+                        <input
+                          type="tel"
+                          value={oc.phone}
+                          onChange={(e) => handleOfficerChange(idx, "phone", e.target.value)}
+                          placeholder="e.g. +91 98765 43210"
+                          className="input text-xs py-1.5"
+                        />
+                        <p className="text-[9px] text-ink-400 mt-0.5">
+                          Credentials will be sent via WhatsApp after project creation.
+                        </p>
                       </div>
                     </div>
                   </div>

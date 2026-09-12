@@ -13,6 +13,7 @@ import { fetchDepartments } from "../../api/departments.js";
 import { useAuthStore } from "../../store/authStore.js";
 import Card from "../../components/Card.jsx";
 import StatCard from "../../components/StatCard.jsx";
+import AIRecommendationPanel from "../../components/AIRecommendationPanel.jsx";
 import {
   ShieldAlert,
   AlertTriangle,
@@ -259,6 +260,26 @@ export default function AlertsPage() {
         </button>
       </div>
 
+      {isOfficer && (
+        <div className="flex items-center gap-3 rounded-2xl border border-ochre-200 bg-ochre-50/80 p-4 shadow-sm">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ochre-500 text-white font-bold">
+            <ShieldCheck size={18} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h4 className="text-xs font-bold text-ochre-900">
+              Project-Scoped Alert Intelligence
+            </h4>
+            <p className="text-[11px] text-ochre-700 mt-0.5">
+              Showing bottleneck and dependency alerts strictly for{" "}
+              <span className="font-semibold text-ochre-900">
+                {user?.activeProject?.name || user?.activeProject?.code || "your assigned project"}
+              </span>
+              . Alerts from other projects are isolated in accordance with project privacy and security standards.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* KPI Counters */}
       <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-3">
         <StatCard
@@ -293,6 +314,9 @@ export default function AlertsPage() {
           trendType="warning"
         />
       </div>
+
+      {/* ── AI Recommendation Panel ───────────────────────────────────── */}
+      <AIRecommendationPanel />
 
       {/* ── Officer Action Required Banner (for DepartmentOfficer) ── */}
       {isOfficer && (() => {

@@ -36,14 +36,60 @@ export const validateProjectCode = asyncHandler(async (req, res) => {
       state: project.state,
       district: project.district,
       implementingAgency: project.implementingAgency,
-      overallStatus: project.overallStatus,
     },
   });
 });
 
+// GET /api/auth/lookup-projects
+export const lookupProjects = asyncHandler(async (req, res) => {
+  const { q } = req.query;
+  let filter = {};
+  if (q && q.trim()) {
+    const regex = new RegExp(q.trim(), "i");
+    filter = {
+      $or: [
+        { code: regex },
+        { name: regex },
+        { district: regex },
+        { state: regex },
+        { implementingAgency: regex },
+      ],
+    };
+  }
+
+  const projects = await Project.find(filter)
+    .select("name code state district implementingAgency overallStatus")
+    .sort({ createdAt: -1 })
+    .limit(40);
+
+  res.json({
+    success: true,
+    projects: projects.map((p) => ({
+      id: p._id,
+      code: p.code,
+      name: p.name,
+      state: p.state,
+      district: p.district,
+      implementingAgency: p.implementingAgency,
+      overallStatus: p.overallStatus,
+    })),
+  });
+});
+
+
 // POST /api/auth/login
 export const login = asyncHandler(async (req, res) => {
   const { email, password, projectCode } = req.body;
+
+  if (!email || !email.trim()) {
+    res.status(400);
+    throw new Error("Email is required");
+  }
+
+  if (!password || !password.trim()) {
+    res.status(400);
+    throw new Error("Password is required");
+  }
 
   const user = await User.findOne({ email })
     .select("+password")
@@ -130,7 +176,27 @@ export const getMe = asyncHandler(async (req, res) => {
 export const register = asyncHandler(async (req, res) => {
   const { name, email, password, role, department } = req.body;
 
-  const exists = await User.findOne({ email });
+  if (!name || !name.trim()) {
+    res.status(400);
+    throw new Error("Name is required");
+  }
+
+  if (!email || !email.trim()) {
+    res.status(400);
+    throw new Error("Email is required");
+  }
+
+  if (!password || !password.trim()) {
+    res.status(400);
+    throw new Error("Password is required");
+  }
+
+  if (!role || !role.trim()) {
+    res.status(400);
+    throw new Error("Role is required");
+  }
+
+  const exists = await User.findOne({ email: email.trim() });
   if (exists) {
     res.status(400);
     throw new Error("A user with this email already exists");
@@ -145,6 +211,11 @@ export const register = asyncHandler(async (req, res) => {
 // POST /api/auth/forgot-password
 export const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
+
+  if (!email || !email.trim()) {
+    res.status(400);
+    throw new Error("Email is required");
+  }
 
   const user = await User.findOne({ email });
   if (!user) {
@@ -165,12 +236,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
     res.json({
       message: "Password reset token sent to email",
-      // For demo purposes only - remove in production
-      demo: {
-        resetToken,
-        resetUrl,
-        expiresIn: "10 minutes",
-      },
+      expiresIn: "10 minutes",
     });
   } catch (err) {
     user.passwordResetToken = undefined;
@@ -229,16 +295,31 @@ export const resetPassword = asyncHandler(async (req, res) => {
 export const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword, passwordConfirm } = req.body;
 
-  const user = await User.findById(req.user.id).select("+password");
+  if (!currentPassword || !currentPassword.trim()) {
+    res.status(400);
+    throw new Error("Current password is required");
+  }
 
-  if (!user || !(await user.matchPassword(currentPassword))) {
-    res.status(401);
-    throw new Error("Current password is incorrect");
+  if (!newPassword || !newPassword.trim()) {
+    res.status(400);
+    throw new Error("New password is required");
+  }
+
+  if (!passwordConfirm || !passwordConfirm.trim()) {
+    res.status(400);
+    throw new Error("Password confirmation is required");
   }
 
   if (newPassword !== passwordConfirm) {
     res.status(400);
     throw new Error("New passwords do not match");
+  }
+
+  const user = await User.findById(req.user.id).select("+password");
+
+  if (!user || !(await user.matchPassword(currentPassword))) {
+    res.status(401);
+    throw new Error("Current password is incorrect");
   }
 
   user.password = newPassword;

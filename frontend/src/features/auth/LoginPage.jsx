@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,10 +26,11 @@ import {
   Search,
   UserCheck,
   Shield,
+  X,
+  ChevronRight,
 } from "lucide-react";
-import { loginRequest, validateProjectCode } from "../../api/auth.js";
+import { loginRequest, validateProjectCode, lookupProjects } from "../../api/auth.js";
 import { useAuthStore } from "../../store/authStore.js";
-import { DEMO_ACCOUNTS, DEMO_PROJECTS } from "../../utils/demoAccounts.js";
 
 const officerSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -43,15 +44,19 @@ const adminSchema = z.object({
 
 export default function LoginPage() {
   const [authMode, setAuthMode] = useState("officer"); // "officer" | "admin"
-  const [demoProjectTab, setDemoProjectTab] = useState("NH44-P2-2026"); // "NH44-P2-2026" | "EFC-LP-2026" | "ALL"
-  const [step, setStep] = useState(1); // 1 = Enter Project ID, 2 = Enter Officer Credentials
+  const [step, setStep] = useState(1); // 1 = Select/Search Project ID, 2 = Enter Officer Credentials
   const [projectCodeInput, setProjectCodeInput] = useState("");
   const [validatingProject, setValidatingProject] = useState(false);
   const [verifiedProject, setVerifiedProject] = useState(null);
 
+  // Dynamic live projects search & lookup
+  const [projectsList, setProjectsList] = useState([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchContainerRef = useRef(null);
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedPersona, setSelectedPersona] = useState(null);
   const setSession = useAuthStore((s) => s.setSession);
   const navigate = useNavigate();
 
@@ -69,10 +74,59 @@ export default function LoginPage() {
     formState: { errors: adminErrors },
   } = useForm({ resolver: zodResolver(adminSchema) });
 
+  // Fetch all live projects from database on mount & refresh
+  const fetchLiveProjects = async (query = "") => {
+    setLoadingProjects(true);
+    try {
+      const data = await lookupProjects(query);
+      setProjectsList(data.projects || []);
+    } catch (err) {
+      console.error("Failed to fetch live projects:", err);
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveProjects("");
+  }, []);
+
+  // Filter projects dynamically based on search query
+  const filteredProjects = projectsList.filter((p) => {
+    if (!projectCodeInput.trim()) return true;
+    const q = projectCodeInput.toLowerCase().trim();
+    return (
+      p.code?.toLowerCase().includes(q) ||
+      p.name?.toLowerCase().includes(q) ||
+      p.district?.toLowerCase().includes(q) ||
+      p.state?.toLowerCase().includes(q) ||
+      p.implementingAgency?.toLowerCase().includes(q)
+    );
+  });
+
+  // Handle outside click to close search suggestions
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setSearchFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectProject = (project) => {
+    setVerifiedProject(project);
+    setProjectCodeInput(project.code);
+    setSearchFocused(false);
+    setStep(2);
+    toast.success(`Project Selected: ${project.name}`);
+  };
+
   const handleValidateProject = async (codeToTest) => {
     const code = (codeToTest || projectCodeInput).trim();
     if (!code) {
-      toast.error("Please enter a Project ID / Code (e.g. NH44-P2-2026)");
+      toast.error("Please search and select or enter a Project ID (e.g. NH44-P2-2026)");
       return;
     }
 
@@ -81,10 +135,11 @@ export default function LoginPage() {
       const data = await validateProjectCode(code);
       setVerifiedProject(data.project);
       setProjectCodeInput(data.project.code);
+      setSearchFocused(false);
       setStep(2);
       toast.success(`Project Verified: ${data.project.name}`);
     } catch (err) {
-      toast.error(err.response?.data?.message || `Project "${code}" not found.`);
+      toast.error(err.response?.data?.message || `Project "${code}" not found in system.`);
     } finally {
       setValidatingProject(false);
     }
@@ -92,7 +147,7 @@ export default function LoginPage() {
 
   const executeOfficerLogin = async (values) => {
     if (!verifiedProject) {
-      toast.error("Please verify your Project ID first.");
+      toast.error("Please select your Project first.");
       setStep(1);
       return;
     }
@@ -121,31 +176,6 @@ export default function LoginPage() {
       toast.error(err.response?.data?.message || "Login failed. Check your credentials.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleQuickPersona = async (account) => {
-    setSelectedPersona(account.email);
-    if (account.role === "Administrator" || account.role === "SeniorOfficer") {
-      setAuthMode("admin");
-      setAdminValue("email", account.email, { shouldValidate: true });
-      setAdminValue("password", account.password);
-      toast.success(`Selected ${account.label} (Direct Access)`);
-    } else {
-      setAuthMode("officer");
-      const targetCode = account.defaultProjectCode || "NH44-P2-2026";
-      setProjectCodeInput(targetCode);
-      setOfficerValue("email", account.email, { shouldValidate: true });
-      setOfficerValue("password", account.password);
-
-      try {
-        const data = await validateProjectCode(targetCode);
-        setVerifiedProject(data.project);
-        setStep(2);
-        toast.success(`Selected ${account.label} for Project [${targetCode}]`);
-      } catch {
-        toast.error("Could not load demo project");
-      }
     }
   };
 
@@ -197,8 +227,8 @@ export default function LoginPage() {
           </h2>
 
           <p className="mt-4 text-sm text-ink-300 leading-relaxed max-w-md">
-            Departmental officers log in with their specific Project ID and departmental credentials.
-            System Administrators oversee all projects and manage departmental IDs &amp; passwords seamlessly.
+            Departmental officers search their specific infrastructure project to access their milestone and clearance workspace.
+            System Administrators oversee all projects and manage departmental assignments seamlessly.
           </p>
 
           {/* 6-Stage Weight Pipeline Visual */}
@@ -238,7 +268,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Column: Dynamic Login Form & Switcher */}
+      {/* Right Column: Dynamic Login Form */}
       <div className="flex flex-1 flex-col justify-center items-center p-6 sm:p-10 bg-slate-950 overflow-y-auto">
         <div className="w-full max-w-md space-y-5">
           {/* Mobile Header */}
@@ -256,7 +286,6 @@ export default function LoginPage() {
               type="button"
               onClick={() => {
                 setAuthMode("officer");
-                setSelectedPersona(null);
               }}
               className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all ${
                 authMode === "officer"
@@ -271,7 +300,6 @@ export default function LoginPage() {
               type="button"
               onClick={() => {
                 setAuthMode("admin");
-                setSelectedPersona(null);
               }}
               className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all ${
                 authMode === "admin"
@@ -284,89 +312,8 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Quick Demo Persona Shortcuts with Project Tabs */}
-          <div className="rounded-2xl border border-ink-800 bg-ink-900/60 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-wider text-ochre-400 flex items-center gap-1.5">
-                <Sparkles size={13} /> Quick Select Demo Persona
-              </p>
-              <span className="text-[10px] text-ink-400">1-Click Auto-Fill</span>
-            </div>
-
-            {/* Project Filter Tabs for Demo Personas */}
-            <div className="grid grid-cols-3 gap-1 rounded-xl bg-ink-950 p-1 border border-ink-800 text-[11px] font-bold">
-              <button
-                type="button"
-                onClick={() => setDemoProjectTab("NH44-P2-2026")}
-                className={`py-1.5 px-2 rounded-lg transition-all truncate text-center ${
-                  demoProjectTab === "NH44-P2-2026"
-                    ? "bg-ochre-500 text-white shadow-sm"
-                    : "text-ink-400 hover:text-white"
-                }`}
-              >
-                NH-44 (Belagavi)
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoProjectTab("EFC-LP-2026")}
-                className={`py-1.5 px-2 rounded-lg transition-all truncate text-center ${
-                  demoProjectTab === "EFC-LP-2026"
-                    ? "bg-ochre-500 text-white shadow-sm"
-                    : "text-ink-400 hover:text-white"
-                }`}
-              >
-                EFC Corridor (Patna)
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoProjectTab("ALL")}
-                className={`py-1.5 px-2 rounded-lg transition-all truncate text-center ${
-                  demoProjectTab === "ALL"
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-ink-400 hover:text-white"
-                }`}
-              >
-                Admins
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-0.5">
-              {DEMO_ACCOUNTS.filter((acc) =>
-                demoProjectTab === "ALL"
-                  ? acc.projectCode === "ALL"
-                  : acc.projectCode === demoProjectTab
-              ).map((acc) => {
-                const isCurrent = selectedPersona === acc.email;
-                return (
-                  <button
-                    key={acc.email}
-                    type="button"
-                    disabled={loading || validatingProject}
-                    onClick={() => handleQuickPersona(acc)}
-                    className={`group flex items-center justify-between rounded-xl border p-2.5 text-left transition-all ${
-                      isCurrent
-                        ? "border-ochre-500 bg-ochre-500/20 text-white"
-                        : "border-ink-800 bg-ink-900/80 text-ink-200 hover:border-ochre-500/50 hover:bg-ink-800/90"
-                    }`}
-                  >
-                    <div className="truncate">
-                      <p className="text-xs font-bold text-white truncate">{acc.label}</p>
-                      <p className="text-[10px] text-ink-400 truncate">
-                        {acc.badge}
-                      </p>
-                    </div>
-                    <ArrowRight
-                      size={13}
-                      className="shrink-0 text-ink-400 group-hover:text-ochre-400 group-hover:translate-x-0.5 transition-transform"
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* ─────────────────────────────────────────────────────────────
-              DEPARTMENT OFFICER: 2-STEP LOGIN
+              DEPARTMENT OFFICER: 2-STEP LOGIN WITH DYNAMIC PROJECT SEARCH
              ───────────────────────────────────────────────────────────── */}
           {authMode === "officer" && (
             <div className="rounded-2xl border border-ink-800 bg-ink-900/40 p-6 shadow-xl space-y-4">
@@ -383,7 +330,7 @@ export default function LoginPage() {
                     {step === 1 ? "1" : "✓"}
                   </div>
                   <span className={`text-xs font-bold ${step === 1 ? "text-white" : "text-emerald-400"}`}>
-                    Project ID
+                    1. Select Project
                   </span>
                 </div>
                 <div className="h-0.5 flex-1 mx-3 bg-ink-800" />
@@ -396,68 +343,130 @@ export default function LoginPage() {
                     2
                   </div>
                   <span className={`text-xs font-bold ${step === 2 ? "text-white" : "text-ink-400"}`}>
-                    Officer Sign In
+                    2. Officer Sign In
                   </span>
                 </div>
               </div>
 
-              {/* Step 1: Project ID / Code Entry */}
+              {/* Step 1: Dynamic Live Project Search Bar */}
               {step === 1 && (
                 <div className="space-y-4">
-                  <div>
+                  <div ref={searchContainerRef} className="relative">
                     <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink-300">
-                      Enter Project ID / Code <span className="text-ochre-400">*</span>
+                      Search &amp; Select Project <span className="text-ochre-400">*</span>
                     </label>
                     <p className="text-[11px] text-ink-400 mb-2">
-                      Department officers must specify the project code assigned by the System Administrator.
+                      Type your Project ID / Code, project name, or district to find your project.
                     </p>
+
                     <div className="relative">
-                      <FolderKanban
+                      <Search
                         size={16}
-                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400"
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ochre-400 pointer-events-none"
                       />
                       <input
                         type="text"
                         value={projectCodeInput}
-                        onChange={(e) => setProjectCodeInput(e.target.value.toUpperCase())}
+                        onFocus={() => setSearchFocused(true)}
+                        onChange={(e) => {
+                          setProjectCodeInput(e.target.value);
+                          setSearchFocused(true);
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
-                            handleValidateProject();
+                            if (filteredProjects.length === 1) {
+                              handleSelectProject(filteredProjects[0]);
+                            } else {
+                              handleValidateProject();
+                            }
                           }
                         }}
-                        placeholder="e.g. NH44-P2-2026 or EFC-LP-2026"
-                        className="w-full rounded-xl border border-ink-700 bg-ink-950 py-2.5 pl-10 pr-4 text-sm font-mono font-bold text-white placeholder-ink-500 outline-none focus:border-ochre-500 focus:ring-1 focus:ring-ochre-500 uppercase tracking-wider"
+                        placeholder="e.g. NH44, EFC, or search by name..."
+                        className="w-full rounded-xl border border-ink-700 bg-ink-950 py-3 pl-10 pr-10 text-sm font-bold text-white placeholder-ink-500 outline-none focus:border-ochre-500 focus:ring-2 focus:ring-ochre-500/20 uppercase tracking-wide transition-all"
                       />
-                    </div>
-                  </div>
-
-                  {/* Demo Projects Quick Buttons */}
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-ink-400">
-                      Sample National Projects:
-                    </span>
-                    <div className="grid grid-cols-1 gap-1.5">
-                      {DEMO_PROJECTS.map((dp) => (
+                      {projectCodeInput && (
                         <button
-                          key={dp.code}
                           type="button"
                           onClick={() => {
-                            setProjectCodeInput(dp.code);
-                            handleValidateProject(dp.code);
+                            setProjectCodeInput("");
+                            fetchLiveProjects("");
                           }}
-                          className="flex items-center justify-between rounded-lg border border-ink-800 bg-ink-950/60 p-2 text-left hover:border-ochre-500/50 hover:bg-ink-900 transition-all text-xs"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-white"
                         >
-                          <div>
-                            <span className="font-mono font-bold text-ochre-400 mr-2">{dp.code}</span>
-                            <span className="text-ink-300 truncate">{dp.name}</span>
-                          </div>
-                          <span className="text-[10px] text-ink-400">{dp.state}</span>
+                          <X size={15} />
                         </button>
-                      ))}
+                      )}
+                    </div>
+
+                    {/* Live Projects Dropdown List */}
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-ink-400 uppercase tracking-wider">
+                        <span>
+                          {filteredProjects.length} Available Project{filteredProjects.length === 1 ? "" : "s"}
+                        </span>
+                        {loadingProjects && (
+                          <span className="flex items-center gap-1 text-ochre-400">
+                            <Loader2 size={11} className="animate-spin" /> Fetching...
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="max-h-56 overflow-y-auto space-y-1.5 pr-0.5 rounded-xl">
+                        {filteredProjects.length === 0 ? (
+                          <div className="rounded-xl border border-dashed border-ink-800 bg-ink-950/40 p-4 text-center">
+                            <p className="text-xs text-ink-400">No project matched "{projectCodeInput}"</p>
+                            <p className="text-[10px] text-ink-500 mt-1">
+                              Check your Project ID or enter the full project code.
+                            </p>
+                          </div>
+                        ) : (
+                          filteredProjects.map((p) => {
+                            const isSelected = projectCodeInput.toUpperCase() === p.code.toUpperCase();
+                            return (
+                              <button
+                                key={p.id || p.code}
+                                type="button"
+                                onClick={() => handleSelectProject(p)}
+                                className={`group w-full flex items-center justify-between rounded-xl border p-3 text-left transition-all ${
+                                  isSelected
+                                    ? "border-ochre-500 bg-ochre-500/20 text-white"
+                                    : "border-ink-800 bg-ink-950/80 text-ink-200 hover:border-ochre-500/60 hover:bg-ink-900"
+                                }`}
+                              >
+                                <div className="space-y-0.5 truncate pr-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-xs font-bold text-ochre-400 tracking-wider">
+                                      {p.code}
+                                    </span>
+                                    <span className="rounded bg-ink-800 px-1.5 py-0.2 text-[9px] font-semibold text-ink-300">
+                                      {p.overallStatus || "Active"}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs font-bold text-white truncate">{p.name}</p>
+                                  <p className="text-[10px] text-ink-400 truncate flex items-center gap-1">
+                                    <MapPin size={10} className="text-ochre-500 shrink-0" />
+                                    <span>
+                                      {p.district ? `${p.district}, ` : ""}
+                                      {p.state}
+                                    </span>
+                                    {p.implementingAgency && (
+                                      <span className="text-ink-500">· {p.implementingAgency}</span>
+                                    )}
+                                  </p>
+                                </div>
+                                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink-800/80 text-ink-400 group-hover:bg-ochre-500 group-hover:text-white transition-all shrink-0">
+                                  <ChevronRight size={14} />
+                                </div>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
                   </div>
 
+                  {/* Proceed button */}
                   <button
                     type="button"
                     disabled={validatingProject || !projectCodeInput.trim()}
@@ -468,7 +477,7 @@ export default function LoginPage() {
                       <Loader2 size={18} className="animate-spin" />
                     ) : (
                       <>
-                        <span>Validate Project &amp; Proceed</span>
+                        <span>Proceed to Officer Sign In</span>
                         <ArrowRight size={16} />
                       </>
                     )}
@@ -479,8 +488,8 @@ export default function LoginPage() {
               {/* Step 2: Officer Credentials with Verified Project */}
               {step === 2 && verifiedProject && (
                 <form onSubmit={handleOfficerSubmit(executeOfficerLogin)} className="space-y-4">
-                  {/* Project Verified Box */}
-                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-3 flex items-start justify-between gap-2">
+                  {/* Selected Project Box */}
+                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-3.5 flex items-start justify-between gap-2">
                     <div className="flex items-start gap-2.5">
                       <CheckCircle2 size={18} className="text-emerald-400 shrink-0 mt-0.5" />
                       <div>
@@ -489,29 +498,34 @@ export default function LoginPage() {
                             {verifiedProject.code}
                           </span>
                           <span className="rounded bg-emerald-500/20 px-1.5 py-0.2 text-[9px] font-extrabold uppercase text-emerald-300">
-                            Verified
+                            Selected Project
                           </span>
                         </div>
                         <p className="text-xs font-bold text-white line-clamp-1 mt-0.5">
                           {verifiedProject.name}
                         </p>
                         <p className="text-[10px] text-emerald-300/80">
-                          {verifiedProject.district}, {verifiedProject.state} · {verifiedProject.implementingAgency}
+                          {verifiedProject.district ? `${verifiedProject.district}, ` : ""}
+                          {verifiedProject.state}
+                          {verifiedProject.implementingAgency ? ` · ${verifiedProject.implementingAgency}` : ""}
                         </p>
                       </div>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setStep(1)}
-                      className="text-[11px] font-bold text-ochre-400 hover:underline shrink-0"
+                      onClick={() => {
+                        setStep(1);
+                        fetchLiveProjects("");
+                      }}
+                      className="text-[11px] font-bold text-ochre-400 hover:text-ochre-300 hover:underline shrink-0"
                     >
-                      Change
+                      Change Project
                     </button>
                   </div>
 
                   <div>
                     <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink-300">
-                      Officer Official Email / ID
+                      Department Officer Login Email / ID <span className="text-ochre-400">*</span>
                     </label>
                     <input
                       type="email"
@@ -527,7 +541,7 @@ export default function LoginPage() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-bold uppercase tracking-wider text-ink-300">
-                        Officer Password
+                        Officer Password <span className="text-ochre-400">*</span>
                       </label>
                       <a
                         href="/forgot-password"
@@ -560,10 +574,13 @@ export default function LoginPage() {
                   <div className="flex items-center gap-2 pt-1">
                     <button
                       type="button"
-                      onClick={() => setStep(1)}
+                      onClick={() => {
+                        setStep(1);
+                        fetchLiveProjects("");
+                      }}
                       className="flex items-center justify-center gap-1 rounded-xl border border-ink-700 px-3 py-2.5 text-xs font-bold text-ink-300 hover:bg-ink-800 transition-all"
                     >
-                      <ArrowLeft size={14} /> Back
+                      <ArrowLeft size={14} /> Change
                     </button>
                     <button
                       type="submit"
@@ -586,9 +603,22 @@ export default function LoginPage() {
               onSubmit={handleAdminSubmit(executeAdminLogin)}
               className="rounded-2xl border border-blue-900/50 bg-gradient-to-b from-blue-950/30 to-ink-900/40 p-6 shadow-xl space-y-4"
             >
-              <div className="flex items-center gap-2 text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-xl p-2.5">
-                <ShieldCheck size={16} className="text-blue-400 shrink-0" />
-                <span>Executive / Administrator Portal · Cross-Project Oversight</span>
+              <div className="flex items-center justify-between text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-xl p-2.5">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-blue-400 shrink-0" />
+                  <span>Executive / Administrator Access</span>
+                </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminValue("email", import.meta.env.VITE_DEMO_ADMIN_EMAIL || "admin@bhoomisetu.gov.in", { shouldValidate: true });
+                      setAdminValue("password", import.meta.env.VITE_DEMO_ADMIN_PASSWORD || "", { shouldValidate: true });
+                      toast.success("Auto-filled Administrator credentials");
+                    }}
+                    className="text-[10px] text-blue-300 hover:underline"
+                  >
+                    Quick Fill Admin
+                  </button>
               </div>
 
               <div>
@@ -598,7 +628,7 @@ export default function LoginPage() {
                 <input
                   type="email"
                   {...registerAdmin("email")}
-                  placeholder="admin@landacquisition.gov.in"
+                  placeholder="admin@bhoomisetu.gov.in"
                   className="w-full rounded-xl border border-ink-700 bg-ink-950 px-3.5 py-2.5 text-sm text-white placeholder-ink-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
                 {adminErrors.email && (

@@ -15,10 +15,27 @@ const populateAlert = (q) =>
 
 // GET /api/alerts
 export const getAlerts = asyncHandler(async (req, res) => {
-  const { resolved, departmentId } = req.query;
+  const { resolved, departmentId, projectId } = req.query;
   const filter = {};
   if (resolved !== undefined) filter.isResolved = resolved === "true";
   if (departmentId) filter.department = departmentId;
+
+  // Project-scoping security:
+  // Higher authorities (Admin, Senior Officer, PM, District Officer) can see alerts across all projects.
+  // Department Officers can ONLY see alerts for their assigned project(s).
+  if (req.user?.role === "DepartmentOfficer") {
+    const assignedIds = (req.user.assignedProjects || []).map((p) => String(p._id || p));
+    if (projectId) {
+      if (!assignedIds.includes(String(projectId))) {
+        return res.json([]);
+      }
+      filter.project = projectId;
+    } else {
+      filter.project = { $in: assignedIds };
+    }
+  } else if (projectId) {
+    filter.project = projectId;
+  }
 
   const alerts = await populateAlert(Alert.find(filter).sort({ createdAt: -1 }));
 
@@ -88,6 +105,17 @@ export const createAlert = asyncHandler(async (req, res) => {
     throw new Error("Project not found");
   }
 
+  // Security check: DepartmentOfficer can only raise alerts for their assigned project
+  if (req.user?.role === "DepartmentOfficer") {
+    const isAssigned = (req.user.assignedProjects || []).some(
+      (p) => String(p._id || p) === String(project._id)
+    );
+    if (!isAssigned) {
+      res.status(403);
+      throw new Error("Access denied: You can only report alerts for your assigned project");
+    }
+  }
+
   const alert = await Alert.create({
     project: projectId,
     projectName: project.name,
@@ -153,6 +181,17 @@ export const officerMarkResolved = asyncHandler(async (req, res) => {
     throw new Error("Alert is already fully resolved");
   }
 
+  // Security check: DepartmentOfficer can only resolve alerts for their assigned project
+  if (req.user?.role === "DepartmentOfficer") {
+    const isAssigned = (req.user.assignedProjects || []).some(
+      (p) => String(p._id || p) === String(alert.project?._id || alert.project)
+    );
+    if (!isAssigned) {
+      res.status(403);
+      throw new Error("Access denied: You can only resolve alerts for your assigned project");
+    }
+  }
+
   alert.officerResolved = true;
   alert.officerResolvedAt = new Date();
   alert.officerResolvedBy = req.user._id;
@@ -187,6 +226,12 @@ export const resolveAlert = asyncHandler(async (req, res) => {
 
   // If resolution notes were provided, record an entry in the dedicated Resolution collection
   if (alert.project && (alert.resolutionNotes || alert.authorityDecision)) {
+    const hasAuthorityDecision = alert.authorityDecision && alert.authorityDecision.trim();
+    const hasResolutionNotes = alert.resolutionNotes && alert.resolutionNotes.trim();
+    if (!hasAuthorityDecision && !hasResolutionNotes) {
+      return res.json(populated);
+    }
+
     const projectId = alert.project._id || alert.project;
     const project = await Project.findById(projectId);
     const details =

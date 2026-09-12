@@ -7,7 +7,17 @@ import Alert from "../models/Alert.js";
 // Powers the national/management dashboard: totals, status counts,
 // department-wise bottleneck ranking, and delayed project list.
 export const getDashboardSummary = asyncHandler(async (req, res) => {
-  const projects = await Project.find().populate("departments.department");
+  let projectFilter = {};
+  let alertFilter = { isResolved: false };
+
+  // Department Officers see only their assigned project(s) and alerts
+  if (req.user?.role === "DepartmentOfficer") {
+    const assignedIds = (req.user.assignedProjects || []).map((p) => p._id || p);
+    projectFilter._id = { $in: assignedIds };
+    alertFilter.project = { $in: assignedIds };
+  }
+
+  const projects = await Project.find(projectFilter).populate("departments.department");
   const departments = await Department.find();
 
   const total = projects.length;
@@ -44,7 +54,7 @@ export const getDashboardSummary = asyncHandler(async (req, res) => {
       plannedCompletionDate: p.plannedCompletionDate,
     }));
 
-  const activeAlerts = await Alert.find({ isResolved: false })
+  const activeAlerts = await Alert.find(alertFilter)
     .populate("project", "name state district")
     .populate("department", "displayName")
     .sort({ createdAt: -1 })
@@ -61,7 +71,13 @@ export const getDashboardSummary = asyncHandler(async (req, res) => {
 // GET /api/dashboard/map
 // Lightweight payload for plotting all projects as pins on the GIS map
 export const getMapData = asyncHandler(async (req, res) => {
-  const projects = await Project.find().select(
+  let filter = {};
+  if (req.user?.role === "DepartmentOfficer") {
+    const assignedIds = (req.user.assignedProjects || []).map((p) => p._id || p);
+    filter._id = { $in: assignedIds };
+  }
+
+  const projects = await Project.find(filter).select(
     "name state district location overallStatus overallProgress"
   );
   res.json(

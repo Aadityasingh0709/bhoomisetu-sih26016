@@ -7,6 +7,8 @@ import {
   addProjectResolution,
   deleteProjectResolution,
   deleteProject,
+  dispatchOfficerCredentials,
+  updateDepartmentOfficer,
 } from "../controllers/projectController.js";
 import { protect, restrictTo } from "../middleware/auth.js";
 
@@ -21,6 +23,11 @@ router.patch(
   "/:id/departments/:deptId",
   restrictTo("DepartmentOfficer", "Administrator", "ProjectManager"),
   updateDepartmentProgress
+ );
+router.patch(
+  "/:id/departments/:deptId/officer",
+  restrictTo("Administrator", "ProjectManager"),
+  updateDepartmentOfficer
 );
 router.post(
   "/:id/resolutions",
@@ -33,5 +40,10 @@ router.delete(
   deleteProjectResolution
 );
 router.delete("/:id", restrictTo("Administrator"), deleteProject);
+router.post(
+  "/:id/dispatch-credentials",
+  restrictTo("Administrator", "ProjectManager"),
+  dispatchOfficerCredentials
+);
 
 export default router;

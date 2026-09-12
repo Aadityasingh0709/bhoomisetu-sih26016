@@ -23,3 +23,10 @@ export const addProjectResolution = (projectId, payload) =>
 
 export const deleteProjectResolution = (projectId, resolutionId) =>
   api.delete(`/projects/${projectId}/resolutions/${resolutionId}`).then((res) => res.data);
+
+export const dispatchOfficerCredentials = (projectId, payload = {}) =>
+  api.post(`/projects/${projectId}/dispatch-credentials`, payload).then((res) => res.data);
+
+export const updateDepartmentOfficer = (projectId, deptId, payload) =>
+  api.patch(`/projects/${projectId}/departments/${deptId}/officer`, payload).then((res) => res.data);
+

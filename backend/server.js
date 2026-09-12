@@ -14,6 +14,7 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
 import alertRoutes from "./routes/alertRoutes.js";
 import resolutionRoutes from "./routes/resolutionRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -67,6 +68,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/resolutions", resolutionRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -81,8 +83,16 @@ const startServer = async () => {
   });
 
   // Connect to DB - will throw and exit if connection fails
-  await connectDB();
-  console.log("Database connected successfully!");
+  try {
+    await connectDB();
+    console.log("Database connected successfully!");
+  } catch (err) {
+    console.error("FATAL: Failed to connect to database. Shutting down.", err.message);
+    process.exit(1);
+  }
 };
 
-startServer();
+startServer().catch((err) => {
+  console.error("FATAL: Server startup failed.", err.message);
+  process.exit(1);
+});
