@@ -24,7 +24,7 @@ import {
   Phone,
   Send,
 } from "lucide-react";
-import { createProject, fetchDepartments } from "../../api/projects.js";
+import { createProject, fetchDepartments, dispatchOfficerCredentials } from "../../api/projects.js";
 
 const STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa",
@@ -272,7 +272,29 @@ export default function CreateProjectModal({ onClose, onCreated }) {
     setTimeout(() => setDispatching((prev) => ({ ...prev, [`em_${c.departmentName}`]: false })), 3000);
   };
 
-  // Dispatch all credentials via WhatsApp and Email at once
+  const [autoDispatching, setAutoDispatching] = useState(false);
+  const [directSent, setDirectSent] = useState({});
+
+  // Direct automated background dispatch via backend notification service
+  const directAutoDispatch = async (deptId = null) => {
+    if (!createdProjectSummary) return;
+    const { project } = createdProjectSummary;
+    setAutoDispatching(true);
+    try {
+      const res = await dispatchOfficerCredentials(project._id, { departmentId: deptId });
+      toast.success(res.message || "Credentials dispatched directly via Email & WhatsApp!");
+      if (deptId) {
+        setDirectSent((prev) => ({ ...prev, [deptId]: true }));
+        setTimeout(() => setDirectSent((prev) => ({ ...prev, [deptId]: false })), 4000);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Automated dispatch service failed");
+    } finally {
+      setAutoDispatching(false);
+    }
+  };
+
+  // Dispatch all credentials via WhatsApp and Email at once (client-side fallback)
   const dispatchAll = () => {
     if (!createdProjectSummary) return;
     const { credentials, project } = createdProjectSummary;
@@ -311,20 +333,23 @@ export default function CreateProjectModal({ onClose, onCreated }) {
           </div>
 
           <div className="p-6 space-y-4">
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-              <p className="text-xs font-bold text-emerald-900">
-                ✅ Project established in the national registry. Below are the generated login credentials for all departmental officers.
-              </p>
-              <p className="text-[11px] text-emerald-700 mt-1">
-                Use the <strong>Send via WhatsApp</strong> and <strong>Send via Email</strong> buttons to dispatch credentials directly to each officer. Officers with a notification email will receive their email there; otherwise their login email is used.
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-xs font-bold text-emerald-900">
+                  🚀 Automated Direct Background Dispatch Activated
+                </p>
+              </div>
+              <p className="text-[11px] text-emerald-700">
+                Official credentials have been automatically dispatched directly to each departmental officer's email address and WhatsApp phone number via the background notification service. You do not need to manually send or open anything!
               </p>
             </div>
 
             {/* Bulk dispatch banner */}
             <div className="flex flex-wrap gap-2 items-center justify-between rounded-xl border border-ink-200 bg-ink-50 px-4 py-3">
               <div>
-                <p className="text-xs font-bold text-ink-900">📢 Dispatch All Credentials at Once</p>
-                <p className="text-[11px] text-ink-500">Opens WhatsApp &amp; Email for every officer who has contact details.</p>
+                <p className="text-xs font-bold text-ink-900">Direct Automated Dispatch Control</p>
+                <p className="text-[11px] text-ink-500">Re-send credentials directly to all officers via server in 1 click.</p>
               </div>
               <div className="flex gap-2">
                 <button
@@ -337,11 +362,12 @@ export default function CreateProjectModal({ onClose, onCreated }) {
                 </button>
                 <button
                   type="button"
-                  onClick={dispatchAll}
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-3 py-2 text-xs font-bold text-white shadow hover:from-emerald-600 hover:to-teal-700 transition-all"
+                  onClick={() => directAutoDispatch()}
+                  disabled={autoDispatching}
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3.5 py-2 text-xs font-bold text-white shadow hover:from-emerald-700 hover:to-teal-700 transition-all disabled:opacity-50"
                 >
                   <Send size={13} />
-                  <span>Dispatch All</span>
+                  <span>{autoDispatching ? "Dispatching Directly..." : "Auto-Dispatch All Directly"}</span>
                 </button>
               </div>
             </div>
@@ -397,18 +423,34 @@ export default function CreateProjectModal({ onClose, onCreated }) {
                           <span className="text-[10px] italic text-ink-300">No phone set</span>
                         )}
 
-                        <div className="ml-auto flex gap-1.5">
-                          {/* WhatsApp */}
+                        <div className="ml-auto flex flex-wrap gap-1.5">
+                          {/* Direct Automated Dispatch */}
+                          <button
+                            type="button"
+                            onClick={() => directAutoDispatch(c.departmentId)}
+                            disabled={autoDispatching}
+                            title="Directly send credentials via background Email & WhatsApp service without manual apps"
+                            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                              directSent[c.departmentId]
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-ink-900 text-white hover:bg-ink-800"
+                            }`}
+                          >
+                            <Send size={11} />
+                            {directSent[c.departmentId] ? "Dispatched!" : "Direct Send"}
+                          </button>
+
+                          {/* WhatsApp Manual Fallback */}
                           <button
                             type="button"
                             onClick={() => dispatchWhatsApp(c, project.code)}
                             disabled={!c.phone}
-                            title={c.phone ? `Send via WhatsApp to ${c.phone}` : "No phone number set"}
-                            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                            title={c.phone ? `Open WhatsApp Web to ${c.phone}` : "No phone number set"}
+                            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition-all ${
                               c.phone
                                 ? waDone
                                   ? "bg-emerald-100 text-emerald-700"
-                                  : "bg-green-500 text-white hover:bg-green-600"
+                                  : "bg-green-600 text-white hover:bg-green-700"
                                 : "bg-ink-100 text-ink-300 cursor-not-allowed"
                             }`}
                           >
@@ -416,15 +458,15 @@ export default function CreateProjectModal({ onClose, onCreated }) {
                             {waDone ? "Sent!" : "WhatsApp"}
                           </button>
 
-                          {/* Email */}
+                          {/* Email Manual Fallback */}
                           <button
                             type="button"
                             onClick={() => dispatchEmail(c, project.code)}
-                            title={`Send credentials to ${c.notificationEmail || c.email}`}
-                            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                            title={`Open email client for ${c.notificationEmail || c.email}`}
+                            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition-all ${
                               emDone
                                 ? "bg-blue-100 text-blue-700"
-                                : "bg-blue-500 text-white hover:bg-blue-600"
+                                : "bg-blue-600 text-white hover:bg-blue-700"
                             }`}
                           >
                             <Mail size={11} />

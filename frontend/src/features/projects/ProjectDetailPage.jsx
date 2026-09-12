@@ -6,6 +6,7 @@ import {
   deleteProject,
   addProjectResolution,
   deleteProjectResolution,
+  dispatchOfficerCredentials,
 } from "../../api/projects.js";
 import Card from "../../components/Card.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
@@ -49,6 +50,7 @@ import {
   Mail,
   Phone,
   ShieldAlert,
+  Send,
 } from "lucide-react";
 
 const categoryMeta = (cat) => {
@@ -96,10 +98,29 @@ export default function ProjectDetailPage() {
 
   const [accessDenied, setAccessDenied] = useState(false);
   const [copiedOfficerInfo, setCopiedOfficerInfo] = useState(false);
+  const [autoDispatching, setAutoDispatching] = useState(false);
+  const [directSent, setDirectSent] = useState({});
   const currentUser = useAuthStore((s) => s.user);
   const role = currentUser?.role;
   const canUpdate = ["DepartmentOfficer", "Administrator", "ProjectManager"].includes(role);
   const canDelete = role === "Administrator";
+
+  const handleDirectAutoDispatch = async (deptId = null) => {
+    if (!project) return;
+    setAutoDispatching(true);
+    try {
+      const res = await dispatchOfficerCredentials(project._id, { departmentId: deptId });
+      toast.success(res.message || "Credentials dispatched directly via Email & WhatsApp!");
+      if (deptId) {
+        setDirectSent((prev) => ({ ...prev, [deptId]: true }));
+        setTimeout(() => setDirectSent((prev) => ({ ...prev, [deptId]: false })), 4000);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to trigger direct dispatch service");
+    } finally {
+      setAutoDispatching(false);
+    }
+  };
 
   useEffect(() => {
     // Client-side guard: DepartmentOfficer may only access their assigned project
@@ -637,30 +658,43 @@ export default function ProjectDetailPage() {
         subtitle="Department officers assigned by the Administrator to this project"
         icon={Users}
         action={
-          <button
-            type="button"
-            onClick={() => {
-              const text = [
-                `Project: ${project.name}`,
-                `Project ID / Code: ${project.code}`,
-                `----------------------------------------`,
-                ...(project.departments || []).map(
-                  (dp) =>
-                    `• ${dp.department?.displayName || "Stage"} (${dp.department?.weight || 0}% wt): ${
-                      dp.assignedOfficer?.name || "Assigned Officer"
-                    } (${dp.assignedOfficer?.email || "officer@landacquisition.gov.in"})`
-                ),
-              ].join("\n");
-              navigator.clipboard.writeText(text);
-              setCopiedOfficerInfo(true);
-              toast.success("Project Officers info copied to clipboard!");
-              setTimeout(() => setCopiedOfficerInfo(false), 3000);
-            }}
-            className="flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm hover:bg-ink-50 transition-colors"
-          >
-            {copiedOfficerInfo ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
-            <span>{copiedOfficerInfo ? "Copied!" : "Copy Officers Info"}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {["Administrator", "ProjectManager"].includes(role) && (
+              <button
+                type="button"
+                onClick={() => handleDirectAutoDispatch()}
+                disabled={autoDispatching}
+                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:from-emerald-700 hover:to-teal-700 transition-all disabled:opacity-50"
+              >
+                <Send size={12} />
+                <span>{autoDispatching ? "Dispatching..." : "Auto-Dispatch to All"}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                const text = [
+                  `Project: ${project.name}`,
+                  `Project ID / Code: ${project.code}`,
+                  `----------------------------------------`,
+                  ...(project.departments || []).map(
+                    (dp) =>
+                      `• ${dp.department?.displayName || "Stage"} (${dp.department?.weight || 0}% wt): ${
+                        dp.assignedOfficer?.name || "Assigned Officer"
+                      } (${dp.assignedOfficer?.email || "officer@landacquisition.gov.in"})`
+                  ),
+                ].join("\n");
+                navigator.clipboard.writeText(text);
+                setCopiedOfficerInfo(true);
+                toast.success("Project Officers info copied to clipboard!");
+                setTimeout(() => setCopiedOfficerInfo(false), 3000);
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm hover:bg-ink-50 transition-colors"
+            >
+              {copiedOfficerInfo ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+              <span>{copiedOfficerInfo ? "Copied!" : "Copy Officers Info"}</span>
+            </button>
+          </div>
         }
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -754,6 +788,22 @@ export default function ProjectDetailPage() {
 
                 {/* Dispatch buttons */}
                 <div className="flex gap-1.5 pt-1 border-t border-ink-100">
+                  {["Administrator", "ProjectManager"].includes(role) && (
+                    <button
+                      type="button"
+                      onClick={() => handleDirectAutoDispatch(String(dp.department?._id))}
+                      disabled={autoDispatching}
+                      title="Directly send credentials via background Email & WhatsApp service"
+                      className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1 text-[10px] font-bold transition-all ${
+                        directSent[String(dp.department?._id)]
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-ink-900 text-white hover:bg-ink-800"
+                      } disabled:opacity-50`}
+                    >
+                      <Send size={10} />
+                      {directSent[String(dp.department?._id)] ? "Dispatched!" : "Direct Send"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={handleWA}

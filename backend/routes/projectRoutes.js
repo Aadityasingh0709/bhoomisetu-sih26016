@@ -7,6 +7,7 @@ import {
   addProjectResolution,
   deleteProjectResolution,
   deleteProject,
+  dispatchOfficerCredentials,
 } from "../controllers/projectController.js";
 import { protect, restrictTo } from "../middleware/auth.js";
 
@@ -33,5 +34,10 @@ router.delete(
   deleteProjectResolution
 );
 router.delete("/:id", restrictTo("Administrator"), deleteProject);
+router.post(
+  "/:id/dispatch-credentials",
+  restrictTo("Administrator", "ProjectManager"),
+  dispatchOfficerCredentials
+);
 
 export default router;

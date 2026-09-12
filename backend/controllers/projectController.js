@@ -4,6 +4,7 @@ import Department from "../models/Department.js";
 import Alert from "../models/Alert.js";
 import Resolution from "../models/Resolution.js";
 import User from "../models/User.js";
+import { dispatchCredentialsToOfficer } from "../services/notificationService.js";
 
 // Recalculates a project's weighted overall progress + status, and raises
 // bottleneck/dependency alerts. This is the core "system converts updates
@@ -243,6 +244,22 @@ export const createProject = asyncHandler(async (req, res) => {
         if (officerData.notificationEmail) {
           deptEntry.officerNotificationEmail = officerData.notificationEmail.toLowerCase().trim();
         }
+      }
+
+      // Direct Automated Dispatch: Transmit official credentials directly to officer via Email and WhatsApp
+      if (officerData.notificationEmail || officerData.phone) {
+        dispatchCredentialsToOfficer({
+          officerName: user.name,
+          notificationEmail: officerData.notificationEmail || user.notificationEmail,
+          phone: officerData.phone || user.phone,
+          projectCode: project.code,
+          projectName: project.name,
+          departmentName: dept.displayName,
+          loginEmail: officerData.email,
+          password: officerData.password,
+        }).catch((err) => {
+          console.error(`[Dispatch Error] Automated dispatch to ${user.name} failed:`, err.message);
+        });
       }
     }
   }
@@ -495,3 +512,62 @@ export const deleteProject = asyncHandler(async (req, res) => {
   await Resolution.deleteMany({ project: project._id });
   res.json({ message: "Project deleted" });
 });
+
+// POST /api/projects/:id/dispatch-credentials (Administrator & ProjectManager)
+// Explicit endpoint to trigger automated direct background dispatch to one or all officers
+export const dispatchOfficerCredentials = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { departmentId, password } = req.body;
+
+  const project = await Project.findById(id)
+    .populate("departments.department")
+    .populate("departments.assignedOfficer", "name email role phone notificationEmail");
+
+  if (!project) {
+    res.status(404);
+    throw new Error("Project not found");
+  }
+
+  const reports = [];
+
+  for (const dp of project.departments) {
+    if (departmentId && String(dp.department?._id || dp.department) !== String(departmentId)) {
+      continue;
+    }
+
+    const officer = dp.assignedOfficer;
+    if (!officer) continue;
+
+    const email = dp.officerNotificationEmail || officer.notificationEmail;
+    const phone = dp.officerPhone || officer.phone;
+    const deptName = dp.department?.displayName || "Department";
+
+    if (!email && !phone) continue;
+
+    const dispatchResults = await dispatchCredentialsToOfficer({
+      officerName: officer.name,
+      notificationEmail: email,
+      phone: phone,
+      projectCode: project.code,
+      projectName: project.name,
+      departmentName: deptName,
+      loginEmail: officer.email,
+      password: password || "Assigned by Administrator (BhoomiSetu@2026)",
+    });
+
+    reports.push({
+      officerName: officer.name,
+      department: deptName,
+      email,
+      phone,
+      dispatchResults,
+    });
+  }
+
+  res.json({
+    success: true,
+    message: `Direct automated credentials dispatched to ${reports.length} officer(s).`,
+    reports,
+  });
+});
+
