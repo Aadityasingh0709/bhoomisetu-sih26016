@@ -291,7 +291,7 @@ python app.py
 npm run dev
 ```
 
-- **Frontend Portal**: `http://localhost:5174/`
+- **Frontend Portal**: `http://localhost:5173/`
 - **Backend REST API**: `http://localhost:5000`
 - **ML Microservice**: `http://localhost:5001`
 
