@@ -36,8 +36,10 @@ export const validateProjectCode = asyncHandler(async (req, res) => {
       state: project.state,
       district: project.district,
       implementingAgency: project.implementingAgency,
-      overallStatus: project.overallStatus,
     },
+  });
+});
+
 // GET /api/auth/lookup-projects
 export const lookupProjects = asyncHandler(async (req, res) => {
   const { q } = req.query;
