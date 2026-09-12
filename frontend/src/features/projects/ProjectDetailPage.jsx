@@ -111,6 +111,21 @@ export default function ProjectDetailPage() {
     try {
       const res = await dispatchOfficerCredentials(project._id, { departmentId: deptId });
       toast.success(res.message || "Credentials dispatched directly via Email & WhatsApp!");
+      
+      // Auto-open WhatsApp web if server returned WhatsApp links and not using paid cloud API
+      if (res.reports && res.reports.length > 0) {
+        res.reports.forEach((rep) => {
+          const waResult = (rep.dispatchResults || []).find((r) => r.channel === "whatsapp");
+          if (waResult?.whatsappUrl && waResult?.mode === "Automated Gateway Direct Dispatch") {
+            window.open(waResult.whatsappUrl, "_blank");
+          }
+          const emResult = (rep.dispatchResults || []).find((r) => r.channel === "email");
+          if (emResult?.previewUrl) {
+            console.log(`[BhoomiSetu] Live Email Preview for ${rep.officerName}: ${emResult.previewUrl}`);
+          }
+        });
+      }
+
       if (deptId) {
         setDirectSent((prev) => ({ ...prev, [deptId]: true }));
         setTimeout(() => setDirectSent((prev) => ({ ...prev, [deptId]: false })), 4000);

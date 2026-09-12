@@ -166,12 +166,15 @@ export const sendDirectEmail = async ({
       console.log(`[Email Service] Live preview link: ${previewUrl}`);
     }
 
+    const mailtoUrl = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`Dear ${officerName},\n\nYour BhoomiSetu Login Credentials:\nProject ID: ${projectCode}\nDepartment: ${departmentName}\nLogin Email: ${loginEmail}\nPassword: ${password}\nPortal Link: ${portalUrl}`)}`;
+
     return {
       success: true,
       channel: "email",
       recipient,
       messageId: info.messageId,
       previewUrl: previewUrl || undefined,
+      mailtoUrl,
       mode: previewUrl ? "Ethereal Test Inbox" : "SMTP Direct Delivery",
     };
   } catch (err) {
@@ -284,11 +287,14 @@ export const sendDirectWhatsApp = async ({
   // 3. Built-in Automated Gateway Delivery (Default mode)
   // Transparently dispatches message to server log and registers automated background transmission
   const messageId = `WA-AUTO-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const whatsappUrl = `https://wa.me/${formattedPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(messageText)}`;
+
   console.log(`\n======================================================`);
   console.log(`🚀 [WHATSAPP AUTOMATED DIRECT DISPATCH]`);
   console.log(`Recipient Mobile: ${formattedPhone} (${officerName})`);
   console.log(`Message ID:       ${messageId}`);
   console.log(`Status:           DISPATCHED DIRECTLY`);
+  console.log(`WhatsApp Link:    ${whatsappUrl}`);
   console.log(`------------------------------------------------------`);
   console.log(messageText);
   console.log(`======================================================\n`);
@@ -298,6 +304,7 @@ export const sendDirectWhatsApp = async ({
     channel: "whatsapp",
     recipient: formattedPhone,
     messageId,
+    whatsappUrl,
     mode: "Automated Gateway Direct Dispatch",
   };
 };
