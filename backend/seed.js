@@ -31,6 +31,34 @@ const DEPARTMENTS = [
 ];
 
 const run = async () => {
+  const isProduction = process.env.NODE_ENV === "production";
+  const skipConfirm = process.env.SEED_SKIP_CONFIRM === "true";
+
+  if (!skipConfirm && !isProduction) {
+    const readline = await import("readline");
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    const answer = await new Promise((resolve) => {
+      rl.question(
+        "⚠️  This will DELETE all existing data (Users, Projects, Departments, Alerts, Resolutions). Continue? (yes/no): ",
+        resolve
+      );
+    });
+
+    rl.close();
+
+    if (answer.toLowerCase() !== "yes" && answer.toLowerCase() !== "y") {
+      console.log("Seed aborted.");
+      process.exit(0);
+    }
+  } else if (!skipConfirm && isProduction) {
+    console.error("❌ Refusing to seed in production environment. Set SEED_SKIP_CONFIRM=true to override.");
+    process.exit(1);
+  }
+
   await connectDB();
   await Promise.all([
     Alert.deleteMany(),

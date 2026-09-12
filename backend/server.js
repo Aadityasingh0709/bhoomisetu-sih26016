@@ -81,8 +81,16 @@ const startServer = async () => {
   });
 
   // Connect to DB - will throw and exit if connection fails
-  await connectDB();
-  console.log("Database connected successfully!");
+  try {
+    await connectDB();
+    console.log("Database connected successfully!");
+  } catch (err) {
+    console.error("FATAL: Failed to connect to database. Shutting down.", err.message);
+    process.exit(1);
+  }
 };
 
-startServer();
+startServer().catch((err) => {
+  console.error("FATAL: Server startup failed.", err.message);
+  process.exit(1);
+});

@@ -140,6 +140,28 @@ export const deleteResolution = asyncHandler(async (req, res) => {
     throw new Error("Resolution not found");
   }
 
+  // Security check: verify user can access the project this resolution belongs to
+  if (req.user.role === "DepartmentOfficer") {
+    if (!resolution.project) {
+      res.status(403);
+      throw new Error("Access denied: Resolution is not associated with a project");
+    }
+
+    const project = await Project.findById(resolution.project).select("_id");
+    if (!project) {
+      res.status(404);
+      throw new Error("Project not found for this resolution");
+    }
+
+    const isAssigned = (req.user.assignedProjects || []).some(
+      (p) => String(p._id || p) === String(project._id)
+    );
+    if (!isAssigned) {
+      res.status(403);
+      throw new Error("Access denied: You cannot delete resolutions for a project you are not assigned to");
+    }
+  }
+
   await Resolution.findByIdAndDelete(req.params.id);
 
   // Remove from embedded array on project if present

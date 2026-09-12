@@ -77,7 +77,9 @@ export default function ProjectUpdateForm() {
 
         const myDeptId = isOfficer
           ? String(user?.department?._id || user?.department || "")
-          : String(depts[0]?._id || "");
+          : departments.length > 0
+            ? String(departments[0]._id)
+            : "";
 
         const mine = p.departments.find(
           (d) => String(d.department?._id || d.department) === myDeptId
