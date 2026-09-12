@@ -45,6 +45,9 @@ import {
   Check,
   KeyRound,
   Users,
+  MessageCircle,
+  Mail,
+  Phone,
 } from "lucide-react";
 
 const categoryMeta = (cat) => {
@@ -614,6 +617,53 @@ export default function ProjectDetailPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {(project.departments || []).map((dp, idx) => {
             const Icon = stageIcons[dp.department?.name] || Building;
+            const officerPhone = dp.officerPhone || dp.assignedOfficer?.phone || "";
+            const notifEmail = dp.officerNotificationEmail || dp.assignedOfficer?.notificationEmail || "";
+            const loginEmail = dp.assignedOfficer?.email || `${dp.department?.name?.toLowerCase()}.${project.code?.toLowerCase().replace(/[^a-z0-9]/g, "")}@landacquisition.gov.in`;
+
+            const handleWA = () => {
+              const cleaned = officerPhone.replace(/\D/g, "");
+              const phone = cleaned.startsWith("91") ? cleaned : cleaned ? `91${cleaned}` : "";
+              if (!phone) { toast.error(`No WhatsApp number set for ${dp.department?.displayName} Officer`); return; }
+              const msg = [
+                `🏗️ *BhoomiSetu – Project Login Credentials*`,
+                ``,
+                `Dear *${dp.assignedOfficer?.name || dp.department?.displayName + " Officer"}*,`,
+                ``,
+                `📋 *Project ID:* \`${project.code}\``,
+                `🏢 *Department:* ${dp.department?.displayName}`,
+                `📧 *Login Email:* ${loginEmail}`,
+                ``,
+                `Please log in to BhoomiSetu and change your password after first login.`,
+                ``,
+                `— System Administrator, BhoomiSetu`,
+              ].join("\n");
+              window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+              toast.success(`WhatsApp opened for ${dp.department?.displayName} Officer!`);
+            };
+
+            const handleEmail = () => {
+              const to = notifEmail || loginEmail;
+              const subject = encodeURIComponent(`BhoomiSetu Login Credentials – Project ${project.code}`);
+              const body = encodeURIComponent(
+                [
+                  `Dear ${dp.assignedOfficer?.name || dp.department?.displayName + " Officer"},`,
+                  ``,
+                  `Project ID: ${project.code}`,
+                  `Department: ${dp.department?.displayName}`,
+                  `Login Email / User ID: ${loginEmail}`,
+                  ``,
+                  `Please visit the BhoomiSetu portal and log in using your Project ID and Email.`,
+                  `Change your password after first login.`,
+                  ``,
+                  `Regards,`,
+                  `System Administrator, BhoomiSetu – SIH 26016`,
+                ].join("\n")
+              );
+              window.open(`mailto:${to}?subject=${subject}&body=${body}`, "_blank");
+              toast.success(`Email client opened for ${dp.department?.displayName} Officer!`);
+            };
+
             return (
               <div
                 key={dp.department?._id || idx}
@@ -634,11 +684,50 @@ export default function ProjectDetailPage() {
                     Officer: <span className="font-bold text-ink-900">{dp.assignedOfficer?.name || `${dp.department?.displayName} Officer`}</span>
                   </p>
                   <p className="text-ink-500 truncate">
-                    Login ID: <span className="font-mono font-semibold text-ink-800">{dp.assignedOfficer?.email || `${dp.department?.name?.toLowerCase()}.${project.code?.toLowerCase().replace(/[^a-z0-9]/g, "")}@landacquisition.gov.in`}</span>
+                    Login ID: <span className="font-mono font-semibold text-ink-800">{loginEmail}</span>
                   </p>
+                  {notifEmail && (
+                    <p className="text-ink-500 truncate flex items-center gap-1">
+                      <Mail size={9} className="text-blue-400" />
+                      <span className="text-ink-600">{notifEmail}</span>
+                    </p>
+                  )}
+                  {officerPhone && (
+                    <p className="text-ink-500 flex items-center gap-1">
+                      <Phone size={9} className="text-green-500" />
+                      <span className="text-ink-600">{officerPhone}</span>
+                    </p>
+                  )}
                   <p className="text-ink-400 text-[10px]">
                     Project ID: <span className="font-mono font-bold text-ochre-700">{project.code}</span>
                   </p>
+                </div>
+
+                {/* Dispatch buttons */}
+                <div className="flex gap-1.5 pt-1 border-t border-ink-100">
+                  <button
+                    type="button"
+                    onClick={handleWA}
+                    disabled={!officerPhone}
+                    title={officerPhone ? `Send via WhatsApp to ${officerPhone}` : "No phone set"}
+                    className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1 text-[10px] font-bold transition-all ${
+                      officerPhone
+                        ? "bg-green-500 text-white hover:bg-green-600"
+                        : "bg-ink-100 text-ink-300 cursor-not-allowed"
+                    }`}
+                  >
+                    <MessageCircle size={10} />
+                    WhatsApp
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleEmail}
+                    title={`Send credentials to ${notifEmail || loginEmail}`}
+                    className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-blue-500 py-1 text-[10px] font-bold text-white hover:bg-blue-600 transition-all"
+                  >
+                    <Mail size={10} />
+                    Email
+                  </button>
                 </div>
               </div>
             );

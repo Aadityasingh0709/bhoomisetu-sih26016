@@ -144,7 +144,7 @@ export const getProjects = asyncHandler(async (req, res) => {
 
   const projects = await Project.find(filter)
     .populate("departments.department")
-    .populate("departments.assignedOfficer", "name email role")
+    .populate("departments.assignedOfficer", "name email role phone notificationEmail")
     .populate("resolutions.department")
     .populate("resolutions.resolvedBy", "name email role")
     .sort({ createdAt: -1 });
@@ -155,7 +155,7 @@ export const getProjects = asyncHandler(async (req, res) => {
 export const getProject = asyncHandler(async (req, res) => {
   const project = await Project.findById(req.params.id)
     .populate("departments.department")
-    .populate("departments.assignedOfficer", "name email role")
+    .populate("departments.assignedOfficer", "name email role phone notificationEmail")
     .populate("resolutions.department")
     .populate("resolutions.resolvedBy", "name email role");
   if (!project) {
@@ -193,10 +193,14 @@ export const createProject = asyncHandler(async (req, res) => {
       let user = await User.findOne({ email: officerData.email.toLowerCase().trim() });
       if (user) {
         // Associate this existing officer with this new project
+        if (officerData.phone) user.phone = officerData.phone.trim();
+        if (officerData.notificationEmail) {
+          user.notificationEmail = officerData.notificationEmail.toLowerCase().trim();
+        }
         if (!user.assignedProjects.includes(project._id)) {
           user.assignedProjects.push(project._id);
-          await user.save();
         }
+        await user.save();
       } else {
         // Create new project-specific department officer
         user = await User.create({
@@ -206,6 +210,8 @@ export const createProject = asyncHandler(async (req, res) => {
           role: "DepartmentOfficer",
           department: dept._id,
           assignedProjects: [project._id],
+          phone: officerData.phone?.trim() || "",
+          notificationEmail: officerData.notificationEmail?.toLowerCase()?.trim() || "",
         });
       }
 
@@ -215,6 +221,10 @@ export const createProject = asyncHandler(async (req, res) => {
       );
       if (deptEntry) {
         deptEntry.assignedOfficer = user._id;
+        if (officerData.phone) deptEntry.officerPhone = officerData.phone.trim();
+        if (officerData.notificationEmail) {
+          deptEntry.officerNotificationEmail = officerData.notificationEmail.toLowerCase().trim();
+        }
       }
     }
   }
@@ -226,7 +236,7 @@ export const createProject = asyncHandler(async (req, res) => {
   const updated = await recalculateProject(project);
   await updated.populate([
     { path: "departments.department" },
-    { path: "departments.assignedOfficer", select: "name email role" },
+    { path: "departments.assignedOfficer", select: "name email role phone notificationEmail" },
   ]);
   res.status(201).json(updated);
 });

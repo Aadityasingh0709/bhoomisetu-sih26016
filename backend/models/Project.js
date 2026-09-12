@@ -21,6 +21,8 @@ const departmentProgressSchema = new mongoose.Schema(
     resolutionNotes: { type: String, default: "" },
     expectedCompletionDate: { type: Date },
     assignedOfficer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    officerPhone: { type: String, default: "" },
+    officerNotificationEmail: { type: String, default: "" },
     lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     lastUpdatedAt: { type: Date, default: Date.now },
   },

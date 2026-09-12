@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ROLES, required: true },
     department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
     assignedProjects: [{ type: mongoose.Schema.Types.ObjectId, ref: "Project" }],
+    phone: { type: String, trim: true, default: "" },
+    notificationEmail: { type: String, trim: true, default: "" },
     isActive: { type: Boolean, default: true },
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date, select: false },

@@ -19,6 +19,10 @@ import {
   FileCheck,
   Flag,
   UserCheck,
+  MessageCircle,
+  Mail,
+  Phone,
+  Send,
 } from "lucide-react";
 import { createProject, fetchDepartments } from "../../api/projects.js";
 
@@ -63,6 +67,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
   const [officerCredentials, setOfficerCredentials] = useState([]);
   const [createdProjectSummary, setCreatedProjectSummary] = useState(null);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [dispatching, setDispatching] = useState({});
 
   const {
     register,
@@ -79,7 +84,6 @@ export default function CreateProjectModal({ onClose, onCreated }) {
       .then((depts) => {
         const sorted = (depts || []).sort((a, b) => a.order - b.order);
         setDepartments(sorted);
-        // Initialize default credentials for each department
         initOfficerCredentials(sorted, watchedCode || "PROJ");
       })
       .catch(() => {});
@@ -97,6 +101,8 @@ export default function CreateProjectModal({ onClose, onCreated }) {
         name: `${d.displayName} Lead Officer`,
         email: `${deptSlug}.${cleanCode || "proj"}@landacquisition.gov.in`,
         password: `${d.name}@2026Secure!`,
+        phone: "",
+        notificationEmail: "",
       };
     });
     setOfficerCredentials(initial);
@@ -153,6 +159,8 @@ export default function CreateProjectModal({ onClose, onCreated }) {
           name: oc.name,
           email: oc.email,
           password: oc.password,
+          phone: oc.phone,
+          notificationEmail: oc.notificationEmail,
         })),
       });
 
@@ -182,7 +190,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
       `-----------------------------------------------------`,
       ...createdProjectSummary.credentials.map(
         (c) =>
-          `[${c.displayName}] (${c.weight}% Weight)\nOfficer Name: ${c.name}\nEmail / User ID: ${c.email}\nPassword: ${c.password}\n`
+          `[${c.displayName}] (${c.weight}% Weight)\nOfficer Name: ${c.name}\nEmail / User ID: ${c.email}\nPassword: ${c.password}${c.phone ? `\nWhatsApp/Phone: ${c.phone}` : ""}${c.notificationEmail ? `\nNotification Email: ${c.notificationEmail}` : ""}\n`
       ),
       `=====================================================`,
     ].join("\n");
@@ -193,11 +201,95 @@ export default function CreateProjectModal({ onClose, onCreated }) {
     setTimeout(() => setCopiedAll(false), 3000);
   };
 
+  // Build and open WhatsApp message for a single officer
+  const dispatchWhatsApp = (c, projectCode) => {
+    const rawPhone = c.phone || "";
+    // Strip non-numeric characters, add country code if missing
+    const cleaned = rawPhone.replace(/\D/g, "");
+    const phone = cleaned.startsWith("91") ? cleaned : cleaned ? `91${cleaned}` : "";
+    if (!phone) {
+      toast.error(`No WhatsApp number set for ${c.displayName} Officer`);
+      return;
+    }
+    const msg = [
+      `🏗️ *BhoomiSetu – Project Login Credentials*`,
+      ``,
+      `Dear *${c.name}*,`,
+      ``,
+      `Your login credentials for the land acquisition project have been created on the BhoomiSetu platform.`,
+      ``,
+      `📋 *Project ID:* \`${projectCode}\``,
+      `🏢 *Department:* ${c.displayName}`,
+      `📧 *Login Email / User ID:* ${c.email}`,
+      `🔑 *Password:* ${c.password}`,
+      ``,
+      `*Steps to Login:*`,
+      `1. Go to the BhoomiSetu portal`,
+      `2. Enter Project ID: *${projectCode}*`,
+      `3. Enter your Email and Password above`,
+      ``,
+      `Please change your password after first login.`,
+      ``,
+      `— System Administrator, BhoomiSetu`,
+    ].join("\n");
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
+    setDispatching((prev) => ({ ...prev, [`wa_${c.departmentName}`]: true }));
+    toast.success(`WhatsApp opened for ${c.displayName} Officer!`);
+    setTimeout(() => setDispatching((prev) => ({ ...prev, [`wa_${c.departmentName}`]: false })), 3000);
+  };
+
+  // Build and open Email client for a single officer
+  const dispatchEmail = (c, projectCode) => {
+    const toEmail = c.notificationEmail || c.email;
+    const subject = encodeURIComponent(`BhoomiSetu Login Credentials – Project ${projectCode}`);
+    const body = encodeURIComponent(
+      [
+        `Dear ${c.name},`,
+        ``,
+        `Your login credentials for the BhoomiSetu Land Acquisition Monitoring System have been created.`,
+        ``,
+        `Project ID: ${projectCode}`,
+        `Department: ${c.displayName}`,
+        `Login Email / User ID: ${c.email}`,
+        `Password: ${c.password}`,
+        ``,
+        `Steps to Login:`,
+        `1. Visit the BhoomiSetu portal`,
+        `2. Enter Project ID: ${projectCode}`,
+        `3. Enter your Email and Password as above`,
+        ``,
+        `Please change your password after your first login for security.`,
+        ``,
+        `Regards,`,
+        `System Administrator`,
+        `BhoomiSetu – SIH 26016`,
+      ].join("\n")
+    );
+    window.open(`mailto:${toEmail}?subject=${subject}&body=${body}`, "_blank");
+    setDispatching((prev) => ({ ...prev, [`em_${c.departmentName}`]: true }));
+    toast.success(`Email client opened for ${c.displayName} Officer!`);
+    setTimeout(() => setDispatching((prev) => ({ ...prev, [`em_${c.departmentName}`]: false })), 3000);
+  };
+
+  // Dispatch all credentials via WhatsApp and Email at once
+  const dispatchAll = () => {
+    if (!createdProjectSummary) return;
+    const { credentials, project } = createdProjectSummary;
+    let dispatched = 0;
+    credentials.forEach((c) => {
+      if (c.phone) { dispatchWhatsApp(c, project.code); dispatched++; }
+      if (c.notificationEmail || c.email) { dispatchEmail(c, project.code); dispatched++; }
+    });
+    if (dispatched === 0) toast.error("No contact info found. Please add phone/email before dispatching.");
+  };
+
   // If created, render Credentials Distribution Screen
   if (createdProjectSummary) {
+    const { project, credentials } = createdProjectSummary;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/70 backdrop-blur-sm p-3 sm:p-4">
-        <div className="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+        <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-emerald-100 bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 text-white">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
@@ -206,7 +298,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
               <div>
                 <h2 className="text-base font-bold">Project Created &amp; Credentials Generated</h2>
                 <p className="text-xs text-emerald-100">
-                  Project ID: <span className="font-mono font-bold">{createdProjectSummary.project.code}</span>
+                  Project ID: <span className="font-mono font-bold">{project.code}</span>
                 </p>
               </div>
             </div>
@@ -221,60 +313,136 @@ export default function CreateProjectModal({ onClose, onCreated }) {
           <div className="p-6 space-y-4">
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
               <p className="text-xs font-bold text-emerald-900">
-                The project has been established in the national registry. Below are the generated login credentials for all 6 departmental officers.
+                ✅ Project established in the national registry. Below are the generated login credentials for all departmental officers.
               </p>
               <p className="text-[11px] text-emerald-700 mt-1">
-                Share the <strong>Project ID ({createdProjectSummary.project.code})</strong> and the corresponding ID/password with each department officer.
+                Use the <strong>Send via WhatsApp</strong> and <strong>Send via Email</strong> buttons to dispatch credentials directly to each officer. Officers with a notification email will receive their email there; otherwise their login email is used.
               </p>
+            </div>
+
+            {/* Bulk dispatch banner */}
+            <div className="flex flex-wrap gap-2 items-center justify-between rounded-xl border border-ink-200 bg-ink-50 px-4 py-3">
+              <div>
+                <p className="text-xs font-bold text-ink-900">📢 Dispatch All Credentials at Once</p>
+                <p className="text-[11px] text-ink-500">Opens WhatsApp &amp; Email for every officer who has contact details.</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={copyCredentialsToClipboard}
+                  className="flex items-center gap-1.5 rounded-xl bg-ink-900 px-3 py-2 text-xs font-bold text-white hover:bg-ink-800 transition-all"
+                >
+                  {copiedAll ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                  <span>{copiedAll ? "Copied!" : "Copy All"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={dispatchAll}
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-3 py-2 text-xs font-bold text-white shadow hover:from-emerald-600 hover:to-teal-700 transition-all"
+                >
+                  <Send size={13} />
+                  <span>Dispatch All</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">
               <p className="text-xs font-bold uppercase tracking-wider text-ink-500">
                 Assigned Department Officers (6 Stages):
               </p>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                {createdProjectSummary.credentials.map((c) => {
+              <div className="grid grid-cols-1 gap-3">
+                {credentials.map((c) => {
                   const Icon = DEPT_ICONS[c.departmentName] || Building;
+                  const waDone = dispatching[`wa_${c.departmentName}`];
+                  const emDone = dispatching[`em_${c.departmentName}`];
                   return (
                     <div
                       key={c.departmentName}
-                      className="rounded-xl border border-ink-100 bg-ink-50/50 p-3 text-xs space-y-1"
+                      className="rounded-xl border border-ink-100 bg-ink-50/50 p-3.5 text-xs space-y-2"
                     >
+                      {/* Header row */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 font-bold text-ink-900">
                           <Icon size={14} className="text-ochre-600" />
                           <span>{c.displayName}</span>
                         </div>
-                        <span className="rounded bg-ink-100 px-1.5 py-0.2 text-[10px] font-bold text-ink-600">
+                        <span className="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-bold text-ink-600">
                           {c.weight}% wt
                         </span>
                       </div>
-                      <p className="text-ink-600 font-medium truncate">
-                        Email: <span className="font-mono font-bold text-ink-900">{c.email}</span>
-                      </p>
-                      <p className="text-ink-600 font-medium">
-                        Password: <span className="font-mono font-bold text-ink-900">{c.password}</span>
-                      </p>
+
+                      {/* Credential details */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                        <div>
+                          <span className="text-[10px] uppercase text-ink-400 font-bold">Login Email</span>
+                          <p className="font-mono font-bold text-ink-900 truncate">{c.email}</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase text-ink-400 font-bold">Password</span>
+                          <p className="font-mono font-bold text-ink-900">{c.password}</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase text-ink-400 font-bold">Notification Email</span>
+                          <p className="font-mono text-ink-700 truncate">{c.notificationEmail || <span className="italic text-ink-300">—</span>}</p>
+                        </div>
+                      </div>
+
+                      {/* Contact + Dispatch row */}
+                      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-ink-100">
+                        {c.phone ? (
+                          <span className="flex items-center gap-1 text-[10px] text-ink-500">
+                            <Phone size={10} /> {c.phone}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] italic text-ink-300">No phone set</span>
+                        )}
+
+                        <div className="ml-auto flex gap-1.5">
+                          {/* WhatsApp */}
+                          <button
+                            type="button"
+                            onClick={() => dispatchWhatsApp(c, project.code)}
+                            disabled={!c.phone}
+                            title={c.phone ? `Send via WhatsApp to ${c.phone}` : "No phone number set"}
+                            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                              c.phone
+                                ? waDone
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-green-500 text-white hover:bg-green-600"
+                                : "bg-ink-100 text-ink-300 cursor-not-allowed"
+                            }`}
+                          >
+                            <MessageCircle size={11} />
+                            {waDone ? "Sent!" : "WhatsApp"}
+                          </button>
+
+                          {/* Email */}
+                          <button
+                            type="button"
+                            onClick={() => dispatchEmail(c, project.code)}
+                            title={`Send credentials to ${c.notificationEmail || c.email}`}
+                            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                              emDone
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-blue-500 text-white hover:bg-blue-600"
+                            }`}
+                          >
+                            <Mail size={11} />
+                            {emDone ? "Opened!" : "Email"}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-ink-100">
-              <button
-                type="button"
-                onClick={copyCredentialsToClipboard}
-                className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-ink-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-ink-800 transition-all shadow-sm"
-              >
-                {copiedAll ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                <span>{copiedAll ? "Copied to Clipboard!" : "Copy All Credentials"}</span>
-              </button>
-
+            <div className="flex justify-end pt-3 border-t border-ink-100">
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-ochre-500 to-ochre-600 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:from-ochre-600 hover:to-ochre-700"
+                className="rounded-xl bg-gradient-to-r from-ochre-500 to-ochre-600 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:from-ochre-600 hover:to-ochre-700"
               >
                 Done / View in Dashboard
               </button>
@@ -390,7 +558,10 @@ export default function CreateProjectModal({ onClose, onCreated }) {
             }
           >
             <p className="text-xs text-ink-500 mb-3">
-              Configure credentials for officers handling each stage for this specific project. Departmental officers will use their <strong>Project ID ({watchedCode || "CODE"})</strong> and these credentials to log in.
+              Configure credentials for officers handling each stage. They will use the{" "}
+              <strong>Project ID ({watchedCode || "CODE"})</strong> and these credentials to log in.
+              Add the officer's <strong>current phone/WhatsApp</strong> and{" "}
+              <strong>notification email</strong> so credentials can be dispatched directly.
             </p>
 
             <div className="space-y-3">
@@ -399,7 +570,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
                 return (
                   <div
                     key={oc.departmentName}
-                    className="rounded-xl border border-ink-200 bg-ink-50/40 p-3.5 space-y-2 hover:border-ink-300 transition-colors"
+                    className="rounded-xl border border-ink-200 bg-ink-50/40 p-3.5 space-y-2.5 hover:border-ink-300 transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -409,12 +580,13 @@ export default function CreateProjectModal({ onClose, onCreated }) {
                         <span className="text-xs font-bold text-ink-900">
                           Stage #{idx + 1}: {oc.displayName}
                         </span>
-                        <span className="rounded bg-white border border-ink-200 px-1.5 py-0.2 text-[10px] font-bold text-ink-600">
+                        <span className="rounded bg-white border border-ink-200 px-1.5 py-0.5 text-[10px] font-bold text-ink-600">
                           {oc.weight}% Weight
                         </span>
                       </div>
                     </div>
 
+                    {/* Row 1: Name, Login Email, Password */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <div>
                         <label className="text-[10px] font-bold uppercase text-ink-400 block mb-0.5">
@@ -451,6 +623,42 @@ export default function CreateProjectModal({ onClose, onCreated }) {
                           placeholder="Password"
                           className="input text-xs py-1.5 font-mono"
                         />
+                      </div>
+                    </div>
+
+                    {/* Row 2: Notification Email + WhatsApp/Phone — NEW */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-ink-100">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-ink-400 block mb-0.5 flex items-center gap-1">
+                          <Mail size={9} className="text-blue-500" />
+                          Officer's Current Notification Email
+                        </label>
+                        <input
+                          type="email"
+                          value={oc.notificationEmail}
+                          onChange={(e) => handleOfficerChange(idx, "notificationEmail", e.target.value)}
+                          placeholder="personal@gmail.com (for sending credentials)"
+                          className="input text-xs py-1.5"
+                        />
+                        <p className="text-[9px] text-ink-400 mt-0.5">
+                          Credentials will be sent here. Leave blank to use login email.
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-ink-400 block mb-0.5 flex items-center gap-1">
+                          <MessageCircle size={9} className="text-green-500" />
+                          WhatsApp / Mobile Number
+                        </label>
+                        <input
+                          type="tel"
+                          value={oc.phone}
+                          onChange={(e) => handleOfficerChange(idx, "phone", e.target.value)}
+                          placeholder="e.g. +91 98765 43210"
+                          className="input text-xs py-1.5"
+                        />
+                        <p className="text-[9px] text-ink-400 mt-0.5">
+                          Credentials will be sent via WhatsApp after project creation.
+                        </p>
                       </div>
                     </div>
                   </div>
