@@ -1,22 +1,35 @@
 import { useState } from "react";
 import { getAISuggestions } from "../api/ai.js";
+import toast from "react-hot-toast";
+import {
+  Sparkles,
+  CheckCircle2,
+  Clock,
+  ShieldCheck,
+  FileText,
+  Copy,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  Lightbulb,
+  ArrowRight,
+} from "lucide-react";
 
 /* ──────────────────────────────────────────────
    Colour helpers for similarity percentage
 ────────────────────────────────────────────── */
 const simColor = (pct) => {
-  if (pct >= 70) return "#22c55e";   // green
-  if (pct >= 40) return "#f59e0b";   // amber
-  return "#ef4444";                   // red
+  if (pct >= 85) return "#059669"; // emerald
+  if (pct >= 60) return "#d97706"; // amber
+  return "#dc2626"; // rose
 };
 
 const simBg = (pct) => {
-  if (pct >= 70) return "rgba(34,197,94,0.1)";
-  if (pct >= 40) return "rgba(245,158,11,0.1)";
-  return "rgba(239,68,68,0.1)";
+  if (pct >= 85) return "rgba(16, 185, 129, 0.1)";
+  if (pct >= 60) return "rgba(245, 158, 11, 0.1)";
+  return "rgba(239, 68, 68, 0.1)";
 };
 
-/* Department options that map to the dataset's task_group values */
 const DEPARTMENTS = [
   "Safety",
   "Quality",
@@ -34,7 +47,7 @@ const SEVERITIES = [
 /* ──────────────────────────────────────────────
    Main Component
 ────────────────────────────────────────────── */
-export default function AIRecommendationPanel({ prefill = {} }) {
+export default function AIRecommendationPanel({ prefill = {}, onApplySuggestion }) {
   const [form, setForm] = useState({
     department: prefill.department || "Safety",
     issue_type: prefill.issue_type || "",
@@ -46,10 +59,12 @@ export default function AIRecommendationPanel({ prefill = {} }) {
   });
 
   const [suggestions, setSuggestions] = useState([]);
+  const [recommendation, setRecommendation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);
   const [expanded, setExpanded] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -58,410 +73,385 @@ export default function AIRecommendationPanel({ prefill = {} }) {
 
   const handleSearch = async () => {
     if (!form.issue_description.trim()) {
-      setError("Please enter an issue description to get suggestions.");
+      setError("Please enter an issue description to generate AI suggestions.");
       return;
     }
     setError(null);
     setLoading(true);
     setSearched(false);
     setSuggestions([]);
+    setRecommendation(null);
     try {
       const data = await getAISuggestions(form);
       setSuggestions(data.suggestions || []);
+      setRecommendation(data.recommendation || null);
       setSearched(true);
+      if (data.recommendation) {
+        toast.success("AI resolution strategy generated!");
+      }
     } catch (err) {
       if (err.response?.status === 503) {
-        setError("AI model is starting up. Please try again in a moment.");
+        setError("AI model is initializing. Please try again in a few seconds.");
       } else {
-        setError("Could not reach the AI service. Make sure the ML server is running.");
+        setError("Could not connect to the AI service. Ensure the ML microservice (port 5001) is active.");
       }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleCopyTemplate = () => {
+    if (!recommendation) return;
+    const textToCopy = recommendation.resolution_template || 
+      `AI Suggested Resolution:\nHeadline: ${recommendation.headline}\nAction Plan:\n${(recommendation.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}\nStatutory Reference: ${recommendation.statutory_precedent}`;
+    
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    toast.success("Resolution plan copied to clipboard!");
+    setTimeout(() => setCopied(false), 2500);
+
+    if (onApplySuggestion) {
+      onApplySuggestion(textToCopy);
+    }
+  };
+
   return (
-    <div style={styles.panel}>
+    <div className="rounded-2xl border border-ochre-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm space-y-6">
       {/* Header */}
-      <div style={styles.header}>
-        <div style={styles.headerLeft}>
-          <span style={styles.aiIcon}>🤖</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-ink-100 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ochre-500 to-amber-600 text-white shadow-md">
+            <Sparkles size={20} className="animate-pulse" />
+          </div>
           <div>
-            <h3 style={styles.title}>AI Resolution Recommender</h3>
-            <p style={styles.subtitle}>
-              Powered by KNN · Finds similar past cases &amp; their resolutions
+            <h3 className="text-base font-extrabold text-ink-900 flex items-center gap-2">
+              <span>AI Bottleneck Resolution Advisor</span>
+              <span className="rounded-full bg-ochre-100 text-ochre-800 text-[10px] font-bold px-2 py-0.5 border border-ochre-200">
+                KNN Engine
+              </span>
+            </h3>
+            <p className="text-xs text-ink-500 mt-0.5">
+              Trained on 12,424 historical cases · Prescribes concrete mitigation steps, turnaround time &amp; statutory precedents
             </p>
           </div>
         </div>
-        <span style={styles.badge}>BETA</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+            ⚡ Self-Learning Active
+          </span>
+        </div>
       </div>
 
-      {/* Form */}
-      <div style={styles.formGrid}>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Department</label>
+      {/* Input Form */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <label className="block text-xs font-bold text-ink-700 mb-1">
+            Department / Task Group
+          </label>
           <select
             name="department"
             value={form.department}
             onChange={handleChange}
-            style={styles.select}
+            className="w-full rounded-xl border border-ink-200 bg-ink-50/50 px-3 py-2 text-xs font-semibold text-ink-900 outline-none focus:border-ochre-500 focus:bg-white"
           >
             {DEPARTMENTS.map((d) => (
-              <option key={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Issue Type / Category</label>
-          <input
-            name="issue_type"
-            value={form.issue_type}
-            onChange={handleChange}
-            placeholder="e.g. PPE Violation, Documentation Gap"
-            style={styles.input}
-          />
-        </div>
-
-        <div style={{ ...styles.formGroup, gridColumn: "1 / -1" }}>
-          <label style={styles.label}>Issue Description *</label>
-          <textarea
-            name="issue_description"
-            value={form.issue_description}
-            onChange={handleChange}
-            placeholder="Describe the bottleneck in detail — the more detail, the better the match..."
-            rows={3}
-            style={{ ...styles.input, resize: "vertical", minHeight: 80 }}
-          />
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Severity Classification</label>
-          <select
-            name="severity"
-            value={form.severity}
-            onChange={handleChange}
-            style={styles.select}
-          >
-            {SEVERITIES.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Number of Suggestions</label>
-          <select
-            name="k"
-            value={form.k}
-            onChange={handleChange}
-            style={styles.select}
-          >
-            {[3, 5, 7, 10].map((n) => (
-              <option key={n} value={n}>
-                Top {n}
+              <option key={d} value={d}>
+                {d}
               </option>
             ))}
           </select>
         </div>
 
-        <div style={{ ...styles.formGroup, alignSelf: "center" }}>
-          <label style={{ ...styles.label, opacity: 0 }}>_</label>
-          <label style={styles.checkLabel}>
+        <div>
+          <label className="block text-xs font-bold text-ink-700 mb-1">
+            Issue Category / Headline
+          </label>
+          <input
+            name="issue_type"
+            value={form.issue_type}
+            onChange={handleChange}
+            placeholder="e.g. Boundary Overlap, Title Dispute, PPE Gap"
+            className="w-full rounded-xl border border-ink-200 bg-ink-50/50 px-3 py-2 text-xs font-semibold text-ink-900 outline-none focus:border-ochre-500 focus:bg-white"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-ink-700 mb-1">
+            Severity Classification
+          </label>
+          <select
+            name="severity"
+            value={form.severity}
+            onChange={handleChange}
+            className="w-full rounded-xl border border-ink-200 bg-ink-50/50 px-3 py-2 text-xs font-semibold text-ink-900 outline-none focus:border-ochre-500 focus:bg-white"
+          >
+            {SEVERITIES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-ink-700 mb-1">
+            Urgency / Priority
+          </label>
+          <select
+            name="urgency"
+            value={form.urgency}
+            onChange={handleChange}
+            className="w-full rounded-xl border border-ink-200 bg-ink-50/50 px-3 py-2 text-xs font-semibold text-ink-900 outline-none focus:border-ochre-500 focus:bg-white"
+          >
+            <option value="Not Specified">Standard Priority</option>
+            <option value="High">High Urgency</option>
+            <option value="Critical">Critical Path Delay</option>
+          </select>
+        </div>
+
+        <div className="sm:col-span-2 lg:col-span-4">
+          <label className="block text-xs font-bold text-ink-700 mb-1">
+            Bottleneck Narrative / Description *
+          </label>
+          <textarea
+            name="issue_description"
+            value={form.issue_description}
+            onChange={handleChange}
+            placeholder="Describe the bottleneck or deadlock in detail (e.g. 'Survey boundary dispute in Gat 104 with neighbouring landowners claiming encroachment over 150 meters of alignment corridor')..."
+            rows={3}
+            className="w-full rounded-xl border border-ink-200 bg-ink-50/50 p-3 text-xs font-medium text-ink-900 outline-none focus:border-ochre-500 focus:bg-white transition-all"
+          />
+        </div>
+      </div>
+
+      {/* Action Row */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+        <div className="flex items-center gap-4 text-xs font-semibold text-ink-600">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               name="is_overdue"
               checked={form.is_overdue}
               onChange={handleChange}
-              style={{ marginRight: 8 }}
+              className="rounded border-ink-300 text-ochre-600 focus:ring-ochre-500"
             />
-            Overdue / Urgent
+            <span>SLA Overdue / Critical Flag</span>
           </label>
+          <div className="flex items-center gap-1.5">
+            <span>Precedents:</span>
+            <select
+              name="k"
+              value={form.k}
+              onChange={handleChange}
+              className="rounded-lg border border-ink-200 bg-white px-2 py-0.5 text-xs font-bold text-ink-800"
+            >
+              {[3, 5, 7, 10].map((n) => (
+                <option key={n} value={n}>
+                  Top {n} Matches
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        <button
+          onClick={handleSearch}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-ochre-600 to-amber-700 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:from-ochre-700 hover:to-amber-800 transition-all disabled:opacity-60 cursor-pointer"
+        >
+          {loading ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <span>Analyzing 12,424 Cases…</span>
+            </>
+          ) : (
+            <>
+              <Sparkles size={15} />
+              <span>Generate AI Suggestion &amp; Action Plan</span>
+            </>
+          )}
+        </button>
       </div>
 
-      {/* Search Button */}
-      <button
-        onClick={handleSearch}
-        disabled={loading}
-        style={{
-          ...styles.btn,
-          opacity: loading ? 0.7 : 1,
-          cursor: loading ? "wait" : "pointer",
-        }}
-      >
-        {loading ? (
-          <span style={styles.spinner}>⟳</span>
-        ) : (
-          "🔍 Find Similar Cases"
-        )}
-      </button>
-
-      {/* Error */}
-      {error && <div style={styles.errorBox}>{error}</div>}
-
-      {/* Results */}
-      {searched && suggestions.length === 0 && !error && (
-        <div style={styles.emptyBox}>
-          No matching cases found. Try a broader description.
+      {/* Error Display */}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800 flex items-center gap-2">
+          <AlertTriangle size={16} className="shrink-0 text-rose-600" />
+          <span>{error}</span>
         </div>
       )}
 
-      {suggestions.length > 0 && (
-        <div style={styles.resultsSection}>
-          <h4 style={styles.resultsTitle}>
-            {suggestions.length} Similar Cases Found
-          </h4>
-          <p style={styles.resultsNote}>
-            Click a card to see full resolution details
+      {/* ─────────────────────────────────────────────────────────────
+          1. SYNTHESIZED AI RECOMMENDATION & ACTION PLAN (TOP BOX)
+      ───────────────────────────────────────────────────────────── */}
+      {recommendation && (
+        <div className="rounded-2xl border-2 border-emerald-400 bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-white p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-200/80 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                <Lightbulb size={18} />
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-200/60 px-2 py-0.5 rounded">
+                  AI Prescribed Strategic Solution
+                </span>
+                <h4 className="text-sm sm:text-base font-black text-ink-900 mt-0.5">
+                  {recommendation.headline}
+                </h4>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-lg bg-emerald-100 border border-emerald-300 px-2.5 py-1 text-[11px] font-bold text-emerald-900 flex items-center gap-1">
+                <ShieldCheck size={13} />
+                <span>{recommendation.confidence_score}% Confidence</span>
+              </span>
+              <span className="rounded-lg bg-blue-100 border border-blue-300 px-2.5 py-1 text-[11px] font-bold text-blue-900 flex items-center gap-1">
+                <Clock size={13} />
+                <span>ETA: {recommendation.estimated_turnaround_days}</span>
+              </span>
+            </div>
+          </div>
+
+          <p className="text-xs font-semibold text-ink-700 leading-relaxed">
+            {recommendation.summary}
           </p>
 
-          <div style={styles.cards}>
+          {/* Actionable Step-by-Step Checklist */}
+          <div className="rounded-xl border border-emerald-200/80 bg-white p-4 space-y-2.5">
+            <h5 className="text-xs font-black uppercase tracking-wider text-ink-800 flex items-center gap-1.5">
+              <CheckCircle2 size={14} className="text-emerald-600" />
+              <span>Prescribed Step-by-Step Action Plan:</span>
+            </h5>
+            <ol className="space-y-2 text-xs text-ink-800">
+              {(recommendation.steps || []).map((step, idx) => (
+                <li key={idx} className="flex items-start gap-2.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[11px] font-black text-emerald-800">
+                    {idx + 1}
+                  </span>
+                  <span className="leading-snug pt-0.5 font-medium">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Meta Footer & Statutory Grounding */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="rounded-xl bg-ink-50/70 border border-ink-100 p-3 text-xs">
+              <span className="font-bold text-ink-700 block mb-0.5">Statutory Precedent / Grounding:</span>
+              <span className="text-ink-600 text-[11px] font-medium">{recommendation.statutory_precedent}</span>
+            </div>
+            <div className="rounded-xl bg-ink-50/70 border border-ink-100 p-3 text-xs">
+              <span className="font-bold text-ink-700 block mb-0.5">Preventive Recommendation:</span>
+              <span className="text-ink-600 text-[11px] font-medium">
+                {(recommendation.preventive_measures || [])[0] || "Institute standardized joint measurement protocols."}
+              </span>
+            </div>
+          </div>
+
+          {/* Action Button: Copy / Apply Plan */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-emerald-200/80">
+            <div className="text-[11px] text-ink-500 font-medium">
+              💡 Click below to copy this structured plan directly into the resolution order or grievance response.
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyTemplate}
+              className="inline-flex items-center gap-2 rounded-xl bg-ink-900 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-all cursor-pointer"
+            >
+              {copied ? (
+                <>
+                  <CheckCircle2 size={14} className="text-emerald-400" />
+                  <span>Resolution Plan Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={14} />
+                  <span>Copy Suggested Resolution Plan</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          2. SUPPORTING HISTORICAL PRECEDENT CASES (KNN MATCHES)
+      ───────────────────────────────────────────────────────────── */}
+      {suggestions.length > 0 && (
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-black uppercase tracking-wider text-ink-800 flex items-center gap-1.5">
+              <FileText size={14} className="text-ochre-600" />
+              <span>Matched Historical Cases ({suggestions.length} precedents found)</span>
+            </h4>
+            <span className="text-[11px] text-ink-400">
+              Source: BhoomiSetu National Casebase (12,424 Records)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
             {suggestions.map((s, idx) => (
               <div
-                key={s.case_id}
-                style={{
-                  ...styles.card,
-                  border: `1px solid ${simColor(s.similarity)}40`,
-                  boxShadow:
-                    expanded === idx
-                      ? `0 0 0 2px ${simColor(s.similarity)}`
-                      : "none",
-                }}
-                onClick={() => setExpanded(expanded === idx ? null : idx)}
+                key={s.case_id || idx}
+                className="rounded-xl border border-ink-100 bg-white p-4 shadow-sm hover:border-ochre-300 transition-all space-y-2.5"
               >
-                {/* Card top row */}
-                <div style={styles.cardTop}>
-                  <div style={styles.cardLeft}>
-                    <span style={styles.caseNum}>#{idx + 1}</span>
-                    <div>
-                      <div style={styles.issueType}>{s.issue_type}</div>
-                      <div style={styles.dept}>{s.department}</div>
-                    </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded bg-ink-100 px-2 py-0.5 font-mono text-[10px] font-bold text-ink-700">
+                      #{idx + 1} Precedent
+                    </span>
+                    <span className="font-bold text-xs text-ink-900">{s.issue_type}</span>
+                    <span className="text-[11px] text-ink-400 font-medium">· {s.department}</span>
                   </div>
 
-                  {/* Similarity badge */}
                   <div
+                    className="self-start rounded-full px-2.5 py-0.5 text-[11px] font-extrabold"
                     style={{
-                      ...styles.simBadge,
-                      background: simBg(s.similarity),
+                      backgroundColor: simBg(s.similarity),
                       color: simColor(s.similarity),
-                      border: `1px solid ${simColor(s.similarity)}50`,
+                      border: `1px solid ${simColor(s.similarity)}40`,
                     }}
                   >
-                    {s.similarity}% match
+                    {s.similarity}% Precedent Match
                   </div>
                 </div>
 
-                {/* Similarity bar */}
-                <div style={styles.barTrack}>
-                  <div
-                    style={{
-                      ...styles.barFill,
-                      width: `${s.similarity}%`,
-                      background: simColor(s.similarity),
-                    }}
-                  />
-                </div>
-
-                {/* Cause preview */}
-                <div style={styles.causeText}>
-                  <span style={styles.causeLbl}>Cause: </span>
-                  {s.cause}
-                </div>
-
-                {/* Expanded: resolution details */}
-                {expanded === idx && (
-                  <div style={styles.expanded}>
-                    <div style={styles.resolutionBox}>
-                      <div style={styles.resLbl}>✅ Resolution Action Taken</div>
-                      <div style={styles.resText}>{s.resolution_action}</div>
-                    </div>
-                    <div style={styles.metaRow}>
-                      <Tag label="Classification" value={s.classification} />
-                      <Tag label="Urgency" value={s.urgency} />
-                      {s.was_overdue && <Tag label="Was Overdue" value="Yes" warn />}
-                      {s.had_comments && (
-                        <Tag label="Discussion" value="Yes" good />
-                      )}
-                    </div>
-                    <div style={styles.caseId}>Case ID: {s.case_id}</div>
+                {/* Historical Action Taken (Always Visible) */}
+                <div className="rounded-lg bg-emerald-50/60 border border-emerald-200/60 p-2.5 text-xs text-ink-800 flex items-start gap-2">
+                  <CheckCircle2 size={14} className="shrink-0 text-emerald-600 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-emerald-950">Action Taken: </span>
+                    <span className="text-ink-700">{s.resolution_action}</span>
                   </div>
-                )}
+                </div>
 
-                <div style={styles.expandHint}>
-                  {expanded === idx ? "▲ Collapse" : "▼ View resolution"}
+                {/* Sub-details */}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-500 border-t border-ink-100/60 pt-2">
+                  <span>
+                    <strong className="text-ink-700">Cause:</strong> {s.cause || "Standard operational delay"}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {s.classification && (
+                      <span className="rounded bg-ink-100/70 px-1.5 py-0.2 text-[10px] text-ink-600">
+                        {s.classification}
+                      </span>
+                    )}
+                    <span className="font-mono text-[10px] text-ink-400">ID: {s.case_id}</span>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* Empty State */}
+      {searched && suggestions.length === 0 && !error && (
+        <div className="rounded-xl border border-dashed border-ink-200 bg-ink-50/50 p-6 text-center text-xs text-ink-500">
+          No direct historical matches found for this query. Try adjusting the description or select "General" department.
+        </div>
+      )}
     </div>
   );
 }
-
-function Tag({ label, value, warn, good }) {
-  return (
-    <span
-      style={{
-        ...styles.tag,
-        background: warn
-          ? "rgba(239,68,68,0.1)"
-          : good
-          ? "rgba(34,197,94,0.1)"
-          : "rgba(148,163,184,0.1)",
-        color: warn ? "#ef4444" : good ? "#22c55e" : "#94a3b8",
-        border: `1px solid ${warn ? "#ef444440" : good ? "#22c55e40" : "#94a3b840"}`,
-      }}
-    >
-      {label}: <strong>{value}</strong>
-    </span>
-  );
-}
-
-/* ──────────────────────────────────────────────
-   Styles
-────────────────────────────────────────────── */
-const styles = {
-  panel: {
-    background: "rgba(15, 23, 42, 0.6)",
-    backdropFilter: "blur(12px)",
-    border: "1px solid rgba(99, 102, 241, 0.25)",
-    borderRadius: 16,
-    padding: "28px 28px 24px",
-    marginTop: 28,
-    color: "#e2e8f0",
-    fontFamily: "'Inter', 'Segoe UI', sans-serif",
-  },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 22,
-  },
-  headerLeft: { display: "flex", alignItems: "center", gap: 14 },
-  aiIcon: { fontSize: 36 },
-  title: { margin: 0, fontSize: 18, fontWeight: 700, color: "#f1f5f9" },
-  subtitle: { margin: "2px 0 0", fontSize: 12, color: "#94a3b8" },
-  badge: {
-    fontSize: 10,
-    fontWeight: 700,
-    letterSpacing: "0.1em",
-    background: "rgba(99,102,241,0.18)",
-    color: "#818cf8",
-    border: "1px solid rgba(99,102,241,0.35)",
-    borderRadius: 6,
-    padding: "3px 8px",
-  },
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: "14px 18px",
-    marginBottom: 18,
-  },
-  formGroup: { display: "flex", flexDirection: "column", gap: 5 },
-  label: { fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em" },
-  input: {
-    background: "rgba(30,41,59,0.8)",
-    border: "1px solid rgba(99,102,241,0.25)",
-    borderRadius: 8,
-    padding: "9px 12px",
-    color: "#e2e8f0",
-    fontSize: 13,
-    outline: "none",
-    fontFamily: "inherit",
-    transition: "border 0.2s",
-  },
-  select: {
-    background: "rgba(30,41,59,0.9)",
-    border: "1px solid rgba(99,102,241,0.25)",
-    borderRadius: 8,
-    padding: "9px 12px",
-    color: "#e2e8f0",
-    fontSize: 13,
-    outline: "none",
-    cursor: "pointer",
-  },
-  checkLabel: { display: "flex", alignItems: "center", fontSize: 13, color: "#cbd5e1", cursor: "pointer" },
-  btn: {
-    width: "100%",
-    padding: "12px 0",
-    borderRadius: 10,
-    border: "none",
-    background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-    color: "#fff",
-    fontWeight: 700,
-    fontSize: 14,
-    letterSpacing: "0.03em",
-    cursor: "pointer",
-    transition: "opacity 0.2s",
-  },
-  spinner: { display: "inline-block", animation: "spin 1s linear infinite" },
-  errorBox: {
-    marginTop: 14,
-    padding: "12px 16px",
-    background: "rgba(239,68,68,0.1)",
-    border: "1px solid rgba(239,68,68,0.3)",
-    borderRadius: 10,
-    color: "#fca5a5",
-    fontSize: 13,
-  },
-  emptyBox: {
-    marginTop: 14,
-    padding: "16px",
-    background: "rgba(148,163,184,0.07)",
-    border: "1px solid rgba(148,163,184,0.2)",
-    borderRadius: 10,
-    color: "#94a3b8",
-    fontSize: 13,
-    textAlign: "center",
-  },
-  resultsSection: { marginTop: 22 },
-  resultsTitle: { margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "#f1f5f9" },
-  resultsNote: { margin: "0 0 14px", fontSize: 12, color: "#64748b" },
-  cards: { display: "flex", flexDirection: "column", gap: 12 },
-  card: {
-    background: "rgba(30,41,59,0.5)",
-    borderRadius: 12,
-    padding: "14px 16px",
-    cursor: "pointer",
-    transition: "box-shadow 0.2s",
-  },
-  cardTop: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 },
-  cardLeft: { display: "flex", alignItems: "center", gap: 10 },
-  caseNum: {
-    background: "rgba(99,102,241,0.15)",
-    color: "#818cf8",
-    borderRadius: 6,
-    padding: "2px 8px",
-    fontSize: 12,
-    fontWeight: 700,
-  },
-  issueType: { fontSize: 13, fontWeight: 600, color: "#e2e8f0" },
-  dept: { fontSize: 11, color: "#64748b", marginTop: 2 },
-  simBadge: {
-    borderRadius: 8,
-    padding: "4px 10px",
-    fontSize: 12,
-    fontWeight: 700,
-  },
-  barTrack: { height: 4, background: "rgba(148,163,184,0.15)", borderRadius: 4, marginBottom: 10 },
-  barFill: { height: 4, borderRadius: 4, transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)" },
-  causeText: { fontSize: 12, color: "#94a3b8", marginBottom: 6 },
-  causeLbl: { fontWeight: 600, color: "#64748b" },
-  expanded: { borderTop: "1px solid rgba(99,102,241,0.15)", marginTop: 10, paddingTop: 12 },
-  resolutionBox: {
-    background: "rgba(34,197,94,0.07)",
-    border: "1px solid rgba(34,197,94,0.2)",
-    borderRadius: 8,
-    padding: "10px 14px",
-    marginBottom: 10,
-  },
-  resLbl: { fontSize: 11, fontWeight: 700, color: "#22c55e", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" },
-  resText: { fontSize: 13, color: "#d1fae5", lineHeight: 1.6 },
-  metaRow: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 },
-  tag: { fontSize: 11, padding: "3px 8px", borderRadius: 6 },
-  caseId: { fontSize: 10, color: "#475569" },
-  expandHint: { fontSize: 11, color: "#4f46e5", marginTop: 8, textAlign: "right" },
-};
