@@ -27,14 +27,18 @@ export async function getSuggestions(query) {
     const { data } = await axios.post(`${ML_URL}/suggest`, query, {
       timeout: 12000,
     });
-    return data.suggestions || [];
+    return {
+      suggestions: data.suggestions || [],
+      recommendation: data.recommendation || null,
+      total_cases: data.total_cases_in_model || 0,
+    };
   } catch (err) {
     if (err.code === "ECONNREFUSED") {
       console.warn("[AI] ML service offline — returning empty suggestions.");
-      return [];
+      return { suggestions: [], recommendation: null, total_cases: 0 };
     }
     console.error("[AI] getSuggestions:", err.message);
-    return [];
+    return { suggestions: [], recommendation: null, total_cases: 0 };
   }
 }
 

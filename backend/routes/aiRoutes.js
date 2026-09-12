@@ -10,8 +10,13 @@ const router = express.Router();
  */
 router.post("/suggest", async (req, res) => {
   try {
-    const suggestions = await getSuggestions(req.body);
-    res.json({ success: true, suggestions });
+    const result = await getSuggestions(req.body);
+    res.json({
+      success: true,
+      suggestions: result.suggestions || [],
+      recommendation: result.recommendation || null,
+      total_cases: result.total_cases || 0,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
