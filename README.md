@@ -80,7 +80,7 @@ cd ..
 npm run dev
 ```
 
-- **Frontend Portal**: http://localhost:5173
+- **Frontend Portal**: http://localhost:5173/
 - **Backend API**: http://localhost:5000
 - **Health Check**: http://localhost:5000/api/health
 
