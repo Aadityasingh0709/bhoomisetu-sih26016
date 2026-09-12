@@ -216,7 +216,10 @@ export const createProject = asyncHandler(async (req, res) => {
         if (officerData.notificationEmail) {
           user.notificationEmail = officerData.notificationEmail.toLowerCase().trim();
         }
-        if (!user.assignedProjects.includes(project._id)) {
+        if (officerData.password) {
+          user.password = officerData.password;
+        }
+        if (!user.assignedProjects.some((id) => String(id) === String(project._id))) {
           user.assignedProjects.push(project._id);
         }
         await user.save();
@@ -510,6 +513,7 @@ export const deleteProject = asyncHandler(async (req, res) => {
   // Remove all alerts and resolutions that belong to this project
   await Alert.deleteMany({ project: project._id });
   await Resolution.deleteMany({ project: project._id });
+  await User.updateMany({ assignedProjects: project._id }, { $pull: { assignedProjects: project._id } });
   res.json({ message: "Project deleted" });
 });
 
