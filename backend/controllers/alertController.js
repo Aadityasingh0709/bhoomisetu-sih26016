@@ -226,6 +226,12 @@ export const resolveAlert = asyncHandler(async (req, res) => {
 
   // If resolution notes were provided, record an entry in the dedicated Resolution collection
   if (alert.project && (alert.resolutionNotes || alert.authorityDecision)) {
+    const hasAuthorityDecision = alert.authorityDecision && alert.authorityDecision.trim();
+    const hasResolutionNotes = alert.resolutionNotes && alert.resolutionNotes.trim();
+    if (!hasAuthorityDecision && !hasResolutionNotes) {
+      return res.json(populated);
+    }
+
     const projectId = alert.project._id || alert.project;
     const project = await Project.findById(projectId);
     const details =

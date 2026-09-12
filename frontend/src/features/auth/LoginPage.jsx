@@ -608,17 +608,17 @@ export default function LoginPage() {
                   <ShieldCheck size={16} className="text-blue-400 shrink-0" />
                   <span>Executive / Administrator Access</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdminValue("email", "admin@bhoomisetu.gov.in", { shouldValidate: true });
-                    setAdminValue("password", "BhoomiSetu@2026");
-                    toast.success("Auto-filled Administrator credentials");
-                  }}
-                  className="text-[10px] text-blue-300 hover:underline"
-                >
-                  Quick Fill Admin
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminValue("email", import.meta.env.VITE_DEMO_ADMIN_EMAIL || "admin@bhoomisetu.gov.in", { shouldValidate: true });
+                      setAdminValue("password", import.meta.env.VITE_DEMO_ADMIN_PASSWORD || "", { shouldValidate: true });
+                      toast.success("Auto-filled Administrator credentials");
+                    }}
+                    className="text-[10px] text-blue-300 hover:underline"
+                  >
+                    Quick Fill Admin
+                  </button>
               </div>
 
               <div>

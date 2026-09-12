@@ -72,20 +72,28 @@ export const requireAllPermissions = (...permissions) => (req, res, next) => {
 export const requireDepartmentAccess = asyncHandler(async (req, res, next) => {
   const { departmentId } = req.params;
 
+  if (!req.user?.department) {
+    res.status(403);
+    throw new Error("You do not have access to this department");
+  }
+
   // Administrators have access to all departments
   if (req.user.role === "Administrator") {
     return next();
   }
 
   // DepartmentOfficers can only access their own department
-  if (req.user.role === "DepartmentOfficer" && req.user.department) {
+  if (req.user.role === "DepartmentOfficer") {
     if (req.user.department._id.toString() !== departmentId) {
       res.status(403);
       throw new Error("You do not have access to this department");
     }
+    return next();
   }
 
-  next();
+  // For all other roles, explicitly deny access unless specifically allowed elsewhere
+  res.status(403);
+  throw new Error("You do not have access to this department");
 });
 
 // Ownership-based access control for resources

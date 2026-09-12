@@ -54,7 +54,7 @@ export const getDashboardSummary = asyncHandler(async (req, res) => {
       plannedCompletionDate: p.plannedCompletionDate,
     }));
 
-  const activeAlerts = await Alert.find({ isResolved: false })
+  const activeAlerts = await Alert.find(alertFilter)
     .populate("project", "name state district")
     .populate("department", "displayName")
     .sort({ createdAt: -1 })

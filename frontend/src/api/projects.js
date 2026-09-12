@@ -27,3 +27,6 @@ export const deleteProjectResolution = (projectId, resolutionId) =>
 export const dispatchOfficerCredentials = (projectId, payload = {}) =>
   api.post(`/projects/${projectId}/dispatch-credentials`, payload).then((res) => res.data);
 
+export const updateDepartmentOfficer = (projectId, deptId, payload) =>
+  api.patch(`/projects/${projectId}/departments/${deptId}/officer`, payload).then((res) => res.data);
+

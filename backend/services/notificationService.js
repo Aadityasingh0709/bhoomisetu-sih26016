@@ -327,6 +327,10 @@ export const dispatchCredentialsToOfficer = async ({
   loginEmail,
   password,
 }) => {
+  console.warn(
+    "[Security] Sending credentials in plaintext via Email/WhatsApp. In production, use a one-time setup link or force password reset on first login."
+  );
+
   const tasks = [];
 
   if (notificationEmail && notificationEmail.trim()) {

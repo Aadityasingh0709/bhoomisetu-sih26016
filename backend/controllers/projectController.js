@@ -556,7 +556,7 @@ export const dispatchOfficerCredentials = asyncHandler(async (req, res) => {
       projectName: project.name,
       departmentName: deptName,
       loginEmail: officer.email,
-      password: password || "Assigned by Administrator (BhoomiSetu@2026)",
+      password: password,
     });
 
     reports.push({
@@ -574,4 +574,102 @@ export const dispatchOfficerCredentials = asyncHandler(async (req, res) => {
     reports,
   });
 });
+
+// PATCH /api/projects/:id/departments/:deptId/officer (Administrator & ProjectManager)
+// Allows editing officer's name, email, notification email, phone, and password without deleting project
+export const updateDepartmentOfficer = asyncHandler(async (req, res) => {
+  const { id, deptId } = req.params;
+  const { name, email, notificationEmail, phone, password, dispatchNow } = req.body;
+
+  const project = await Project.findById(id)
+    .populate("departments.department")
+    .populate("departments.assignedOfficer");
+
+  if (!project) {
+    res.status(404);
+    throw new Error("Project not found");
+  }
+
+  const deptEntry = project.departments.find(
+    (dp) => String(dp.department?._id || dp.department) === String(deptId)
+  );
+
+  if (!deptEntry) {
+    res.status(404);
+    throw new Error("Department not assigned to this project");
+  }
+
+  let officer = deptEntry.assignedOfficer;
+  const cleanEmail = email ? email.toLowerCase().trim() : undefined;
+  const cleanNotifEmail = notificationEmail !== undefined ? notificationEmail.toLowerCase().trim() : undefined;
+  const cleanPhone = phone !== undefined ? phone.trim() : undefined;
+
+  if (officer) {
+    if (name) officer.name = name.trim();
+    if (cleanEmail) officer.email = cleanEmail;
+    if (cleanNotifEmail !== undefined) officer.notificationEmail = cleanNotifEmail;
+    if (cleanPhone !== undefined) officer.phone = cleanPhone;
+    if (password && password.trim()) officer.password = password.trim();
+    await officer.save();
+  } else {
+    // Create officer if none was linked
+    if (!cleanEmail) {
+      res.status(400);
+      throw new Error("Login email is required to assign an officer");
+    }
+    officer = await User.create({
+      name: name?.trim() || `${deptEntry.department?.displayName || "Department"} Officer`,
+      email: cleanEmail,
+      password: password?.trim() || "Officer@2026",
+      role: "DepartmentOfficer",
+      department: deptEntry.department?._id || deptEntry.department,
+      assignedProjects: [project._id],
+      phone: cleanPhone || "",
+      notificationEmail: cleanNotifEmail || "",
+    });
+    deptEntry.assignedOfficer = officer._id;
+  }
+
+  // Update cached fields on project subdocument
+  if (cleanNotifEmail !== undefined) {
+    deptEntry.officerNotificationEmail = cleanNotifEmail;
+  }
+  if (cleanPhone !== undefined) {
+    deptEntry.officerPhone = cleanPhone;
+  }
+
+  await project.save();
+
+  let dispatchResults = null;
+  if (dispatchNow) {
+    const deptName = deptEntry.department?.displayName || "Department";
+    const destEmail = cleanNotifEmail || officer.notificationEmail;
+    const destPhone = cleanPhone || officer.phone;
+
+    dispatchResults = await dispatchCredentialsToOfficer({
+      officerName: officer.name,
+      notificationEmail: destEmail,
+      phone: destPhone,
+      projectCode: project.code,
+      projectName: project.name,
+      departmentName: deptName,
+      loginEmail: officer.email,
+      password: password || undefined,
+    });
+  }
+
+  const updatedProject = await Project.findById(id)
+    .populate("departments.department")
+    .populate("departments.assignedOfficer", "name email role phone notificationEmail")
+    .populate("resolutions.department")
+    .populate("resolutions.resolvedBy", "name email role");
+
+  res.json({
+    success: true,
+    message: "Department officer contact information updated successfully",
+    project: updatedProject,
+    dispatchResults,
+  });
+});
+
 

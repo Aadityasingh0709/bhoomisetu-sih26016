@@ -23,8 +23,14 @@ import {
   Mail,
   Phone,
   Send,
+  Edit3,
 } from "lucide-react";
-import { createProject, fetchDepartments, dispatchOfficerCredentials } from "../../api/projects.js";
+import {
+  createProject,
+  fetchDepartments,
+  dispatchOfficerCredentials,
+  updateDepartmentOfficer,
+} from "../../api/projects.js";
 
 const STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa",
@@ -275,6 +281,69 @@ export default function CreateProjectModal({ onClose, onCreated }) {
   const [autoDispatching, setAutoDispatching] = useState(false);
   const [directSent, setDirectSent] = useState({});
 
+  const [editingOfficerDept, setEditingOfficerDept] = useState(null);
+  const [officerEditForm, setOfficerEditForm] = useState({
+    name: "",
+    email: "",
+    notificationEmail: "",
+    phone: "",
+    password: "",
+    dispatchNow: true,
+  });
+  const [savingOfficer, setSavingOfficer] = useState(false);
+
+  const openOfficerEditModal = (c) => {
+    setEditingOfficerDept(c);
+    setOfficerEditForm({
+      name: c.name || `${c.displayName} Officer`,
+      email: c.email || "",
+      notificationEmail: c.notificationEmail || "",
+      phone: c.phone || "",
+      password: c.password || "",
+      dispatchNow: true,
+    });
+  };
+
+  const handleSaveOfficer = async (e) => {
+    e.preventDefault();
+    if (!createdProjectSummary || !editingOfficerDept) return;
+    const { project } = createdProjectSummary;
+    setSavingOfficer(true);
+    try {
+      const res = await updateDepartmentOfficer(project._id, editingOfficerDept.departmentId, officerEditForm);
+      toast.success(res.message || "Officer credentials updated successfully!");
+      
+      // Update local credentials state in createdProjectSummary
+      setCreatedProjectSummary((prev) => {
+        if (!prev) return prev;
+        const updatedCreds = prev.credentials.map((cr) => {
+          if (cr.departmentId === editingOfficerDept.departmentId) {
+            return {
+              ...cr,
+              name: officerEditForm.name,
+              email: officerEditForm.email,
+              notificationEmail: officerEditForm.notificationEmail,
+              phone: officerEditForm.phone,
+              password: officerEditForm.password || cr.password,
+            };
+          }
+          return cr;
+        });
+        return {
+          ...prev,
+          project: res.project || prev.project,
+          credentials: updatedCreds,
+        };
+      });
+
+      setEditingOfficerDept(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update officer details");
+    } finally {
+      setSavingOfficer(false);
+    }
+  };
+
   // Direct automated background dispatch via backend notification service
   const directAutoDispatch = async (deptId = null) => {
     if (!createdProjectSummary) return;
@@ -407,9 +476,20 @@ export default function CreateProjectModal({ onClose, onCreated }) {
                           <Icon size={14} className="text-ochre-600" />
                           <span>{c.displayName}</span>
                         </div>
-                        <span className="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-bold text-ink-600">
-                          {c.weight}% wt
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-bold text-ink-600">
+                            {c.weight}% wt
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openOfficerEditModal(c)}
+                            title="Edit Officer Contact Info or Reset Password"
+                            className="flex items-center gap-1 rounded-md border border-ink-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-ink-600 hover:bg-ochre-50 hover:text-ochre-700 hover:border-ochre-200 transition-colors"
+                          >
+                            <Edit3 size={10} />
+                            <span>Edit</span>
+                          </button>
+                        </div>
                       </div>
 
                       {/* Credential details */}
@@ -506,6 +586,162 @@ export default function CreateProjectModal({ onClose, onCreated }) {
             </div>
           </div>
         </div>
+
+        {/* Edit Department Officer Modal inside Summary */}
+        {editingOfficerDept && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/60 backdrop-blur-sm"
+            onClick={() => !savingOfficer && setEditingOfficerDept(null)}
+          >
+            <div
+              className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden animate-fadeIn"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-ink-900 to-ink-800 px-6 py-4 flex items-center justify-between text-white border-b border-ink-700">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ochre-500/20 text-ochre-400">
+                    <Edit3 size={18} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white">
+                      Edit {editingOfficerDept.displayName} Officer
+                    </h2>
+                    <p className="text-xs text-ink-300">
+                      Update contact details or password
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingOfficerDept(null)}
+                  disabled={savingOfficer}
+                  className="rounded-lg p-1.5 text-ink-400 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleSaveOfficer} className="p-6 space-y-4">
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-ink-500 block mb-1">
+                    Officer Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={officerEditForm.name}
+                    onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g. Rajesh Kumar"
+                    className="input text-xs w-full"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-ink-500 block mb-1">
+                      Login Email / User ID
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={officerEditForm.email}
+                      onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, email: e.target.value }))}
+                      placeholder="officer@bhoomisetu.gov.in"
+                      className="input text-xs font-mono w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-ink-500 block mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="text"
+                      value={officerEditForm.password}
+                      onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, password: e.target.value }))}
+                      placeholder="New password"
+                      className="input text-xs font-mono w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-ink-100">
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-ink-500 block mb-1 flex items-center gap-1">
+                      <Mail size={12} className="text-blue-500" />
+                      Notification Email
+                    </label>
+                    <input
+                      type="email"
+                      value={officerEditForm.notificationEmail}
+                      onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, notificationEmail: e.target.value }))}
+                      placeholder="officer.personal@gmail.com"
+                      className="input text-xs w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-ink-500 block mb-1 flex items-center gap-1">
+                      <MessageCircle size={12} className="text-green-500" />
+                      WhatsApp / Mobile Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={officerEditForm.phone}
+                      onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, phone: e.target.value }))}
+                      placeholder="e.g. +91 98765 43210"
+                      className="input text-xs w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-ink-200 bg-ink-50/50 p-3 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="summaryDispatchNowCheck"
+                    checked={officerEditForm.dispatchNow}
+                    onChange={(e) => setOfficerEditForm((prev) => ({ ...prev, dispatchNow: e.target.checked }))}
+                    className="rounded border-ink-300 text-ochre-600 focus:ring-ochre-500 h-4 w-4"
+                  />
+                  <label htmlFor="summaryDispatchNowCheck" className="text-xs font-semibold text-ink-800 cursor-pointer">
+                    Immediately dispatch credentials to updated Email & WhatsApp on save
+                  </label>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-ink-100">
+                  <button
+                    type="button"
+                    onClick={() => setEditingOfficerDept(null)}
+                    disabled={savingOfficer}
+                    className="rounded-xl border border-ink-200 bg-white px-4 py-2 text-xs font-bold text-ink-700 hover:bg-ink-100 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingOfficer}
+                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-ochre-600 to-ochre-700 px-5 py-2 text-xs font-bold text-white shadow-md shadow-ochre-600/20 hover:from-ochre-700 hover:to-ochre-800 transition-all disabled:opacity-70"
+                  >
+                    {savingOfficer ? (
+                      <>
+                        <span className="h-3 w-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        Saving & Dispatched…
+                      </>
+                    ) : (
+                      <>
+                        <Check size={14} />
+                        Save & Update Officer
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
