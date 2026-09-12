@@ -240,55 +240,50 @@ npm run dev
 
 ---
 
-## 📽️ SIH Presentation & PPT Deck Structure
+## 📽️ SIH Presentation & PPT Deck Structure (6-Slide Hackathon Pitch)
 
-Use this slide-by-slide structure to build your presentation for evaluation panels and jury members:
+Use this exact 6-slide structure to build your evaluation presentation for jury members and technical judges:
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│                           BHOOMISETU PITCH DECK                                  │
-├─────────┬────────────────────────────────────────────────────────────────────────┤
-│ Slide 1 │ TITLE SLIDE                                                            │
-│         │ - BhoomiSetu: Real-Time National Land Acquisition & Management System  │
-│         │ - Problem Statement: SIH 26016 · Ministry of Rural Development (DoLR)  │
-│         │ - Team: Aaditya Singh & Keshaw Jha                                     │
-├─────────┼────────────────────────────────────────────────────────────────────────┤
-│ Slide 2 │ PROBLEM & MOTIVATION                                                   │
-│         │ - Critical bottlenecks in infrastructure projects due to land delays. │
-│         │ - Paper-based tracking, siloed departments, repetitive legal disputes. │
-│         │ - Lack of unified GIS monitoring & predictive resolution tools.        │
-├─────────┼────────────────────────────────────────────────────────────────────────┤
-│ Slide 3 │ THE SOLUTION: BHOOMISETU                                               │
-│         │ - End-to-end digital lifecycle: Survey → Legal → Comp → Rehab → Poss. │
-│         │ - 2-Step Project-Scoped Security Architecture.                         │
-│         │ - Dynamic Email & WhatsApp Credential Onboarding.                      │
-│         │ - Live Interactive GIS Geo-Parcel Visualization.                       │
-├─────────┼────────────────────────────────────────────────────────────────────────┤
-│ Slide 4 │ SYSTEM ARCHITECTURE & WORKFLOW                                         │
-│         │ - Diagram showing React Frontend, Node.js Backend, Flask ML & MongoDB. │
-│         │ - Weighted Stage Lifecycle (0% to 100% calculation).                   │
-│         │ - Multi-Tier Governance: Admin -> Senior Officer -> Ground Officers.   │
-├─────────┼────────────────────────────────────────────────────────────────────────┤
-│ Slide 5 │ AI RECOMMENDATION ENGINE (KNN + SELF-LEARNING)                         │
-│         │ - Cosine K-Nearest Neighbors trained on 12,424 historical cases.       │
-│         │ - Instant similarity matching (>90% accuracy) for dispute resolution. │
-│         │ - Continuous Self-Learning: Every resolved case trains the model live. │
-├─────────┼────────────────────────────────────────────────────────────────────────┤
-│ Slide 6 │ ADMINISTRATIVE CONTROL & RESILIENCE                                    │
-│         │ - 1-Click Multi-Department Credential Generation.                      │
-│         │ - In-Place Officer Credential Editing without deleting projects.       │
-│         │ - Live SMTP email verification & re-dispatch mechanism.                │
-├─────────┼────────────────────────────────────────────────────────────────────────┤
-│ Slide 7 │ LIVE DEMO & KEY METRICS                                                │
-│         │ - Interactive GIS parcel drilldown.                                    │
-│         │ - Multi-department status updating and automatic SLA alerts.           │
-│         │ - AI suggestion panel demonstration in action.                         │
-├─────────┼────────────────────────────────────────────────────────────────────────┤
-│ Slide 8 │ IMPACT, FEASIBILITY & ROADMAP                                          │
-│         │ - 40% reduction in land acquisition cycle turnaround time.             │
-│         │ - Elimination of cross-departmental communication latency.             │
-│         │ - Future: Blockchain title verification & Drone LIDAR auto-ingestion.  │
-└─────────┴────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                   BHOOMISETU — 6-SLIDE OFFICIAL SIH PITCH DECK                         │
+├─────────┬──────────────────────────────────────────────────────────────────────────────┤
+│ Slide 1 │ TITLE & EXECUTIVE PROBLEM STATEMENT                                          │
+│         │ • Project Title: BhoomiSetu — Real-Time Land Acquisition Governance Platform │
+│         │ • Problem Statement: SIH 26016 · Ministry of Rural Development (DoLR)        │
+│         │ • Core Pain Points: Multi-departmental silos, 40%+ national infra delays,   │
+│         │   untracked legal bottlenecks, repetitive disputes & paper-based reporting.  │
+│         │ • Team: Aaditya Singh & Keshaw Jha                                           │
+├─────────┼──────────────────────────────────────────────────────────────────────────────┤
+│ Slide 2 │ THE BHOOMISETU SOLUTION & CORE VALUE PROPOSITION                             │
+│         │ • Unified 6-Stage Digital Lifecycle (Survey → Legal → Comp → Rehab → Poss.) │
+│         │ • Weighted Multi-Stage Telemetry Engine (0% to 100% unified project score).  │
+│         │ • 2-Step Project-Scoped Security (eliminates multi-project login collisions).│
+│         │ • Multi-Channel Onboarding: Live Gmail SMTP & WhatsApp Credential Dispatch.  │
+├─────────┼──────────────────────────────────────────────────────────────────────────────┤
+│ Slide 3 │ SYSTEM ARCHITECTURE & MULTI-TIER WORKFLOW                                    │
+│         │ • Frontend: React 18, Vite, Tailwind CSS, Leaflet GIS Geo-Parcels.           │
+│         │ • Backend: Node.js 20 LTS, Express REST API, MongoDB Mongoose ODM.          │
+│         │ • ML Microservice: Python 3.13, Flask, Scikit-Learn TF-IDF KNN Engine.       │
+│         │ • Multi-Tier Roles: Admin (National) → Senior Officer → Ground Officers.     │
+├─────────┼──────────────────────────────────────────────────────────────────────────────┤
+│ Slide 4 │ AI BOTTLENECK ADVISOR (KNN + CONTINUOUS SELF-LEARNING)                       │
+│         │ • Pre-Trained on 12,424 Real-World Cases (Safety, Legal, Site & Clearances). │
+│         │ • Cosine K-Nearest Neighbors matching with ≥90% confidence & duration ETA.  │
+│         │ • Self-Learning Feedback Loop: Every resolved alert dynamically updates the │
+│         │   model index in real-time, making institutional suggestions smarter.        │
+├─────────┼──────────────────────────────────────────────────────────────────────────────┤
+│ Slide 5 │ ADMINISTRATIVE CONTROL & OPERATIONAL RESILIENCE                               │
+│         │ • 1-Click Multi-Department Credential Provisioning per project.              │
+│         │ • In-Place Officer Credential Editing (fix mistyped emails & instantly       │
+│         │   re-dispatch credentials without deleting or restarting projects).          │
+│         │ • Real-time SLA monitors, dependency cascade alerts & dispute order trails.  │
+├─────────┼──────────────────────────────────────────────────────────────────────────────┤
+│ Slide 6 │ NATIONAL IMPACT, FEASIBILITY & ROADMAP                                       │
+│         │ • Impact: 40% reduction in land acquisition turnaround time (TAT).           │
+│         │ • Scalability: Cloud-native, microservices-based, ready for national rollout.│
+│         │ • Future Roadmap: Drone LIDAR auto-mapping, DigiLocker & Blockchain Registry.│
+└─────────┴──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
