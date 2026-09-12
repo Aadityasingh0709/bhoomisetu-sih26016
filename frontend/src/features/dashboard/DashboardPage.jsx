@@ -12,6 +12,7 @@ import { formatDate } from "../../utils/status.js";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../../store/authStore.js";
+import AIRecommendationPanel from "../../components/AIRecommendationPanel.jsx";
 import {
   FolderKanban,
   CheckCircle2,
@@ -41,6 +42,7 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [stateFilter, setStateFilter] = useState("All");
   const [resolvingId, setResolvingId] = useState(null);
+  const [showAIAdvisor, setShowAIAdvisor] = useState(false);
 
   // Project ID Search State
   const [searchQuery, setSearchQuery] = useState("");
@@ -348,6 +350,46 @@ export default function DashboardPage() {
           trend={totals.delayed > 0 ? "Critical SLA" : "Zero"}
           trendType="negative"
         />
+      </div>
+
+      {/* ── AI Bottleneck Resolution Advisor (KNN Engine) Toggle & Panel ── */}
+      <div className="rounded-2xl border border-ochre-200 bg-gradient-to-r from-amber-50 via-ochre-50 to-orange-50 p-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ochre-500 to-amber-600 text-white shadow-md">
+              <Sparkles size={20} className="animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-black text-ink-900">
+                  AI Bottleneck Resolution Advisor
+                </h3>
+                <span className="rounded-full bg-ochre-100 border border-ochre-300 px-2 py-0.5 text-[10px] font-extrabold text-ochre-800">
+                  KNN 12.4k Cases
+                </span>
+                <span className="rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                  Self-Learning
+                </span>
+              </div>
+              <p className="text-xs text-ink-500 mt-0.5">
+                Predict solutions, mitigation steps, and turnaround times based on historical precedent.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowAIAdvisor((prev) => !prev)}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-ink-900 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-ochre-600 transition-all cursor-pointer"
+          >
+            <Sparkles size={14} />
+            <span>{showAIAdvisor ? "Hide AI Advisor" : "Launch AI Advisor"}</span>
+          </button>
+        </div>
+
+        {showAIAdvisor && (
+          <div className="mt-4 border-t border-ochre-200/80 pt-4">
+            <AIRecommendationPanel />
+          </div>
+        )}
       </div>
 
       {/* Main Interactive Row: GIS Map (Left) + Analytics (Right) */}
