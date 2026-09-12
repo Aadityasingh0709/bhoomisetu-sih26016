@@ -38,8 +38,42 @@ export const validateProjectCode = asyncHandler(async (req, res) => {
       implementingAgency: project.implementingAgency,
       overallStatus: project.overallStatus,
     },
+// GET /api/auth/lookup-projects
+export const lookupProjects = asyncHandler(async (req, res) => {
+  const { q } = req.query;
+  let filter = {};
+  if (q && q.trim()) {
+    const regex = new RegExp(q.trim(), "i");
+    filter = {
+      $or: [
+        { code: regex },
+        { name: regex },
+        { district: regex },
+        { state: regex },
+        { implementingAgency: regex },
+      ],
+    };
+  }
+
+  const projects = await Project.find(filter)
+    .select("name code state district implementingAgency overallStatus")
+    .sort({ createdAt: -1 })
+    .limit(40);
+
+  res.json({
+    success: true,
+    projects: projects.map((p) => ({
+      id: p._id,
+      code: p.code,
+      name: p.name,
+      state: p.state,
+      district: p.district,
+      implementingAgency: p.implementingAgency,
+      overallStatus: p.overallStatus,
+    })),
   });
 });
+
 
 // POST /api/auth/login
 export const login = asyncHandler(async (req, res) => {
