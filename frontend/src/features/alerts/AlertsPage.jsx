@@ -13,6 +13,7 @@ import { fetchDepartments } from "../../api/departments.js";
 import { useAuthStore } from "../../store/authStore.js";
 import Card from "../../components/Card.jsx";
 import StatCard from "../../components/StatCard.jsx";
+import AIRecommendationPanel from "../../components/AIRecommendationPanel.jsx";
 import {
   ShieldAlert,
   AlertTriangle,
@@ -313,6 +314,9 @@ export default function AlertsPage() {
           trendType="warning"
         />
       </div>
+
+      {/* ── AI Recommendation Panel ───────────────────────────────────── */}
+      <AIRecommendationPanel />
 
       {/* ── Officer Action Required Banner (for DepartmentOfficer) ── */}
       {isOfficer && (() => {

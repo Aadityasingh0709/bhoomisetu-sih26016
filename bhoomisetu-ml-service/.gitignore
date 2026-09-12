@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Trained model binary (large file - regenerated at startup)
+model/knn_model.pkl
+model/*.pkl
+
+# Data (user uploads, regenerated copies)
+# Keep data/ tracked but exclude large auto-saves
+data/cases_merged.csv
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log

@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import Resolution from "../models/Resolution.js";
 import Project from "../models/Project.js";
 import Alert from "../models/Alert.js";
+import { learnFromResolution } from "../services/aiRecommendationService.js";
 
 // GET /api/resolutions
 export const getResolutions = asyncHandler(async (req, res) => {
@@ -128,6 +129,9 @@ export const createResolution = asyncHandler(async (req, res) => {
     { path: "department", select: "displayName name" },
     { path: "resolvedBy", select: "name email role" },
   ]);
+
+  // Self-learning: teach the AI model about this newly resolved case (fire-and-forget)
+  learnFromResolution(resolution).catch(() => {});
 
   res.status(201).json(resolution);
 });
