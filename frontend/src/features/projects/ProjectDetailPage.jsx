@@ -48,6 +48,7 @@ import {
   MessageCircle,
   Mail,
   Phone,
+  ShieldAlert,
 } from "lucide-react";
 
 const categoryMeta = (cat) => {
@@ -93,6 +94,7 @@ export default function ProjectDetailPage() {
     status: "Resolved",
   });
 
+  const [accessDenied, setAccessDenied] = useState(false);
   const [copiedOfficerInfo, setCopiedOfficerInfo] = useState(false);
   const currentUser = useAuthStore((s) => s.user);
   const role = currentUser?.role;
@@ -100,6 +102,17 @@ export default function ProjectDetailPage() {
   const canDelete = role === "Administrator";
 
   useEffect(() => {
+    // Client-side guard: DepartmentOfficer may only access their assigned project
+    if (role === "DepartmentOfficer" && currentUser) {
+      const assignedIds = (currentUser.assignedProjects || []).map((p) => String(p._id || p));
+      const activeId = currentUser.activeProject?.id ? String(currentUser.activeProject.id) : null;
+      if (assignedIds.length > 0 && !assignedIds.includes(String(id)) && activeId !== String(id)) {
+        setAccessDenied(true);
+        setLoading(false);
+        return;
+      }
+    }
+
     fetchProject(id)
       .then((p) => {
         setProject(p);
@@ -107,9 +120,15 @@ export default function ProjectDetailPage() {
         const badIdx = p.departments?.findIndex((d) => ["AtRisk", "Delayed"].includes(d.status));
         if (badIdx !== -1) setSelectedStageIndex(badIdx);
       })
-      .catch(() => toast.error("Could not load project dossier"))
+      .catch((err) => {
+        if (err?.response?.status === 403) {
+          setAccessDenied(true);
+        } else {
+          toast.error("Could not load project dossier");
+        }
+      })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, role, currentUser]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -183,6 +202,36 @@ export default function ProjectDetailPage() {
     return (
       <div className="flex h-96 items-center justify-center">
         <p className="text-sm font-semibold text-ink-400">Loading project dossier…</p>
+      </div>
+    );
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="mx-auto max-w-lg rounded-2xl border border-rose-200 bg-white p-8 text-center shadow-lg my-12">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 mb-4">
+          <ShieldAlert size={28} />
+        </div>
+        <h2 className="text-xl font-black text-ink-900">Access Restricted</h2>
+        <p className="mt-2 text-sm text-ink-600">
+          As a <span className="font-semibold text-ink-800">Department Officer</span>, you are authorized to view and edit only your assigned project. Cross-project viewing and editing are restricted by policy.
+        </p>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Link
+            to="/projects"
+            className="rounded-xl border border-ink-200 bg-white px-4 py-2 text-xs font-bold text-ink-700 hover:bg-ink-50 transition-colors"
+          >
+            Back to Projects
+          </Link>
+          {currentUser?.activeProject?.id && (
+            <Link
+              to={`/projects/${currentUser.activeProject.id}`}
+              className="rounded-xl bg-gradient-to-r from-ochre-500 to-ochre-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-ochre-500/20 hover:from-ochre-600 transition-all"
+            >
+              Open My Assigned Project
+            </Link>
+          )}
+        </div>
       </div>
     );
   }

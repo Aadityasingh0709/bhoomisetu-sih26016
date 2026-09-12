@@ -40,6 +40,7 @@ export default function ProjectUpdateForm() {
   const [project, setProject] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   const isOfficer = user?.role === "DepartmentOfficer";
 
@@ -59,32 +60,50 @@ export default function ProjectUpdateForm() {
   const currentStatus = watch("status") || "NotStarted";
 
   useEffect(() => {
-    Promise.all([fetchProject(id), fetchDepartments()]).then(([p, depts]) => {
-      setProject(p);
-      setDepartments(depts);
+    // Client-side guard: DepartmentOfficer can only update their assigned project
+    if (isOfficer && user) {
+      const assignedIds = (user.assignedProjects || []).map((p) => String(p._id || p));
+      const activeId = user.activeProject?.id ? String(user.activeProject.id) : null;
+      if (assignedIds.length > 0 && !assignedIds.includes(String(id)) && activeId !== String(id)) {
+        setAccessDenied(true);
+        return;
+      }
+    }
 
-      const myDeptId = isOfficer
-        ? String(user?.department?._id || user?.department || "")
-        : String(depts[0]?._id || "");
+    Promise.all([fetchProject(id), fetchDepartments()])
+      .then(([p, depts]) => {
+        setProject(p);
+        setDepartments(depts);
 
-      const mine = p.departments.find(
-        (d) => String(d.department?._id || d.department) === myDeptId
-      );
+        const myDeptId = isOfficer
+          ? String(user?.department?._id || user?.department || "")
+          : String(depts[0]?._id || "");
 
-      reset({
-        departmentId: myDeptId,
-        status: mine?.status || "NotStarted",
-        actualProgress: mine?.actualProgress ?? 0,
-        plannedProgress: mine?.plannedProgress ?? 0,
-        pendingCases: mine?.pendingCases ?? 0,
-        completedCases: mine?.completedCases ?? 0,
-        delayReason: mine?.delayReason || "",
-        resolutionNotes: mine?.resolutionNotes || "",
-        expectedCompletionDate: mine?.expectedCompletionDate
-          ? mine.expectedCompletionDate.slice(0, 10)
-          : "",
+        const mine = p.departments.find(
+          (d) => String(d.department?._id || d.department) === myDeptId
+        );
+
+        reset({
+          departmentId: myDeptId,
+          status: mine?.status || "NotStarted",
+          actualProgress: mine?.actualProgress ?? 0,
+          plannedProgress: mine?.plannedProgress ?? 0,
+          pendingCases: mine?.pendingCases ?? 0,
+          completedCases: mine?.completedCases ?? 0,
+          delayReason: mine?.delayReason || "",
+          resolutionNotes: mine?.resolutionNotes || "",
+          expectedCompletionDate: mine?.expectedCompletionDate
+            ? mine.expectedCompletionDate.slice(0, 10)
+            : "",
+        });
+      })
+      .catch((err) => {
+        if (err?.response?.status === 403) {
+          setAccessDenied(true);
+        } else {
+          toast.error("Could not load project update form");
+        }
       });
-    });
   }, [id, user, reset, isOfficer]);
 
   useEffect(() => {
@@ -108,6 +127,36 @@ export default function ProjectUpdateForm() {
       });
     }
   }, [selectedDeptId, project, reset]);
+
+  if (accessDenied) {
+    return (
+      <div className="mx-auto max-w-lg rounded-2xl border border-rose-200 bg-white p-8 text-center shadow-lg my-12">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 mb-4">
+          <AlertTriangle size={28} />
+        </div>
+        <h2 className="text-xl font-black text-ink-900">Access Restricted</h2>
+        <p className="mt-2 text-sm text-ink-600">
+          You are not authorized to update progress for this project. Department officers can only update milestones for their assigned project.
+        </p>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Link
+            to="/department"
+            className="rounded-xl border border-ink-200 bg-white px-4 py-2 text-xs font-bold text-ink-700 hover:bg-ink-50 transition-colors"
+          >
+            Back to Workspace
+          </Link>
+          {user?.activeProject?.id && (
+            <Link
+              to={`/projects/${user.activeProject.id}/update`}
+              className="rounded-xl bg-gradient-to-r from-ochre-500 to-ochre-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-ochre-500/20 hover:from-ochre-600 transition-all"
+            >
+              Update My Assigned Project
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (!project) {
     return (

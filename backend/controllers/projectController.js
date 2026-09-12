@@ -142,6 +142,12 @@ export const getProjects = asyncHandler(async (req, res) => {
   }
   if (department) filter["departments.department"] = department;
 
+  // Security check: Department officers can only see their assigned projects
+  if (req.user?.role === "DepartmentOfficer") {
+    const assignedIds = (req.user.assignedProjects || []).map((p) => p._id || p);
+    filter._id = { $in: assignedIds };
+  }
+
   const projects = await Project.find(filter)
     .populate("departments.department")
     .populate("departments.assignedOfficer", "name email role phone notificationEmail")
@@ -162,6 +168,18 @@ export const getProject = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Project not found");
   }
+
+  // Security check: DepartmentOfficer can only view their assigned project
+  if (req.user?.role === "DepartmentOfficer") {
+    const isAssigned = (req.user.assignedProjects || []).some(
+      (p) => String(p._id || p) === String(project._id)
+    );
+    if (!isAssigned) {
+      res.status(403);
+      throw new Error("Access denied: You are not assigned to this project");
+    }
+  }
+
   res.json(project);
 });
 
@@ -257,14 +275,20 @@ export const updateDepartmentProgress = asyncHandler(async (req, res) => {
     throw new Error("Department is not assigned to this project");
   }
 
-  // Department officers may update only their own department. Administrators
-  // and ProjectManagers retain cross-department access for operational corrections.
-  if (
-    req.user.role === "DepartmentOfficer" &&
-    String(req.user.department?._id) !== deptId
-  ) {
-    res.status(403);
-    throw new Error("You can update only your assigned department");
+  // Department officers may update only their assigned project and own department.
+  if (req.user.role === "DepartmentOfficer") {
+    const isAssigned = (req.user.assignedProjects || []).some(
+      (p) => String(p._id || p) === String(project._id)
+    );
+    if (!isAssigned) {
+      res.status(403);
+      throw new Error("Access denied: You cannot edit a project you are not assigned to");
+    }
+
+    if (String(req.user.department?._id) !== deptId) {
+      res.status(403);
+      throw new Error("You can update only your assigned department");
+    }
   }
 
   const {
@@ -342,6 +366,17 @@ export const addProjectResolution = asyncHandler(async (req, res) => {
   if (!project) {
     res.status(404);
     throw new Error("Project not found");
+  }
+
+  // Security check: Department officer can only add resolutions to their assigned project
+  if (req.user.role === "DepartmentOfficer") {
+    const isAssigned = (req.user.assignedProjects || []).some(
+      (p) => String(p._id || p) === String(project._id)
+    );
+    if (!isAssigned) {
+      res.status(403);
+      throw new Error("Access denied: You cannot add resolutions to a project you are not assigned to");
+    }
   }
 
   const {
