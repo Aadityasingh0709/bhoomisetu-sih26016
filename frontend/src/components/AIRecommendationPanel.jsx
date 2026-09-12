@@ -31,10 +31,14 @@ const simBg = (pct) => {
 };
 
 const DEPARTMENTS = [
-  "Safety",
-  "Quality",
-  "Site Management",
-  "Design Team",
+  "Survey & Land Records",
+  "Legal & Title Verification",
+  "Compensation & Award",
+  "Rehabilitation & Resettlement",
+  "Forest & Environment Clearance",
+  "Physical Possession",
+  "Revenue Department",
+  "District Administration",
   "General",
 ];
 
@@ -49,7 +53,7 @@ const SEVERITIES = [
 ────────────────────────────────────────────── */
 export default function AIRecommendationPanel({ prefill = {}, onApplySuggestion }) {
   const [form, setForm] = useState({
-    department: prefill.department || "Safety",
+    department: prefill.department || "Survey & Land Records",
     issue_type: prefill.issue_type || "",
     issue_description: prefill.issue_description || "",
     severity: prefill.severity || "Not Applicable",
