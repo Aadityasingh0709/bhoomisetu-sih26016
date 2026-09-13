@@ -87,11 +87,15 @@ export default function AIRecommendationPanel({ prefill = {}, onApplySuggestion 
     setRecommendation(null);
     try {
       const data = await getAISuggestions(form);
-      setSuggestions(data.suggestions || []);
-      setRecommendation(data.recommendation || null);
+      const suggs = data.suggestions || [];
+      const rec = data.recommendation || null;
+      setSuggestions(suggs);
+      setRecommendation(rec);
       setSearched(true);
-      if (data.recommendation) {
-        toast.success("AI resolution strategy generated!");
+      if (rec && !rec.is_low_confidence && suggs.length > 0) {
+        toast.success(`Matched ${suggs.length} historical precedent(s)!`);
+      } else {
+        toast("No direct precedent found. Standard SOP strategy generated.", { icon: "ℹ️" });
       }
     } catch (err) {
       if (err.response?.status === 503) {
@@ -289,15 +293,25 @@ export default function AIRecommendationPanel({ prefill = {}, onApplySuggestion 
           1. SYNTHESIZED AI RECOMMENDATION & ACTION PLAN (TOP BOX)
       ───────────────────────────────────────────────────────────── */}
       {recommendation && (
-        <div className="rounded-2xl border-2 border-emerald-400 bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-white p-5 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-200/80 pb-3">
+        <div className={`rounded-2xl border-2 p-5 shadow-sm space-y-4 ${
+          recommendation.is_low_confidence
+            ? "border-amber-400 bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-white"
+            : "border-emerald-400 bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-white"
+        }`}>
+          <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3 ${
+            recommendation.is_low_confidence ? "border-amber-200/80" : "border-emerald-200/80"
+          }`}>
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
-                <Lightbulb size={18} />
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ${
+                recommendation.is_low_confidence ? "bg-amber-600" : "bg-emerald-600"
+              }`}>
+                {recommendation.is_low_confidence ? <AlertTriangle size={18} /> : <Lightbulb size={18} />}
               </div>
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-200/60 px-2 py-0.5 rounded">
-                  AI Prescribed Strategic Solution
+                <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${
+                  recommendation.is_low_confidence ? "text-amber-800 bg-amber-200/70" : "text-emerald-800 bg-emerald-200/60"
+                }`}>
+                  {recommendation.is_low_confidence ? "Standard SOP Framework (No Direct Precedent)" : "AI Prescribed Strategic Solution"}
                 </span>
                 <h4 className="text-sm sm:text-base font-black text-ink-900 mt-0.5">
                   {recommendation.headline}
@@ -306,9 +320,13 @@ export default function AIRecommendationPanel({ prefill = {}, onApplySuggestion 
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-lg bg-emerald-100 border border-emerald-300 px-2.5 py-1 text-[11px] font-bold text-emerald-900 flex items-center gap-1">
+              <span className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 ${
+                recommendation.is_low_confidence
+                  ? "bg-amber-100 border-amber-300 text-amber-900"
+                  : "bg-emerald-100 border-emerald-300 text-emerald-900"
+              }`}>
                 <ShieldCheck size={13} />
-                <span>{recommendation.confidence_score}% Confidence</span>
+                <span>{recommendation.is_low_confidence ? "Standard SOP" : `${recommendation.confidence_score}% Confidence`}</span>
               </span>
               <span className="rounded-lg bg-blue-100 border border-blue-300 px-2.5 py-1 text-[11px] font-bold text-blue-900 flex items-center gap-1">
                 <Clock size={13} />

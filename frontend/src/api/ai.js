@@ -11,3 +11,11 @@ export const getAISuggestions = (query) =>
  * Fetch model health + dataset statistics
  */
 export const getAIStats = () => api.get("/ai/stats").then((r) => r.data);
+
+/**
+ * Conversational follow-up assistant
+ * @param {Object} chatPayload - { message, department, issue_type, issue_description, current_recommendation }
+ */
+export const chatWithAI = (chatPayload) =>
+  api.post("/ai/chat", chatPayload).then((r) => r.data);
+

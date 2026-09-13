@@ -14,6 +14,7 @@ import { useAuthStore } from "../../store/authStore.js";
 import Card from "../../components/Card.jsx";
 import StatCard from "../../components/StatCard.jsx";
 import { getAISuggestions } from "../../api/ai.js";
+import AIChatDrawer from "../../components/AIChatDrawer.jsx";
 import {
   ShieldAlert,
   AlertTriangle,
@@ -77,6 +78,17 @@ export default function AlertsPage() {
   const [officerResolveNote, setOfficerResolveNote] = useState("");
   const [submittingOfficerResolve, setSubmittingOfficerResolve] = useState(false);
 
+  // ── AI Chatbot Drawer State ─────────────────────────────────────────────
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [chatDrawerTarget, setChatDrawerTarget] = useState(null);
+  const [chatDrawerApplyFn, setChatDrawerApplyFn] = useState(null);
+
+  const openAIChatbot = (target, applyCallback = null) => {
+    setChatDrawerTarget(target);
+    setChatDrawerApplyFn(() => applyCallback);
+    setChatDrawerOpen(true);
+  };
+
   // ── In-Modal AI Resolution Assistant State ─────────────────────────────
   const [aiLoading, setAiLoading] = useState(false);
   const [aiRecommendation, setAiRecommendation] = useState(null);
@@ -97,11 +109,16 @@ export default function AlertsPage() {
         urgency: target.severity === "High" ? "Critical" : "High",
         k: 3,
       });
-      setAiRecommendation(data.recommendation || null);
+      const rec = data.recommendation || null;
+      setAiRecommendation(rec);
       setAiPrecedents(data.suggestions || []);
-      toast.success("AI suggested resolution generated!");
+      if (rec && !rec.is_low_confidence && (data.suggestions || []).length > 0) {
+        toast.success(`Matched ${data.suggestions.length} similar historical case(s)!`);
+      } else {
+        toast("No direct precedent found. Standard SOP guidelines generated.", { icon: "ℹ️" });
+      }
     } catch (err) {
-      toast.error("Could not fetch AI suggestions. Ensure ML service is running.");
+      toast.error("Could not fetch AI suggestions. Ensure ML service is running on port 5001.");
     } finally {
       setAiLoading(false);
     }
@@ -659,10 +676,22 @@ export default function AlertsPage() {
                       {(isMyAlert || isAuthor) && hasDecision && !a.officerResolved && !a.isResolved && (
                         <button
                           onClick={() => handleOpenOfficerResolve(a)}
-                          className="flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-700 shadow-sm hover:bg-emerald-100 transition-all"
+                          className="flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-700 shadow-sm hover:bg-emerald-100 transition-all cursor-pointer"
                         >
                           <CheckCircle2 size={14} className="text-emerald-600" />
                           Mark Fixed ✓
+                        </button>
+                      )}
+
+                      {/* AI Chatbot Copilot */}
+                      {!a.isResolved && (
+                        <button
+                          onClick={() => openAIChatbot(a, isAuthority ? ((text) => { setDecisionTarget(a); setDecisionText(text); }) : null)}
+                          className="flex items-center gap-1.5 rounded-xl border border-violet-200 bg-gradient-to-r from-violet-50 to-indigo-50 px-3 py-1.5 text-xs font-bold text-violet-700 shadow-sm hover:bg-violet-100 hover:border-violet-300 transition-all cursor-pointer"
+                          title="Open AI Chatbot Assistant for this issue"
+                        >
+                          <Sparkles size={13} className="text-violet-600" />
+                          <span>AI Chatbot</span>
                         </button>
                       )}
                     </div>
@@ -835,15 +864,25 @@ export default function AlertsPage() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleFetchAIDirective(decisionTarget)}
-                    disabled={aiLoading}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-ink-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-ochre-600 transition-all cursor-pointer disabled:opacity-60 shrink-0"
-                  >
-                    <Sparkles size={12} />
-                    <span>{aiLoading ? "Analyzing Cases…" : "Generate AI Directive"}</span>
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => openAIChatbot(decisionTarget, (text) => setDecisionText(text))}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-3.5 py-1.5 text-[11px] font-bold text-white shadow-sm hover:from-violet-700 hover:to-indigo-700 transition-all cursor-pointer shrink-0"
+                    >
+                      <Bot size={13} className="text-violet-200" />
+                      <span>Open AI Chatbot</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleFetchAIDirective(decisionTarget)}
+                      disabled={aiLoading}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-ink-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-ochre-600 transition-all cursor-pointer disabled:opacity-60 shrink-0"
+                    >
+                      <Sparkles size={12} />
+                      <span>{aiLoading ? "Analyzing Cases…" : "Generate AI Directive"}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {aiRecommendation && (
@@ -852,10 +891,10 @@ export default function AlertsPage() {
                       <div className="flex items-center justify-between gap-2 border-b border-amber-200 pb-2">
                         <span className="text-[11px] font-black text-amber-900 flex items-center gap-1.5">
                           <AlertTriangle size={14} className="text-amber-600" />
-                          No Historical Precedent Found (0% Match)
+                          No Historical Precedents Matched (0% Direct Match)
                         </span>
                         <span className="text-[10px] font-bold text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded">
-                          Unrecognized Issue
+                          Standard SOP Prescribed
                         </span>
                       </div>
                       <p className="text-xs text-amber-950 font-medium leading-relaxed">
@@ -863,7 +902,37 @@ export default function AlertsPage() {
                       </p>
                       <div className="space-y-1.5 text-xs text-ink-800 bg-white/80 p-2.5 rounded-lg border border-amber-200">
                         <span className="text-[10px] font-black uppercase text-amber-900 block">
-                          Try One of These Realistic BhoomiSetu Precedents:
+                          Recommended Standard Action Plan:
+                        </span>
+                        {(aiRecommendation.steps || []).map((step, idx) => (
+                          <div key={idx} className="flex items-start gap-2">
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[10px] font-bold text-amber-900">
+                              {idx + 1}
+                            </span>
+                            <span className="text-[11px] leading-snug">{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-amber-200">
+                        <span className="text-[10px] text-ink-500 font-medium">
+                          Statutory Reference: {aiRecommendation.statutory_precedent}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const planText = aiRecommendation.resolution_template || `DIRECTIVE: Standard SOP Resolution for ${decisionTarget.type || 'Bottleneck'}\nAction Plan:\n${(aiRecommendation.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}\nCompliance Deadline: 5-7 Days\nStatutory Reference: ${aiRecommendation.statutory_precedent}`;
+                            setDecisionText(planText);
+                            toast.success("Standard SOP plan applied to decision text!");
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-amber-800 transition-all cursor-pointer"
+                        >
+                          <CheckCircle2 size={13} />
+                          <span>Apply Standard SOP to Decision</span>
+                        </button>
+                      </div>
+                      <div className="space-y-1.5 text-xs text-ink-800 bg-white/80 p-2.5 rounded-lg border border-amber-200">
+                        <span className="text-[10px] font-black uppercase text-amber-900 block">
+                          Or Select a Closely Matched BhoomiSetu Precedent:
                         </span>
                         <div className="flex flex-col gap-1.5 pt-1">
                           <button
@@ -1057,6 +1126,69 @@ export default function AlertsPage() {
                 )}
               </div>
 
+              {/* ── AI Officer Remediation Guide ── */}
+              <div className="rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-50/80 via-teal-50/60 to-white p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={15} className="text-emerald-700" />
+                    <span className="text-xs font-black text-emerald-950">AI Remediation Guide</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => openAIChatbot(officerResolveTarget, (text) => setOfficerResolveNote(text))}
+                      className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs hover:from-violet-700 hover:to-indigo-700 transition-all cursor-pointer"
+                    >
+                      <Bot size={12} className="text-violet-200" />
+                      <span>Open AI Chatbot</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleFetchAIDirective(officerResolveTarget)}
+                      disabled={aiLoading}
+                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-800 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-900 transition-all cursor-pointer"
+                    >
+                      <Sparkles size={11} />
+                      <span>{aiLoading ? "Consulting Cases…" : "Consult AI Precedent"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {aiRecommendation && (
+                  <div className="rounded-lg border border-emerald-200 bg-white p-3 space-y-2 text-xs animate-fadeIn">
+                    <div className="flex items-center justify-between border-b border-ink-100 pb-1.5">
+                      <span className="font-bold text-emerald-950">
+                        {aiRecommendation.is_low_confidence ? "Standard Remediation Framework" : aiRecommendation.headline}
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                        {aiRecommendation.is_low_confidence ? "SOP Action" : `${aiRecommendation.confidence_score}% Precedent Match`}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-ink-600 leading-relaxed">{aiRecommendation.summary}</p>
+                    <div className="space-y-1 bg-ink-50/60 p-2 rounded border border-ink-100">
+                      <span className="text-[10px] font-black uppercase text-ink-700 block">Resolution Steps Executed:</span>
+                      {(aiRecommendation.steps || []).map((s, idx) => (
+                        <div key={idx} className="flex items-start gap-1.5 text-[11px] text-ink-800">
+                          <span className="text-emerald-600 font-bold">✓</span>
+                          <span>{s}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const note = `Completed standard resolution steps: ${(aiRecommendation.steps || []).join('; ')}. Joint inspection verified.`;
+                        setOfficerResolveNote(note);
+                        toast.success("Remediation summary copied to your note!");
+                      }}
+                      className="inline-flex items-center gap-1 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 px-2.5 py-1 text-[11px] font-bold hover:bg-emerald-200 cursor-pointer"
+                    >
+                      <CheckCircle2 size={12} />
+                      <span>Use AI Steps as My Fix Note</span>
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Officer note */}
               <div>
@@ -1067,7 +1199,7 @@ export default function AlertsPage() {
                   rows={3}
                   value={officerResolveNote}
                   onChange={(e) => setOfficerResolveNote(e.target.value)}
-                  placeholder="Briefly describe what action you took or use the AI guide above."
+                  placeholder="Briefly describe what action you took or click 'Consult AI Precedent' above to auto-fill."
                   className="input resize-none text-xs font-medium w-full"
                 />
                 <p className="text-[10px] text-ink-400 mt-1">
@@ -1160,21 +1292,41 @@ export default function AlertsPage() {
                     <Sparkles size={15} className="text-teal-700" />
                     <span className="text-xs font-black text-teal-950">AI Audit Resolution Synthesis</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleFetchAIDirective(resolveTarget)}
-                    disabled={aiLoading}
-                    className="inline-flex items-center gap-1 rounded-lg bg-teal-800 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-teal-900 transition-all cursor-pointer"
-                  >
-                    <Sparkles size={11} />
-                    <span>{aiLoading ? "Generating…" : "Generate Audit Note"}</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => openAIChatbot(resolveTarget, (text) => setResolveNotes(text))}
+                      className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs hover:from-violet-700 hover:to-indigo-700 transition-all cursor-pointer"
+                    >
+                      <Bot size={12} className="text-violet-200" />
+                      <span>Open AI Chatbot</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleFetchAIDirective(resolveTarget)}
+                      disabled={aiLoading}
+                      className="inline-flex items-center gap-1 rounded-lg bg-teal-800 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-teal-900 transition-all cursor-pointer"
+                    >
+                      <Sparkles size={11} />
+                      <span>{aiLoading ? "Generating…" : "Generate Audit Note"}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {aiRecommendation && (
-                  <div className="rounded-lg border border-teal-200 bg-white p-3 space-y-2 text-xs">
-                    <p className="font-bold text-teal-950">{aiRecommendation.headline}</p>
-                    <p className="text-[11px] text-ink-600">{aiRecommendation.resolution_template}</p>
+                  <div className="rounded-lg border border-teal-200 bg-white p-3 space-y-2 text-xs animate-fadeIn">
+                    <div className="flex items-center justify-between border-b border-ink-100 pb-1.5">
+                      <p className="font-bold text-teal-950">
+                        {aiRecommendation.is_low_confidence ? "Standard Closure Audit Note" : aiRecommendation.headline}
+                      </p>
+                      <span className="text-[10px] font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded">
+                        {aiRecommendation.is_low_confidence ? "Standard SOP" : `${aiRecommendation.confidence_score}% Precedent Match`}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-ink-600">{aiRecommendation.summary}</p>
+                    <div className="rounded bg-ink-50 p-2 text-[11px] text-ink-700 whitespace-pre-line font-mono">
+                      {aiRecommendation.resolution_template}
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -1390,6 +1542,14 @@ export default function AlertsPage() {
           </div>
         </div>
       )}
+
+      {/* ── Slide-in Chatbot AI Resolution Drawer ── */}
+      <AIChatDrawer
+        isOpen={chatDrawerOpen}
+        onClose={() => setChatDrawerOpen(false)}
+        target={chatDrawerTarget}
+        onApply={chatDrawerApplyFn}
+      />
     </div>
   );
 }

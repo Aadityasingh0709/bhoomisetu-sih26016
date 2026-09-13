@@ -43,6 +43,31 @@ export async function getSuggestions(query) {
 }
 
 /**
+ * Conversational follow-up assistant
+ */
+export async function chatWithAssistant(payload) {
+  try {
+    const { data } = await axios.post(`${ML_URL}/chat`, payload, {
+      timeout: 15000,
+    });
+    return data;
+  } catch (err) {
+    if (err.code === "ECONNREFUSED") {
+      return {
+        reply:
+          "The Python ML service on port 5001 is currently offline. Please run `python app.py` in `bhoomisetu-ml-service` to re-enable AI guidance.",
+        is_conversational: true,
+      };
+    }
+    console.error("[AI] chatWithAssistant:", err.message);
+    return {
+      reply: "Could not retrieve AI resolution guidance. Please verify the ML service.",
+      is_conversational: true,
+    };
+  }
+}
+
+/**
  * Teach the model a newly resolved case (self-learning loop).
  * Call this after an officer saves a resolution.
  * @param {Object} resolution  Mongoose document or plain object

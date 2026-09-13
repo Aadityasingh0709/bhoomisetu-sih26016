@@ -175,23 +175,25 @@ def synthesize_recommendation(query: dict, results: list, desc_matched: bool = T
     # If the user typed random gibberish (e.g. 'jguigubuguj'), or description has no match, or similarity is very low
     if not desc_matched or top_similarity < 20.0:
         return {
-            "headline": "No Precedent Match Found",
-            "summary": f"The description '{desc or issue_type}' was not recognized in our 100 historical land acquisition bottleneck cases. Please provide a descriptive issue or select from standard precedents.",
+            "headline": "No Similar Cases Found",
+            "summary": f"No historical precedent found matching '{desc or issue_type}' in our precedent casebase. The AI has generated standard statutory mitigation guidelines below.",
             "confidence_score": 0.0,
             "is_low_confidence": True,
-            "estimated_turnaround_days": "N/A",
-            "success_rate": "Awaiting descriptive issue details",
-            "statutory_precedent": "RFCTLARR Act 2013 & Standard Grievance Redressal Framework",
+            "no_match_found": True,
+            "estimated_turnaround_days": "5-7 Days",
+            "success_rate": "General SOP Framework",
+            "statutory_precedent": get_statutory_precedent(dept, issue_type),
             "steps": [
-                "Provide specific bottleneck facts: e.g. Khasra/parcel number, court name, or agency involved.",
-                "Select the appropriate department: Survey & Land Records, Compensation & Award, Legal & Title, or Forest & Environment.",
-                "Example queries that yield >90% matches: 'Boundary dispute overlap between Khasra 45 and 46', 'Aadhaar mismatch in PFMS compensation payment', or 'Stage-1 Forest clearance pending with MoEFCC'."
+                "Conduct initial joint inter-departmental site verification and record Panchnama.",
+                "Verify land parcel demarcation against Cadastral/GIS maps and official Revenue records.",
+                "Convene a bilateral coordination meeting with the relevant nodal officer to establish an expedited resolution schedule.",
+                "Upload resolution minutes and update the project tracking portal."
             ],
             "preventive_measures": [
-                "Ensure alerts state actionable ground facts rather than placeholders."
+                "Institute proactive inter-departmental milestone reviews before critical project deadlines."
             ],
-            "resolution_template": "AWAITING DETAILS: Please enter a specific problem description for AI precedent resolution.",
-            "escalation_level": "Awaiting Descriptive Bottleneck Details",
+            "resolution_template": f"DIRECTIVE: SOP Resolution for {issue_type or 'Identified Obstacle'} ({dept})\nAction Plan:\n1. Conduct initial joint inter-departmental site verification and record Panchnama.\n2. Verify land parcel demarcation against Cadastral/GIS maps and official Revenue records.\n3. Convene coordination meeting with nodal officer to execute resolution.\n4. Upload signed minutes to project dossier.\nStatutory Reference: {get_statutory_precedent(dept, issue_type)}\nTarget Turnaround: 5-7 Days",
+            "escalation_level": "Departmental Nodal Officer Action",
         }
 
     # Calculate turnaround days
@@ -336,6 +338,236 @@ def suggest():
         "k": k,
         "suggestions": result["suggestions"],
         "recommendation": result["recommendation"],
+    })
+
+
+def is_conversational_query(text: str) -> bool:
+    q = text.lower().strip()
+    patterns = [
+        r"\b(next step|next steps)\b",
+        r"\bwhat (should|do|can|is|are) (we|our|the|i)\b",
+        r"\bwhat to do\b",
+        r"\bwho (is|will|should|can|does)\b",
+        r"\bhow (to|many|much|long|will|can|do)\b",
+        r"\bwhen (will|can|should|is)\b",
+        r"\b(explain|details|clarify|elaborate)\b",
+        r"\b(document|documents|paperwork|panchnama)\b",
+        r"\b(deadline|turnaround|timeline|time|duration|sla)\b",
+        r"\b(authority|officer|nodal)\b",
+        r"\b(statutory|act|section|law|legal)\b",
+        r"\b(help|guide|suggest|advice)\b",
+    ]
+    return any(re.search(p, q) for p in patterns)
+
+
+def answer_conversational_question(msg: str, dept: str, issue_type: str, issue_desc: str, rec: dict) -> dict:
+    q = msg.lower().strip()
+    steps = rec.get("steps", []) if rec else []
+    statutory = rec.get("statutory_precedent", "") if rec else get_statutory_precedent(dept, issue_desc)
+    eta = rec.get("estimated_turnaround_days", "5-7 Days") if rec else "5-7 Days"
+    headline = rec.get("headline", issue_type or "Bottleneck Resolution") if rec else (issue_type or "Bottleneck Resolution")
+
+    # 1. Next steps / What to do next / Immediate action
+    if any(k in q for k in ["next step", "what to do", "what should we do", "what should be our next", "what first", "how to start", "where to begin"]):
+        if steps:
+            s1 = steps[0]
+            s2 = steps[1] if len(steps) > 1 else "Document findings and notify nodal authority."
+            reply = (
+                f"**Immediate Action Protocol for {dept}:**\n\n"
+                f"👉 **Step 1 (Immediate Next Step):**\n{s1}\n\n"
+                f"👉 **Step 2 (Sequential Milestone):**\n{s2}\n\n"
+                f"⏱ **Target Turnaround:** {eta}\n"
+                f"📜 **Statutory Mandate:** {statutory}\n\n"
+                f"*Next Action Tip:* Initiate Step 1 immediately and upload the signed preliminary field note to maintain project dossier compliance."
+            )
+        else:
+            reply = (
+                f"**Immediate Action Plan:**\n\n"
+                f"1. Conduct a joint site inspection with the {dept} nodal officer.\n"
+                f"2. Verify land parcel demarcation against revenue/cadastral maps.\n"
+                f"3. Convene a bilateral review to fast-track verification within {eta}.\n\n"
+                f"Statutory Reference: {statutory}"
+            )
+        return {"reply": reply, "is_conversational": True}
+
+    # 2. Who is responsible / Authority / Nodal officer
+    if any(k in q for k in ["who is responsible", "who will", "who should", "nodal officer", "authority", "who does", "assign"]):
+        dept_officers = {
+            "Survey & Land Records": "Assistant Director of Land Records (ADLR), Head Surveyor, and designated Revenue Inspector (RI)",
+            "Compensation & Award": "Competent Authority for Land Acquisition (CALA / Sub-Divisional Magistrate), Nodal Accounts Officer (PFMS), and Tahsildar",
+            "Legal & Title Verification": "District Revenue Officer (DRO), Government Pleader, and Land Acquisition Reference Authority (LARA)",
+            "Forest & Environment Clearance": "Divisional Forest Officer (DFO), MoEFCC Parivesh Portal Nodal Officer, and State Forest Department Liaison",
+            "Physical Possession": "Tahsildar / Executive Magistrate, Local Station House Officer (SHO for police bandobast), and Project Director",
+            "Rehabilitation & Resettlement": "Administrator for R&R, District Collector / Magistrate, and Resettlement Officer",
+        }
+        officer = dept_officers.get(dept, "Designated Departmental Nodal Officer and Executive Magistrate")
+        reply = (
+            f"**Responsible Operational Authorities for {dept}:**\n\n"
+            f"• **Primary Executing Official:** {officer}\n"
+            f"• **Oversight / Sign-off Authority:** District Collector / Competent Authority for Land Acquisition (CALA)\n"
+            f"• **Statutory Framework:** {statutory}\n\n"
+            f"The field-level Panchnama must be co-signed by the primary executing officer and verified by the Project Director."
+        )
+        return {"reply": reply, "is_conversational": True}
+
+    # 3. Timeframe / Turnaround / Deadline / SLA
+    if any(k in q for k in ["how long", "how many days", "turnaround", "time", "deadline", "duration", "timeline", "sla"]):
+        reply = (
+            f"**Statutory Timeline & Turnaround:**\n\n"
+            f"• **Prescribed Turnaround:** **{eta}** for standard resolution.\n"
+            f"• **Notice / Inspection Window:** 48 to 72 hours from directive issuance.\n"
+            f"• **Compliance Cut-off:** All verification and biometric/document records must be closed within {eta}.\n"
+            f"• **Escalation Threshold:** If unaddressed past {eta}, the case automatically escalates to District Magistrate Executive Review.\n\n"
+            f"Governed under: *{statutory}*."
+        )
+        return {"reply": reply, "is_conversational": True}
+
+    # 4. Documents required / Panchnama / Proof
+    if any(k in q for k in ["document", "documents", "paperwork", "panchnama", "records", "certificate", "proof"]):
+        dept_docs = {
+            "Survey & Land Records": [
+                "Cadastral Map (Aks Shajra) with GIS coordinates",
+                "Khasra/Khatauni updated Jamabandi register extract",
+                "Joint Demarcation Panchnama with neighbor signatures",
+                "DGPS Ground Truth survey report"
+            ],
+            "Compensation & Award": [
+                "Section 26 Valuation Assessment Statement",
+                "Aadhaar & Bank Mandate validation slip (PFMS DBT compliant)",
+                "Indemnity Bond / Title ownership verification affidavit",
+                "100% Solatium & 12% additional compensation calculation sheet"
+            ],
+            "Legal & Title Verification": [
+                "Non-Encumbrance Certificate (last 30 years from Sub-Registrar)",
+                "Legal Heirship / Succession Certificate",
+                "Certified copy of Civil Court judgment / stay order",
+                "Section 64 Reference Petition (if dispute ongoing)"
+            ],
+            "Forest & Environment Clearance": [
+                "Form-A Parivesh single-window application acknowledgment",
+                "Joint Inspection Verification report by Forest Ranger & DFO",
+                "Compensatory Afforestation (CAMPA) non-forest land identification memo",
+                "Gram Sabha resolution (FRA 2006 compliance)"
+            ],
+            "Physical Possession": [
+                "Section 38 Possession Delivery Panchnama with 2 independent witnesses",
+                "Executive Magistrate spot possession order",
+                "Eviction notice acknowledgment receipt",
+                "Geo-tagged site boundary photographs and videography log"
+            ],
+            "Rehabilitation & Resettlement": [
+                "Second Schedule Entitlement Card for displaced family",
+                "Alternative homestead plot allotment letter",
+                "Subsistence grant voucher acknowledgment",
+                "One-time resettlement allowance disbursement receipt"
+            ],
+        }
+        docs = dept_docs.get(dept, [
+            "Joint site verification Panchnama",
+            "Revenue record extract (Khasra/Khatauni)",
+            "Nodal Officer recommendation memorandum",
+            "Project Dossier compliance sign-off"
+        ])
+        doc_list = "\n".join([f"{i+1}. **{d}**" for i, d in enumerate(docs)])
+        reply = (
+            f"**Mandatory Statutory Documents for {dept}:**\n\n"
+            f"{doc_list}\n\n"
+            f"All documents must be scanned and uploaded to the BhoomiSetu project audit trail upon signature."
+        )
+        return {"reply": reply, "is_conversational": True}
+
+    # 5. Explain specific step (e.g. "explain step 1", "what is step 2")
+    step_match = re.search(r"step\s*(\d+)", q)
+    if step_match and steps:
+        step_num = int(step_match.group(1))
+        if 1 <= step_num <= len(steps):
+            chosen_step = steps[step_num - 1]
+            reply = (
+                f"**Detailed Breakdown for Step {step_num}:**\n\n"
+                f"📌 **Directive:**\n*{chosen_step}*\n\n"
+                f"🔍 **Operational Implementation Guidance:**\n"
+                f"• Mobilize the field inspection team within 24 hours of directive dispatch.\n"
+                f"• Verify revenue record concordance on the spot with concerned landholders and officials.\n"
+                f"• Prepare the official verification note and upload signed digital copy to the portal.\n"
+                f"• Target completion window for this step: 2-3 business days under {statutory}."
+            )
+            return {"reply": reply, "is_conversational": True}
+
+    # 6. Default conversational guidance
+    reply = (
+        f"**Resolution Guidance for {headline}:**\n\n"
+        f"This bottleneck pertains to **{dept}** with target turnaround **{eta}**.\n\n"
+        f"Key Directives in progress:\n" +
+        "\n".join([f"• {s}" for s in steps[:3]]) +
+        f"\n\nStatutory authority: *{statutory}*.\n\n"
+        f"Feel free to ask about specific steps, required documents, responsible officers, or timelines!"
+    )
+    return {"reply": reply, "is_conversational": True}
+
+
+@app.route("/chat", methods=["POST"])
+def chat_endpoint():
+    """
+    POST /chat
+    Conversational follow-up assistant for BhoomiSetu Alerts & Precedents.
+    """
+    if not STATE["knn"]:
+        return jsonify({"error": "Model not trained yet."}), 503
+
+    body = request.get_json(force=True, silent=True) or {}
+    message = str(body.get("message", "")).strip()
+    dept = str(body.get("department", "General")).strip()
+    issue_type = str(body.get("issue_type", "Bottleneck")).strip()
+    issue_desc = str(body.get("issue_description", "")).strip()
+    current_rec = body.get("current_recommendation")
+
+    if not current_rec and issue_desc:
+        base_res = get_suggestions({
+            "department": dept,
+            "issue_type": issue_type,
+            "issue_description": issue_desc,
+            "severity": body.get("severity", "System Failure"),
+            "urgency": body.get("urgency", "High"),
+            "k": 3,
+        })
+        current_rec = base_res.get("recommendation")
+
+    # If the user asked a conversational follow-up question
+    if is_conversational_query(message):
+        answer = answer_conversational_question(message, dept, issue_type, issue_desc, current_rec)
+        return jsonify({
+            "reply": answer["reply"],
+            "is_conversational": True,
+            "recommendation": current_rec,
+        })
+
+    # Otherwise, it's a refined or new bottleneck description:
+    combined_desc = f"{issue_desc} — Additional Ground Context: {message}" if issue_desc else message
+    refinement_res = get_suggestions({
+        "department": dept,
+        "issue_type": issue_type,
+        "issue_description": combined_desc,
+        "severity": body.get("severity", "System Failure"),
+        "urgency": body.get("urgency", "High"),
+        "k": 5,
+    })
+    new_rec = refinement_res.get("recommendation")
+    new_suggs = refinement_res.get("suggestions", [])
+
+    reply = (
+        f"I have incorporated your additional details into the BhoomiSetu Precedent Engine.\n\n"
+        f"**Updated Precedent Directive:**\n"
+        f"• **Headline:** {new_rec.get('headline', 'Standard Directive')}\n"
+        f"• **Statutory Framework:** {new_rec.get('statutory_precedent', 'General SOP')}\n"
+        f"• **Turnaround Target:** {new_rec.get('estimated_turnaround_days', '5-7 Days')}\n\n"
+        f"Please review the updated actionable directives below."
+    )
+
+    return jsonify({
+        "reply": reply,
+        "is_conversational": False,
+        "recommendation": new_rec,
+        "suggestions": new_suggs,
     })
 
 

@@ -1,5 +1,5 @@
 import express from "express";
-import { getSuggestions, getModelStats } from "../services/aiRecommendationService.js";
+import { getSuggestions, getModelStats, chatWithAssistant } from "../services/aiRecommendationService.js";
 
 const router = express.Router();
 
@@ -17,6 +17,19 @@ router.post("/suggest", async (req, res) => {
       recommendation: result.recommendation || null,
       total_cases: result.total_cases || 0,
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/ai/chat
+ * Conversational follow-up assistant for bottlenecks and precedents.
+ */
+router.post("/chat", async (req, res) => {
+  try {
+    const result = await chatWithAssistant(req.body);
+    res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
