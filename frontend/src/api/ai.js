@@ -19,3 +19,7 @@ export const getAIStats = () => api.get("/ai/stats").then((r) => r.data);
 export const chatWithAI = (chatPayload) =>
   api.post("/ai/chat", chatPayload).then((r) => r.data);
 
+/** Predict delay risk from operational fields known at the point of update. */
+export const predictTaskRisk = (payload) =>
+  api.post("/ai/risk/predict", payload).then((r) => r.data);
+

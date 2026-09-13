@@ -10,6 +10,9 @@
 import axios from "axios";
 
 const ML_URL = process.env.ML_SERVICE_URL || "http://localhost:5001";
+const ML_MUTATION_HEADERS = process.env.ML_SERVICE_API_KEY
+  ? { "X-ML-Service-Key": process.env.ML_SERVICE_API_KEY }
+  : {};
 
 /**
  * Get AI suggestions for a bottleneck/issue.
@@ -67,6 +70,17 @@ export async function chatWithAssistant(payload) {
   }
 }
 
+/** Predict future task delay risk using the separately trained Random Forest. */
+export async function predictRisk(payload) {
+  try {
+    const { data } = await axios.post(`${ML_URL}/risk/predict`, payload, { timeout: 12000 });
+    return data;
+  } catch (err) {
+    console.error("[AI] predictRisk:", err.message);
+    throw new Error("Risk prediction is temporarily unavailable");
+  }
+}
+
 /**
  * Teach the model a newly resolved case (self-learning loop).
  * Call this after an officer saves a resolution.
@@ -99,7 +113,11 @@ export async function learnFromResolution(resolution) {
 
     if (!payload.task_type_original) return; // nothing to learn
 
-    await axios.post(`${ML_URL}/learn`, payload, { timeout: 30000 });
+    if (!process.env.ML_SERVICE_API_KEY) {
+      console.warn("[AI] ML_SERVICE_API_KEY is not configured — skipping model mutation.");
+      return;
+    }
+    await axios.post(`${ML_URL}/learn`, payload, { timeout: 30000, headers: ML_MUTATION_HEADERS });
     console.log(
       "[AI] Model learned from resolution:",
       payload.task_type.slice(0, 60)

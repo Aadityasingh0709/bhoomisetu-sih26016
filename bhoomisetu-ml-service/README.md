@@ -8,7 +8,7 @@ A dedicated **Flask + KNN** microservice that helps departmental officers, senio
 BhoomiSetu Backend (Node.js:5000)
     └── aiRecommendationService.js
             ├── POST http://localhost:5001/suggest   ← get precedent recommendations & action checklists
-            ├── POST http://localhost:5001/learn     ← self-learning (auto-called when an alert is resolved)
+            ├── POST http://localhost:5001/learn     ← protected learning endpoint (called by the backend)
             └── GET  http://localhost:5001/stats     ← model health & dataset metrics
 ```
 
