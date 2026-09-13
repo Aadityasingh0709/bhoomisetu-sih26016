@@ -93,19 +93,32 @@ Every project is tracked across the statutory land acquisition pipeline with wei
 
 ---
 
-### 4. 🤖 AI Bottleneck Resolution Advisor (KNN + Self-Learning)
+### 4. 🤖 AI Bottleneck Resolution Copilot (Conversational Chatbot + KNN Precedents)
 
-The built-in AI microservice empowers ground officers and senior executives to resolve deadlocks using historical institutional precedent.
+The built-in AI assistant features an interactive, slide-in **Chatbot Copilot** (`AIChatDrawer.jsx`) that empowers ground officers and senior authorities to resolve deadlocks using 100 historical land acquisition precedents and statutory frameworks.
+
+#### ✨ Interactive Chatbot Copilot Features:
+- **Slide-in Right Drawer**: Accessible directly via the **"AI Chatbot"** button on every alert card and inside every decision/closure modal.
+- **Precedent Matching**: Ranks similar historical cases with confidence scores, turnaround estimates, and statutory references.
+- **Conversational Follow-Up Q&A (`POST /chat`)**: Officers can ask natural follow-up questions directly in the chat:
+  - 📌 *"What should be our next step?"* → Returns sequential milestones (Immediate Step 1, Sequential Step 2) with action tips.
+  - 👤 *"Who is responsible for this?"* → Details primary executing officials (CALA, SDM, Tahsildar, ADLR, DFO) and oversight authorities.
+  - ⏱ *"How many days will it take / SLA?"* → Explains statutory compliance windows, inspection notice limits, and escalation triggers.
+  - 📄 *"What documents are required / Panchnama?"* → Lists mandatory statutory documentation (Cadastral sheets, Section 26 valuation, PFMS slips, Forest Form-A).
+  - 🔍 *"Explain Step 1"* → In-depth operational field guidance for that specific step.
+- **1-Click "Apply to Resolution"**: Automatically transfers the synthesized directive directly into the official decision, fix note, or audit closure narrative.
+- **Ground Refinement**: Adding new details (e.g. *"Court stay order issued"*) dynamically refines the KNN matching to specialized precedent cases.
 
 #### Technical Specifications:
 - **Algorithm**: Multi-Feature Cosine K-Nearest Neighbors (`scikit-learn NearestNeighbors`).
 - **Feature Pipeline**: Semantic TF-IDF Vectorization (unigrams + bigrams, English stop-words filtering, sublinear term frequency, L2 normalization) over unstructured problem descriptions with domain-weighted department token alignment.
+- **Conversational Engine**: Dedicated intent classifier & domain response generator with Act-grounded resolution blueprints.
 - **Knowledge Base**: 100 authentic infrastructure land acquisition bottleneck precedents across the 6 statutory departments with real-world dispute causes and proven statutory resolutions.
 - **Outputs**:
-  - **Similarity Match Percentage** (e.g. 74% to 95% semantic match).
-  - **Recommended Step-by-Step Action Plan** (extracted directly from proven precedent resolution).
-  - **Statutory Law Reference** (RFCTLARR Act 2013, Forest Conservation Act 1980, Land Records Manual).
-  - **Estimated Turnaround Time (TAT)** (e.g. 7–11 Days).
+  - **Similarity Match Percentage** (e.g. 74% to 100% semantic match).
+  - **Sequential Action Plan** (extracted directly from proven precedent resolution).
+  - **Statutory Law Reference** (RFCTLARR Act 2013, Forest Conservation Act 1980, Land Records Demarcation Manual).
+  - **Estimated Turnaround Time (TAT)** (e.g. 5–7 Days).
   - **Precedent Case ID Reference** (e.g. `#LA_001`, `#LA_008`, `#LA_015`).
 
 #### 🔄 Continuous Self-Learning Loop:
@@ -125,9 +138,10 @@ Follow these exact steps to verify that the bottleneck reporting and AI suggesti
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                  HOW TO RUN THE END-TO-END TEST                                        │
 │  1. Officer / Admin raises Bottleneck in ALERTS section (selecting the specific Department)             │
-│  2. Senior Officer / Administrator opens ALERTS -> clicks "Post Decision"                               │
-│  3. Click "Generate AI Directive" -> AI reads problem & prescribes precedent action plan               │
-│  4. Click "Apply Suggestion to Decision Text" -> Auto-populates official directive for officer         │
+│  2. Senior Officer / Administrator opens ALERTS -> clicks "Post Decision" (or "AI Chatbot" on card)     │
+│  3. Click "Open AI Chatbot" -> Slide-in drawer opens, analyzes problem & prescribes actionable steps    │
+│  4. Ask follow-up: "What should be our next step?" -> AI provides immediate Step 1 & Step 2 roadmap     │
+│  5. Click "Apply to Resolution" -> Auto-populates official directive into the decision textarea         │
 └────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 

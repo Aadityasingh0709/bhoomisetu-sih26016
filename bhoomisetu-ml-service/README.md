@@ -82,6 +82,35 @@ Get top-K similar precedent cases and synthesized resolution directives.
 }
 ```
 
+### `POST /chat`
+Conversational follow-up assistant answering next steps, responsible authorities, statutory turnaround SLAs, and required documentation.
+```json
+{
+  "message": "what should be our next step",
+  "department": "Compensation & Award",
+  "issue_type": "Bottleneck",
+  "issue_description": "Compensation stage backlog: 32 pending cases with actual progress at 43%...",
+  "current_recommendation": {
+    "headline": "Directive: Resolution Protocol for Payment Disbursement Failure",
+    "steps": [
+      "Conduct initial joint inter-departmental site verification and record Panchnama.",
+      "Verify land parcel demarcation against Cadastral/GIS maps and official Revenue records."
+    ],
+    "estimated_turnaround_days": "5-7 Days",
+    "statutory_precedent": "RFCTLARR Act 2013 Section 26-30 & PFMS Guidelines"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "reply": "**Immediate Action Protocol for Compensation & Award:**\n\n👉 **Step 1 (Immediate Next Step):**\nConduct initial joint inter-departmental site verification and record Panchnama.\n\n👉 **Step 2 (Sequential Milestone):**\nVerify land parcel demarcation against Cadastral/GIS maps and official Revenue records.\n\n⏱ **Target Turnaround:** 5-7 Days\n📜 **Statutory Mandate:** RFCTLARR Act 2013 Section 26-30 & PFMS Guidelines",
+  "is_conversational": true,
+  "recommendation": { ... }
+}
+```
+
 ### `POST /learn`
 Add a single newly resolved case (called automatically by the backend when an officer or admin marks an alert resolved).
 ```json
