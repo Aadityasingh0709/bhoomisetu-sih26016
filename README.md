@@ -251,8 +251,8 @@ npm run install:all
 Create a `.env` file inside the `backend/` directory:
 ```env
 PORT=5000
-MONGO_URI=mongodb+srv://keshawjha2005_db_user:r27tZvcAHqCyUMak@cluster1.bsxiklt.mongodb.net/bhoomisetu?retryWrites=true&w=majority&appName=Cluster1
-JWT_SECRET=bhoomisetu_super_secret_jwt_key_2026
+MONGO_URI=Connection string of the database 
+JWT_SECRET=Your Personalised Key
 CLIENT_URL=http://localhost:5173
 ML_SERVICE_URL=http://localhost:5001
 
