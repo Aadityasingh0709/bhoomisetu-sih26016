@@ -55,7 +55,7 @@ Large-scale national infrastructure initiatives (Highways, Dedicated Freight Cor
 
 | Name | Role | GitHub Profile |
 |---|---|---|
-| **Aaditya Singh** | Lead Full-Stack & ML Architect | [@Aadityasingh0709](https://github.com/Aadityasingh0709) |
+| **Aaditya Singh** | Full-Stack & ML Architect | [@Aadityasingh0709](https://github.com/Aadityasingh0709) |
 | **Keshaw Jha** | Backend & Database Systems | [@keshaw006](https://github.com/keshaw006) |
 | **Anvesha Singh** | Frontend & UI/UX Design | — |
 | **Sudhanshu Singh** | QA & Product Research | — |
