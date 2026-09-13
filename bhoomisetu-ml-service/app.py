@@ -11,6 +11,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from sklearn.neighbors import NearestNeighbors
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger("bhoomisetu-ml")
@@ -30,7 +37,73 @@ STATE = {
     "tfidf": None,
     "trained_at": None,
     "total_cases": 0,
+    "risk_model": None,
+    "risk_metrics": None,
 }
+
+# The baseline deliberately uses fields available before the outcome.  The
+# target (overdue_label) is never included as an input feature.
+RISK_NUMERIC_FEATURES = [
+    "description_length", "has_images", "has_comments", "has_documents",
+    "days_since_dataset_start",
+]
+RISK_CATEGORICAL_FEATURES = ["task_group", "urgency_level", "safety_classification"]
+RISK_FEATURES = RISK_NUMERIC_FEATURES + RISK_CATEGORICAL_FEATURES
+
+
+def prepare_risk_features(df: pd.DataFrame) -> pd.DataFrame:
+    data = df.copy()
+    for field in RISK_NUMERIC_FEATURES:
+        if field not in data:
+            data[field] = np.nan
+    for field in RISK_CATEGORICAL_FEATURES:
+        if field not in data:
+            data[field] = "Not Specified"
+    return data[RISK_FEATURES]
+
+
+def train_risk_model(df: pd.DataFrame) -> dict | None:
+    """Train an honest Random Forest overdue-risk baseline on the cleaned data."""
+    if "overdue_label" not in df:
+        return None
+    target = pd.to_numeric(df["overdue_label"], errors="coerce").fillna(0).astype(int)
+    if target.nunique() < 2:
+        return None
+    features = prepare_risk_features(df)
+    preprocessing = ColumnTransformer([
+        ("numeric", SimpleImputer(strategy="median"), RISK_NUMERIC_FEATURES),
+        ("categorical", Pipeline([
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("encoder", OneHotEncoder(handle_unknown="ignore")),
+        ]), RISK_CATEGORICAL_FEATURES),
+    ])
+    model = Pipeline([
+        ("features", preprocessing),
+        ("classifier", RandomForestClassifier(
+            n_estimators=250, min_samples_leaf=2, class_weight="balanced",
+            random_state=42, n_jobs=-1,
+        )),
+    ])
+    metrics = {"evaluation": "training dataset only"}
+    if len(df) >= 20 and target.value_counts().min() >= 2:
+        x_train, x_test, y_train, y_test = train_test_split(
+            features, target, test_size=0.2, random_state=42, stratify=target
+        )
+        model.fit(x_train, y_train)
+        predicted = model.predict(x_test)
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            y_test, predicted, average="binary", zero_division=0
+        )
+        metrics = {
+            "evaluation": "stratified 20% holdout", "test_records": int(len(y_test)),
+            "accuracy": round(float(accuracy_score(y_test, predicted)), 3),
+            "precision": round(float(precision), 3), "recall": round(float(recall), 3),
+            "f1": round(float(f1), 3),
+        }
+    model.fit(features, target)
+    STATE["risk_model"] = model
+    STATE["risk_metrics"] = metrics
+    return metrics
 
 
 def clean_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -93,6 +166,7 @@ def train_model(df: pd.DataFrame) -> dict:
         "trained_at": now,
         "total_cases": len(df),
     })
+    risk_metrics = train_risk_model(df)
 
     # Persist
     save_payload = {
@@ -101,12 +175,14 @@ def train_model(df: pd.DataFrame) -> dict:
         "tfidf": tfidf,
         "trained_at": now,
         "total_cases": len(df),
+        "risk_model": STATE["risk_model"],
+        "risk_metrics": risk_metrics,
     }
     with open(MODEL_PATH, "wb") as f:
         pickle.dump(save_payload, f)
 
     logger.info("Model saved successfully: %d cases -> %s", len(df), MODEL_PATH)
-    return {"total_cases": len(df), "trained_at": now}
+    return {"total_cases": len(df), "trained_at": now, "risk_metrics": risk_metrics}
 
 
 def load_model() -> bool:
@@ -116,6 +192,10 @@ def load_model() -> bool:
         with open(MODEL_PATH, "rb") as f:
             saved = pickle.load(f)
         STATE.update(saved)
+        # Existing precedent model files remain valid; add the new risk layer
+        # from the same curated dataset when it is first loaded.
+        if STATE.get("risk_model") is None and STATE.get("df") is not None:
+            train_risk_model(STATE["df"])
         logger.info("Model loaded from disk: %s cases", saved.get("total_cases", "?"))
         return True
     except Exception as exc:
@@ -233,7 +313,7 @@ def synthesize_recommendation(query: dict, results: list, desc_matched: bool = T
         "confidence_score": top_similarity,
         "is_low_confidence": False,
         "estimated_turnaround_days": f"{base_days}-{base_days + 4} Days",
-        "success_rate": f"96% resolution success based on {STATE['total_cases']} precedent cases",
+        "success_rate": "Similarity-based precedent guidance; outcome success is not evaluated",
         "statutory_precedent": statutory_precedent,
         "steps": precedent_steps,
         "preventive_measures": [
@@ -311,6 +391,26 @@ def health():
         "model_loaded": STATE["knn"] is not None,
         "total_cases": STATE["total_cases"],
         "trained_at": STATE["trained_at"],
+        "risk_model_loaded": STATE["risk_model"] is not None,
+    })
+
+
+@app.route("/risk/predict", methods=["POST"])
+def predict_risk():
+    """Predict future overdue risk independently from precedent retrieval."""
+    if STATE["risk_model"] is None:
+        return jsonify({"error": "Risk model not trained yet."}), 503
+    payload = request.get_json(force=True, silent=True) or {}
+    probability = float(STATE["risk_model"].predict_proba(
+        prepare_risk_features(pd.DataFrame([payload]))
+    )[0][1])
+    risk_class = "Delayed" if probability >= 0.65 else ("At Risk" if probability >= 0.35 else "On Track")
+    return jsonify({
+        "risk_class": risk_class,
+        "overdue_probability": round(probability, 3),
+        "model": "Random Forest baseline",
+        "metrics": STATE["risk_metrics"],
+        "input_features": RISK_FEATURES,
     })
 
 
@@ -677,6 +777,7 @@ def stats():
             df["safety_classification"].value_counts().to_dict()
             if "safety_classification" in df else {}
         ),
+        "risk_model": {"available": STATE["risk_model"] is not None, "metrics": STATE["risk_metrics"]},
     })
 
 
