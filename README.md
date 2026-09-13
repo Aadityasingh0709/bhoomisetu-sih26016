@@ -226,7 +226,7 @@ The AI Copilot is accessible directly from every alert card via the **"AI Chatbo
 
 ---
 
-## ⚡ Step-by-Step Setup Guide (Run in 5 Minutes)
+
 
 ### Prerequisites:
 - **Node.js**: v18 or v20 LTS installed ([Download](https://nodejs.org/))
@@ -235,91 +235,10 @@ The AI Copilot is accessible directly from every alert card via the **"AI Chatbo
 
 ---
 
-### Step 1: Clone Repository & Install Dependencies
-Open your terminal in the root directory:
-```bash
-git clone https://github.com/Aadityasingh0709/bhoomisetu-sih26016.git
-cd bhoomisetu-sih26016
 
-# Install dependencies for root, backend, and frontend
-npm run install:all
-```
 
 ---
 
-### Step 2: Configure Environment Variables
-Create a `.env` file inside the `backend/` directory:
-```env
-PORT=5000
-MONGO_URI=Connection string of the database 
-JWT_SECRET=Your Personalised Key
-CLIENT_URL=http://localhost:5173
-ML_SERVICE_URL=http://localhost:5001
-
-# SMTP Credentials for Email Dispatch
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=465
-SMTP_SECURE=true
-SMTP_USER=bhoomisetu61@gmail.com
-SMTP_PASS=your_gmail_app_password
-SMTP_FROM="BhoomiSetu National Portal" <bhoomisetu61@gmail.com>
-```
-
----
-
-### Step 3: Seed Test Database
-Populate initial national projects, demo officers, and baseline alerts:
-```bash
-npm run seed
-```
-
----
-
-### Step 4: Run the Application (All 3 Services)
-
-#### Terminal 1 — Start ML Microservice (Port 5001):
-```bash
-cd bhoomisetu-ml-service
-pip install -r requirements.txt
-python app.py
-```
-*(You will see: `Running on http://127.0.0.1:5001`)*
-
-#### Terminal 2 — Start Backend & Frontend Simultaneously:
-```bash
-# From the root directory:
-npm run dev
-```
-
-- 🌐 **Frontend Application**: `http://localhost:5173/`
-- ⚙️ **Backend REST API**: `http://localhost:5000`
-- 🧠 **ML Microservice**: `http://localhost:5001`
-
----
-
-## 🔑 Demo Accounts & Credentials
-
-### 1. Executive Logins (Direct Sign-In)
-| Role | Email | Password | Primary Purpose |
-|---|---|---|---|
-| **Administrator** | `admin@landacquisition.gov.in` | `Admin@2026Secure!` | Full platform administration, project creation & credential management |
-| **Senior Officer** | `senior@landacquisition.gov.in` | `Senior@2026Officer!` | Review alerts, run AI Copilot, issue statutory decision orders |
-
-### 2. Project-Scoped Officer Logins (2-Step Sign-In)
-To log in as a field officer, select the **Project Officer Login** tab:
-1. **Enter Project Code**: `NH44-P2-2026` *(NH-44 Highway Expansion Phase 2)*
-2. **Enter Credentials**:
-
-| Department | Email | Password |
-|---|---|---|
-| **Survey Officer** | `survey@landacquisition.gov.in` | `Survey@2026Land!` |
-| **Legal Verification** | `legal@landacquisition.gov.in` | `Legal@2026Verify!` |
-| **Compensation Officer** | `compensation@landacquisition.gov.in` | `Compensation@2026!` |
-| **Rehabilitation Officer** | `rehabilitation@landacquisition.gov.in` | `Rehab@2026Support!` |
-| **Approvals Officer** | `approvals@landacquisition.gov.in` | `Approvals@2026!` |
-| **Possession Officer** | `possession@landacquisition.gov.in` | `Possession@2026!` |
-
-*(Note: For the second project `EFC-LP-2026`, replace email with `<role>.efc@landacquisition.gov.in` and password `<Role>@2026Efc!`)*
 
 ---
 
