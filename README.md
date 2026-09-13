@@ -56,9 +56,9 @@ Large-scale national infrastructure initiatives (Highways, Dedicated Freight Cor
 | Name | Role | GitHub Profile |
 |---|---|---|
 | **Anvesha Singh** |Lead & Frontend & UI/UX Design |  |
-| **Keshaw Jha** | Ai,Backend & Database Systems | [@keshaw006](https://github.com/keshaw006) |
+| **Keshaw Jha** | Ai,Backend  | [@keshaw006](https://github.com/keshaw006) |
 | **Aaditya Singh** | Full-Stack & ML Architect | [@Aadityasingh0709](https://github.com/Aadityasingh0709) |
-| **Sudhanshu Singh** | QA & Product Research | — |
+| **Sudhanshu Singh** | QA & Product Research & Database Systems| — |
 | **Garima Gupta** | Documentation & Statutory Compliance | — |
 | **Vivek Kr. Das** | GIS Data & Evaluation | — |
 
