@@ -42,6 +42,36 @@ const adminSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+const DEFAULT_PROJECTS = [
+  {
+    id: "nh44-default",
+    code: "NH44-P2-2026",
+    name: "NH-44 Highway Expansion — Phase 2",
+    state: "Karnataka",
+    district: "Belagavi",
+    implementingAgency: "National Highways Authority of India",
+    overallStatus: "Delayed",
+  },
+  {
+    id: "edfc-default",
+    code: "EDFC-BR-2026",
+    name: "Eastern Dedicated Freight Corridor — Bihar Section",
+    state: "Bihar",
+    district: "Patna",
+    implementingAgency: "Dedicated Freight Corridor Corporation of India (DFCCIL)",
+    overallStatus: "OnTrack",
+  },
+  {
+    id: "nvgp-default",
+    code: "NVGP-MP-2026",
+    name: "Narmada Valley Solar-Wind Hybrid Green Park",
+    state: "Madhya Pradesh",
+    district: "Dhar",
+    implementingAgency: "Solar Energy Corporation of India (SECI)",
+    overallStatus: "AtRisk",
+  },
+];
+
 export default function LoginPage() {
   const [authMode, setAuthMode] = useState("officer"); // "officer" | "admin"
   const [step, setStep] = useState(1); // 1 = Select/Search Project ID, 2 = Enter Officer Credentials
@@ -49,8 +79,8 @@ export default function LoginPage() {
   const [validatingProject, setValidatingProject] = useState(false);
   const [verifiedProject, setVerifiedProject] = useState(null);
 
-  // Dynamic live projects search & lookup
-  const [projectsList, setProjectsList] = useState([]);
+  // Dynamic live projects search & lookup (initialized with 3 primary projects)
+  const [projectsList, setProjectsList] = useState(DEFAULT_PROJECTS);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const searchContainerRef = useRef(null);
@@ -79,9 +109,17 @@ export default function LoginPage() {
     setLoadingProjects(true);
     try {
       const data = await lookupProjects(query);
-      setProjectsList(data.projects || []);
+      const list = Array.isArray(data) ? data : (data?.projects || []);
+      if (list && list.length > 0) {
+        setProjectsList(list);
+      } else if (!query) {
+        setProjectsList(DEFAULT_PROJECTS);
+      }
     } catch (err) {
       console.error("Failed to fetch live projects:", err);
+      if (!query && projectsList.length === 0) {
+        setProjectsList(DEFAULT_PROJECTS);
+      }
     } finally {
       setLoadingProjects(false);
     }
@@ -133,12 +171,30 @@ export default function LoginPage() {
     setValidatingProject(true);
     try {
       const data = await validateProjectCode(code);
-      setVerifiedProject(data.project);
-      setProjectCodeInput(data.project.code);
-      setSearchFocused(false);
-      setStep(2);
-      toast.success(`Project Verified: ${data.project.name}`);
+      if (data?.project) {
+        setVerifiedProject(data.project);
+        setProjectCodeInput(data.project.code);
+        setSearchFocused(false);
+        setStep(2);
+        toast.success(`Project Verified: ${data.project.name}`);
+        return;
+      }
     } catch (err) {
+      // Fallback: match against local projects list
+      const matched = projectsList.find(
+        (p) =>
+          p.code?.toLowerCase() === code.toLowerCase() ||
+          p.name?.toLowerCase().includes(code.toLowerCase()) ||
+          p.id === code
+      );
+      if (matched) {
+        setVerifiedProject(matched);
+        setProjectCodeInput(matched.code);
+        setSearchFocused(false);
+        setStep(2);
+        toast.success(`Project Selected: ${matched.name}`);
+        return;
+      }
       toast.error(err.response?.data?.message || `Project "${code}" not found in system.`);
     } finally {
       setValidatingProject(false);

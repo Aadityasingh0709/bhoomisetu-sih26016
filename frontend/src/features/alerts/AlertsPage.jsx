@@ -34,6 +34,7 @@ import {
   User,
   PlusCircle,
   Building2,
+  Bot,
 } from "lucide-react";
 
 export default function AlertsPage() {
