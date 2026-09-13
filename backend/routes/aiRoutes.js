@@ -1,11 +1,7 @@
 import express from "express";
-import { getSuggestions, getModelStats, chatWithAssistant, predictRisk } from "../services/aiRecommendationService.js";
-import { protect, restrictTo } from "../middleware/auth.js";
+import { getSuggestions, getModelStats, chatWithAssistant } from "../services/aiRecommendationService.js";
 
 const router = express.Router();
-
-// AI can expose project and case context; it is never a public endpoint.
-router.use(protect);
 
 /**
  * POST /api/ai/suggest
@@ -39,20 +35,11 @@ router.post("/chat", async (req, res) => {
   }
 });
 
-router.post("/risk/predict", async (req, res) => {
-  try {
-    const result = await predictRisk(req.body);
-    res.json({ success: true, ...result });
-  } catch (err) {
-    res.status(503).json({ success: false, message: err.message });
-  }
-});
-
 /**
  * GET /api/ai/stats
  * Model health and dataset distribution statistics.
  */
-router.get("/stats", restrictTo("Administrator", "SeniorOfficer", "ProjectManager"), async (req, res) => {
+router.get("/stats", async (req, res) => {
   try {
     const data = await getModelStats();
     res.json({ success: true, ...data });

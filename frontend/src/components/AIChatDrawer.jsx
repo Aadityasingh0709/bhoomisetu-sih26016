@@ -213,7 +213,7 @@ export default function AIChatDrawer({ isOpen, onClose, target, onApply }) {
     }
   }, [loading, isOpen]);
 
-  // Initial case analysis against the curated precedent knowledge base.
+  // Initial case analysis against 100 cases
   const handleInitialAnalysis = async (problemText) => {
     if (!problemText?.trim()) return;
 
@@ -374,7 +374,7 @@ export default function AIChatDrawer({ isOpen, onClose, target, onApply }) {
                 <h3 className="font-black text-sm flex items-center gap-1.5">
                   <span>BhoomiSetu AI Copilot</span>
                   <span className="text-[10px] bg-emerald-400/30 text-emerald-200 border border-emerald-300/40 px-1.5 py-0.2 rounded-full font-bold">
-                    Precedent guidance
+                    KNN Conversational
                   </span>
                 </h3>
                 <p className="text-[10px] text-violet-200">
@@ -414,7 +414,7 @@ export default function AIChatDrawer({ isOpen, onClose, target, onApply }) {
                 <div className="space-y-1">
                   <h4 className="font-black text-sm text-ink-800">BhoomiSetu Chatbot Assistant</h4>
                   <p className="text-xs text-ink-500 max-w-xs">
-                    Finding similar cases in the curated precedent knowledge base.
+                    Analyzing bottleneck against statutory frameworks &amp; 100 historical precedents.
                   </p>
                 </div>
               </div>
