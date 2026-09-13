@@ -1,44 +1,113 @@
 # 🇮🇳 BhoomiSetu — Real-Time National Land Acquisition & Management Platform
 
-**Smart India Hackathon (SIH 2026) · Problem Statement PS-26016**  
-*Ministry of Rural Development — Department of Land Resources (DoLR), Government of India*
+[![Smart India Hackathon 2026](https://img.shields.io/badge/SIH-2026-orange.svg?style=for-the-badge)](https://www.sih.gov.in/)
+[![Problem Statement](https://img.shields.io/badge/Problem%20Statement-PS--26016-blue.svg?style=for-the-badge)](https://www.sih.gov.in/)
+[![Ministry](https://img.shields.io/badge/Ministry-Rural%20Development%20(DoLR)-green.svg?style=for-the-badge)](https://dolr.gov.in/)
+[![Node.js](https://img.shields.io/badge/Node.js-20%20LTS-339933.svg?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18-61DAFB.svg?style=for-the-badge&logo=react)](https://reactjs.org/)
+[![Python](https://img.shields.io/badge/Python-3.13%20ML-3776AB.svg?style=for-the-badge&logo=python)](https://python.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg?style=for-the-badge&logo=mongodb)](https://mongodb.com/)
 
 ---
 
-## 🌟 Executive Overview & Problem Statement
-
-Large-scale national infrastructure projects (highways, dedicated freight corridors, smart cities, railway networks, industrial corridors) routinely suffer from **delays, cost overruns, and multi-departmental friction** during the land acquisition lifecycle.
-
-Traditional land acquisition processes face 4 fundamental challenges:
-1. **Siloed Departmental Workflows**: 6 key statutory departments (**Survey, Legal Verification, Compensation, Rehabilitation, Statutory Approvals, Possession**) work in isolated silos with paper-based or disconnected reporting.
-2. **Lack of Real-Time Multi-Tier Telemetry**: Higher authorities (Ministries, State Principal Secretaries, Senior District Officers) have no consolidated GIS visibility or real-time bottleneck alerting.
-3. **Recurring Procedural Bottlenecks**: Similar disputes (title contests, boundary overlaps, compensation grievances, missing clearances) occur repeatedly across projects with zero institutional memory or predictive guidance.
-4. **Credential Distribution Friction**: Onboarding ground officers across dozens of simultaneous national projects leads to account collisions and administrative overhead.
-
-**BhoomiSetu** solves this by providing a unified, real-time, GIS-enabled national land acquisition management system equipped with:
-- **Project-Scoped Role-Based Access Control (RBAC)**.
-- **Dynamic Multi-Channel Credential Dispatch (Email & WhatsApp)** with in-place error correction.
-- **Weighted Multi-Stage Progress Telemetry** (0% to 100% lifecycle).
-- **K-Nearest Neighbors (KNN) AI Recommendation Engine** pre-trained on **12,424 real-world cases** with a continuous **Self-Learning Feedback Loop**.
-- **Institutional Dispute & Order Settlement Ledger**.
-
----
-
-## 👥 Contributors
-
-- **Aaditya Singh** ([@Aadityasingh0709](https://github.com/Aadityasingh0709))
-- **Keshaw Jha** ([@keshaw006](https://github.com/keshaw006))
+## 📑 Quick Navigation for Team & Reviewers
+- [🎯 Executive Summary & Problem Statement](#-executive-summary--the-core-problem)
+- [👥 Team & Contributors](#-team--contributors)
+- [🧩 How the System Works (Mental Model)](#-how-the-system-works-mental-model)
+- [🏛️ System Architecture & Workflow Diagram](#-system-architecture--workflow)
+- [📁 Folder Structure Explained](#-folder-structure-explained)
+- [👥 User Roles & Permissions Matrix](#-user-roles--permissions-matrix)
+- [📊 6-Stage Statutory Lifecycle](#-the-6-stage-statutory-land-acquisition-lifecycle)
+- [🤖 AI Copilot & Precedent Chatbot](#-ai-bottleneck-resolution-copilot)
+- [⚡ Quick Start & Setup Guide](#-step-by-step-setup-guide-run-in-5-minutes)
+- [🔑 Demo Accounts & Login Credentials](#-demo-accounts--credentials)
+- [🧪 End-to-End Demo Script](#-step-by-step-end-to-end-demo-script)
+- [📑 Complete API Reference](#-complete-api-reference)
+- [📽️ 6-Slide Hackathon Pitch Deck](#-6-slide-sih-pitch-deck-structure)
+- [❓ Frequently Asked Questions (FAQ)](#-frequently-asked-questions-faq)
 
 ---
 
-## 🏛️ System Architecture
+## 🎯 Executive Summary & The Core Problem
+
+Large-scale national infrastructure initiatives (Highways, Dedicated Freight Corridors, Metro Rails, Industrial Parks, Smart Cities) routinely suffer from **massive time delays (averaging 3–5 years) and staggering cost overruns (40%+)** during the land acquisition phase.
+
+### The 4 Major Pain Points in Traditional Governance:
+1. **Siloed Departmental Execution**: 6 statutory departments (*Survey, Legal Title Verification, Compensation Disbursement, Rehabilitation & Resettlement, Statutory Clearances, Physical Possession*) operate in isolation using physical files or disjointed local spreadsheets.
+2. **Zero Centralized Multi-Tier Telemetry**: State Principal Secretaries and Central Ministries have no live GIS map view or real-time bottleneck alerting.
+3. **Repetitive Disputes & Zero Institutional Memory**: Common disputes (boundary overlap, family inheritance disputes, fraudulent Power of Attorney, Aadhaar/PFMS payment mismatches, Forest NOC delays) repeat across every district because past solutions are never codified into a reusable knowledge base.
+4. **Credential Onboarding Friction**: Deploying ground officers across dozens of simultaneous national infrastructure projects causes account collisions and administrative overhead.
+
+---
+
+## 💡 What BhoomiSetu Does (The Solution)
+
+**BhoomiSetu** is an end-to-end, real-time, GIS-enabled digital governance platform that unifies all 6 statutory land acquisition departments under a single pane of glass:
+- 🗺️ **Live GIS Map & Weighted Telemetry**: Real-time project completion calculation (0% to 100%) weighted by statutory effort.
+- 🔐 **2-Step Project-Scoped RBAC**: Eliminates login collisions for ground officers deployed across multiple regional projects.
+- 📲 **Automated Multi-Channel Dispatch**: 1-click credential distribution to ground officers via Gmail SMTP & WhatsApp with in-place credential editing.
+- 🤖 **AI Bottleneck Copilot & Interactive Chatbot**: A scikit-learn KNN engine trained on 100+ authentic legal/administrative precedents that provides real-time resolution steps, statutory act references, turnaround time estimates, and answers natural follow-up questions.
+- 🔄 **Continuous Self-Learning Loop**: Whenever an officer resolves a deadlock, the resolution steps are ingested by the AI microservice in real time to train future suggestions.
+
+---
+
+## 👥 Team & Contributors
+
+| Name | Role | GitHub Profile |
+|---|---|---|
+| **Aaditya Singh** | Lead Full-Stack & ML Architect | [@Aadityasingh0709](https://github.com/Aadityasingh0709) |
+| **Keshaw Jha** | Backend & Database Systems | [@keshaw006](https://github.com/keshaw006) |
+| **Anvesha Singh** | Frontend & UI/UX Design | — |
+| **Sudhanshu Singh** | QA & Product Research | — |
+| **Garima Gupta** | Documentation & Statutory Compliance | — |
+| **Vivek Kr. Das** | GIS Data & Evaluation | — |
+
+---
+
+## 🧩 How the System Works (Mental Model)
+
+To understand BhoomiSetu easily, think of it as a 4-layer engine:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 1. PROJECT CREATION LAYER                              │
+│   Administrator creates a Project (e.g. NH-44 Belagavi, 500 Hectares, 6 Stages).      │
+│   System automatically generates 6 dedicated Officer Accounts & sends them via Email.  │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              2. GROUND EXECUTION LAYER                                 │
+│   Each of the 6 Department Officers logs into their isolated Project Workspace.       │
+│   They upload land surveys, approve title deeds, process DBT awards, and log progress. │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              3. BOTTLENECK & ALERT LAYER                               │
+│   When an issue occurs (e.g. "Court Stay Order" or "Forest NOC pending"), an Alert is  │
+│   raised with severity & department tag.                                               │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                         4. AI RESOLUTION & DECISION LAYER                              │
+│   Senior Officer opens the AI Chatbot Copilot. The AI matches historical precedents,   │
+│   answers questions ("Who is responsible?", "What docs?"), and generates a directive.  │
+│   Officer applies directive with 1-click. Once resolved, the AI self-learns!           │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🏛️ System Architecture & Workflow
 
 ```
                                   ┌─────────────────────────────────────────────────────────┐
                                   │               BhoomiSetu Frontend (React/Vite)          │
                                   │   - Executive Dashboard (Live GIS Map & Analytics)     │
                                   │   - 2-Step Project-Scoped Officer Workspaces            │
-                                  │   - AI Bottleneck Advisor & Alert Action Center        │
+                                  │   - Slide-in AI Copilot Chatbot (AIChatDrawer.jsx)      │
                                   └───────────────────────────┬─────────────────────────────┘
                                                               │
                                             HTTP / REST API (JSON) + JWT
@@ -47,10 +116,10 @@ Traditional land acquisition processes face 4 fundamental challenges:
                                   ┌─────────────────────────────────────────────────────────┐
                                   │              BhoomiSetu Backend (Node.js/Express)       │
                                   │   - JWT Auth & Dynamic RBAC Middleware                  │
-                                  │   - Weighted Lifecycle Calculation Engine               │
-                                  │   - Automated Bottleneck Detection & SLA Monitor       │
+                                  │   - Weighted Lifecycle Calculation Engine (6 Stages)    │
+                                  │   - Automated Bottleneck Detection & SLA Monitor        │
                                   │   - Real-Time SMTP Email & WhatsApp Dispatcher          │
-                                  │   - Self-Learning Resolution Feedback Dispatcher        │
+                                  │   - Self-Learning AI Dispatcher Proxy                   │
                                   └───────────────┬─────────────────────────┬───────────────┘
                                                   │                         │
                                     Mongoose ODM  │                         │ HTTP (Port 5001)
@@ -58,214 +127,128 @@ Traditional land acquisition processes face 4 fundamental challenges:
             ┌───────────────────────────────────────────────┐     ┌─────────────────────────────────────────┐
             │               MongoDB Database                │     │     BhoomiSetu ML Recommendation Engine │
             │   - Projects & Geo-Parcels                    │     │     (Python 3.13 / Flask / Scikit-Learn)│
-            │   - Users & Scoped Department Assignments     │     │   - 12,424 Case Dataset (TF-IDF Vector) │
-            │   - Alerts, Decisions & Dispute Audits        │     │   - Cosine K-Nearest Neighbors (KNN)    │
-            │   - Historical Resolution Knowledge Base      │     │   - Continuous Incremental Self-Learning│
+            │   - Users & Scoped Department Assignments     │     │   - TF-IDF Vectorizer (Unigrams+Bigrams)│
+            │   - Alerts, Decisions & Dispute Audits        │     │   - Cosine NearestNeighbors (KNN)       │
+            │   - Historical Statutory Knowledge Base       │     │   - Conversational Q&A Intent Router    │
             └───────────────────────────────────────────────┘     └─────────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 Key Modules & Feature Highlights
+## 📁 Folder Structure Explained
 
-### 1. 🛡️ System Administrator & Project Manager Power Tools
-- **1-Click Project & Credential Generation**: When creating a project, the administrator instantly provisions dedicated credentials for all 6 departmental officers (Survey, Legal, Compensation, Rehabilitation, Approvals, Possession).
-- **Live Multi-Channel Credential Dispatch**: Automatically sends official credentials and direct login links to officers via Gmail SMTP and WhatsApp notifications.
-- **In-Place Officer Credential Editing**: If an officer's email or phone number has a typo, administrators can edit the officer credentials directly from the Project Dossier with optional instant re-dispatch—**eliminating the need to delete and recreate entire projects**.
-- **Global Project Search & GIS Mission Control**: Search across national projects by Project ID (e.g. `NH44`, `EFC-LP-2026`), district, or state with live interactive Leaflet GIS mapping.
-
-### 2. 🔐 2-Step Project-Scoped Authentication
-To handle officers working across different projects simultaneously without account collisions:
-- **Step 1: Project Code Validation**: The officer inputs their project code (e.g. `NH44-P2-2026`). The system instantly displays the verified project name, district, state, and agency.
-- **Step 2: Scoped Officer Sign-In**: The officer enters their verified official email and password to access their isolated departmental workspace.
-- **Executive Direct Access**: System Administrators and Senior Officers sign in directly to executive mission control.
-
-### 3. 📊 Weighted 6-Stage Lifecycle Tracking
-Every project is tracked across the statutory land acquisition pipeline with weighted velocity scoring:
-| Stage | Department | Statutory Weight | Key Milestones Tracked |
-|---|---|:---:|---|
-| **Stage 1** | **Survey & Demarcation** | **15%** | Cadastral mapping, Drone GIS boundary surveys, Joint verification |
-| **Stage 2** | **Legal & Title Verification** | **15%** | Section 11/19 notifications, Title deed vetting, Encumbrance checks |
-| **Stage 3** | **Compensation Determination** | **30%** | Award inquiry, Circle rate valuation, Direct bank transfer (DBT) |
-| **Stage 4** | **Rehabilitation & Resettlement (R&R)** | **25%** | SIA study, Resettlement colony allotment, Livelihood grants |
-| **Stage 5** | **Statutory Approvals & NOCs** | **5%** | Forest/Environmental clearances, Railway & Defense NOCs |
-| **Stage 6** | **Physical Possession Handover** | **10%** | Panchnama execution, Encroachment clearance, Agency handover |
-
----
-
-### 4. 🤖 AI Bottleneck Resolution Copilot (Conversational Chatbot + KNN Precedents)
-
-The built-in AI assistant features an interactive, slide-in **Chatbot Copilot** (`AIChatDrawer.jsx`) that empowers ground officers and senior authorities to resolve deadlocks using 100 historical land acquisition precedents and statutory frameworks.
-
-#### ✨ Interactive Chatbot Copilot Features:
-- **Slide-in Right Drawer**: Accessible directly via the **"AI Chatbot"** button on every alert card and inside every decision/closure modal.
-- **Precedent Matching**: Ranks similar historical cases with confidence scores, turnaround estimates, and statutory references.
-- **Conversational Follow-Up Q&A (`POST /chat`)**: Officers can ask natural follow-up questions directly in the chat:
-  - 📌 *"What should be our next step?"* → Returns sequential milestones (Immediate Step 1, Sequential Step 2) with action tips.
-  - 👤 *"Who is responsible for this?"* → Details primary executing officials (CALA, SDM, Tahsildar, ADLR, DFO) and oversight authorities.
-  - ⏱ *"How many days will it take / SLA?"* → Explains statutory compliance windows, inspection notice limits, and escalation triggers.
-  - 📄 *"What documents are required / Panchnama?"* → Lists mandatory statutory documentation (Cadastral sheets, Section 26 valuation, PFMS slips, Forest Form-A).
-  - 🔍 *"Explain Step 1"* → In-depth operational field guidance for that specific step.
-- **1-Click "Apply to Resolution"**: Automatically transfers the synthesized directive directly into the official decision, fix note, or audit closure narrative.
-- **Ground Refinement**: Adding new details (e.g. *"Court stay order issued"*) dynamically refines the KNN matching to specialized precedent cases.
-
-#### Technical Specifications:
-- **Algorithm**: Multi-Feature Cosine K-Nearest Neighbors (`scikit-learn NearestNeighbors`).
-- **Feature Pipeline**: Semantic TF-IDF Vectorization (unigrams + bigrams, English stop-words filtering, sublinear term frequency, L2 normalization) over unstructured problem descriptions with domain-weighted department token alignment.
-- **Conversational Engine**: Dedicated intent classifier & domain response generator with Act-grounded resolution blueprints.
-- **Knowledge Base**: 100 authentic infrastructure land acquisition bottleneck precedents across the 6 statutory departments with real-world dispute causes and proven statutory resolutions.
-- **Outputs**:
-  - **Similarity Match Percentage** (e.g. 74% to 100% semantic match).
-  - **Sequential Action Plan** (extracted directly from proven precedent resolution).
-  - **Statutory Law Reference** (RFCTLARR Act 2013, Forest Conservation Act 1980, Land Records Demarcation Manual).
-  - **Estimated Turnaround Time (TAT)** (e.g. 5–7 Days).
-  - **Precedent Case ID Reference** (e.g. `#LA_001`, `#LA_008`, `#LA_015`).
-
-#### 🔄 Continuous Self-Learning Loop:
-1. When a departmental officer or higher authority resolves a bottleneck, they submit the resolution steps and official order number.
-2. The Node.js backend automatically calls `/api/ai/learn` on the Python ML service.
-3. The ML service dynamically appends the resolution to `data/cases.csv` and retrains the KNN model and TF-IDF index in under 1 second.
-4. Future alerts in that department immediately benefit from the newly learned resolution.
-
----
-
-### 🧪 Step-by-Step Departmental Bottleneck Verification Guide
-
-Follow these exact steps to verify that the bottleneck reporting and AI suggestion engine are working end-to-end. Use **only the 6 existing statutory departments**:
-`Survey`, `Legal Verification`, `Compensation`, `Rehabilitation`, `Approvals`, `Possession`.
+Here is where every component lives so team members can navigate effortlessly:
 
 ```
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                  HOW TO RUN THE END-TO-END TEST                                        │
-│  1. Officer / Admin raises Bottleneck in ALERTS section (selecting the specific Department)             │
-│  2. Senior Officer / Administrator opens ALERTS -> clicks "Post Decision" (or "AI Chatbot" on card)     │
-│  3. Click "Open AI Chatbot" -> Slide-in drawer opens, analyzes problem & prescribes actionable steps    │
-│  4. Ask follow-up: "What should be our next step?" -> AI provides immediate Step 1 & Step 2 roadmap     │
-│  5. Click "Apply to Resolution" -> Auto-populates official directive into the decision textarea         │
-└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+bhoomisetu-sih26016/
+├── backend/                       # 🟢 Node.js & Express REST API Server
+│   ├── config/                    # Database (db.js) & Email (mailer.js) setup
+│   ├── middleware/                # JWT Auth, Role verification, Error handlers
+│   ├── models/                    # Mongoose Data Models: Project, User, Alert, Stage
+│   ├── routes/                    # Express Routes: auth, projects, alerts, aiRoutes
+│   ├── services/                  # Business Logic: aiRecommendationService, emailService
+│   ├── scripts/                   # Database seeder (seed.js) with test projects & users
+│   ├── server.js                  # Entry point for backend (Port 5000)
+│   └── package.json
+│
+├── frontend/                      # 🔵 React 18 + Vite Web Application
+│   ├── public/                    # Static public assets & logos
+│   ├── src/
+│   │   ├── api/                   # Axios HTTP client calls (auth.js, projects.js, ai.js)
+│   │   ├── components/            # Reusable UI: AppLayout, AIChatDrawer, Navbar, Modal
+│   │   ├── features/              # Core Feature Pages:
+│   │   │   ├── alerts/            # AlertsPage.jsx (Bottlenecks, Decision & Resolution)
+│   │   │   ├── auth/              # LoginPage.jsx (2-Step Login & Executive Auth)
+│   │   │   ├── dashboard/         # DashboardPage.jsx (Live GIS Map & High-Level KPIs)
+│   │   │   ├── department/        # DepartmentWorkspace.jsx (Officer's 6-Stage Workspace)
+│   │   │   └── projects/          # ProjectListPage.jsx, ProjectDetailPage.jsx
+│   │   ├── routes/                # ProtectedRoute.jsx (Role-based access guard)
+│   │   ├── store/                 # Zustand global auth and state stores
+│   │   ├── App.jsx                # Route declarations
+│   │   └── main.jsx               # React entry point (Port 5173)
+│   └── package.json
+│
+├── bhoomisetu-ml-service/         # 🟡 Python Flask ML & Conversational Engine
+│   ├── data/                      # cases.csv (100 authentic Land Acquisition precedents)
+│   ├── model/                     # knn_model.pkl (Trained TF-IDF vectorizer + KNN model)
+│   ├── app.py                     # Flask App: /chat, /suggest, /learn, /train (Port 5001)
+│   ├── requirements.txt           # Python dependencies (flask, scikit-learn, pandas)
+│   └── README.md                  # Microservice technical documentation
+│
+├── package.json                   # Root workspace scripts (npm run dev, npm run install:all)
+└── README.md                      # Complete Project Documentation (You are here)
 ```
 
-#### 📌 Test Case 1: Survey Department (Boundary Overlap Demarcation)
-* **Target Department**: `Survey` (DisplayName: `Survey`)
-* **Issue Type**: `Boundary Dispute`
-* **Severity**: `High Priority`
-* **Test Issue Description to Enter**:
-  > `Survey boundary overlap between Khasra 45 and 46 causing demarcation conflict with adjoining landholders`
-* **How to Verify**:
-  1. Go to **Alerts** → click **"Report Bottleneck"**.
-  2. Select Project: `NH-44 Highway Expansion Phase 2` (or any project).
-  3. Select Department: **`Survey`**, Severity: **`High`**, paste the description above, and click **Submit**.
-  4. Sign in as **Senior Officer** (`senior@landacquisition.gov.in` / `Senior@2026Officer!`) or **Administrator** (`admin@landacquisition.gov.in` / `Admin@2026Secure!`).
-  5. Under the active alert, click **"Post Decision"**.
-  6. Click **"Generate AI Directive"**.
-* **Expected AI Output**:
-  - **Confidence**: `93.3% Match` (Matched Historical Case `#LA_001`)
-  - **Headline**: `Directive: Resolution Protocol for Boundary Dispute`
-  - **Statutory Precedent**: `RFCTLARR Act 2013 & State Survey and Land Records Demarcation Manual`
-  - **Action Checklist**:
-    1. Conduct joint DGPS survey with Revenue Inspector and Village Patwari.
-    2. Erect permanent RCC boundary pillars at verified coordinates.
-    3. Update digitized Khasra map in state GIS portal.
-    4. Issue resolved in 12 days.
-  - **1-Click Apply**: Click **"Apply Suggestion to Decision Text"** to insert into the directive box.
+---
+
+## 👥 User Roles & Permissions Matrix
+
+BhoomiSetu features **Project-Scoped Role-Based Access Control (RBAC)** to ensure data security and prevent cross-project interference:
+
+| Role | Level | Access Scope | Key Capabilities |
+|---|---|---|---|
+| **Administrator** | National / Ministry | Global (All Projects) | Create projects, provision/edit officer credentials, trigger re-dispatch, view national telemetry. |
+| **Senior Officer** | State / District Magistrate | Global / District | Review active bottlenecks, invoke AI Copilot, issue official directives & statutory orders. |
+| **Project Manager** | Project Nodal Officer | Assigned Projects | Track project milestones, coordinate across departments, review stage velocity. |
+| **Department Officer** | Field Level (6 Depts) | Single Project & Department | Update assigned stage milestones, upload documents, log completion %, report bottlenecks. |
 
 ---
 
-#### 📌 Test Case 2: Compensation Department (PFMS / DBT Payment Mismatch)
-* **Target Department**: `Compensation` (DisplayName: `Compensation`)
-* **Issue Type**: `Payment Disbursement Failure`
-* **Severity**: `High Priority`
-* **Test Issue Description to Enter**:
-  > `DBT payment stuck due to Aadhaar bank account mismatch in PFMS portal`
-* **How to Verify**:
-  1. Go to **Alerts** → click **"Report Bottleneck"**.
-  2. Select Department: **`Compensation`**, Severity: **`High`**, paste the description above, and Submit.
-  3. As **Senior Officer** or **Administrator**, open the alert and click **"Post Decision"**.
-  4. Click **"Generate AI Directive"**.
-* **Expected AI Output**:
-  - **Confidence**: `74.1% Match` (Matched Historical Case `#LA_008`)
-  - **Headline**: `Directive: Resolution Protocol for Payment Disbursement Failure`
-  - **Statutory Precedent**: `RFCTLARR Act 2013 Section 26-30 & First Schedule (Market Value Determination & 100% Solatium)`
-  - **Action Checklist**:
-    1. Organize special camp at village panchayat office with bank representatives and UIDAI verification team.
-    2. Correct Aadhaar-bank seeding mismatches on the spot.
-    3. Resolve remaining cases via manual NPCI mapper correction.
-    4. Complete full disbursement via PFMS e-payment gateway.
+## 📊 The 6-Stage Statutory Land Acquisition Lifecycle
+
+Every project is automatically calculated from **0% to 100% completion** using weighted statutory milestones:
+
+| Stage # | Statutory Department | Statutory Weight | Typical Milestones & Deliverables |
+|:---:|---|:---:|---|
+| **1** | **Survey & Demarcation** | **15%** | DGPS/Drone survey, Cadastral boundary mapping, Joint verification Panchnama |
+| **2** | **Legal & Title Verification** | **15%** | Section 11 & 19 Gazette notifications, Title deed vetting, 30-yr Encumbrance check |
+| **3** | **Compensation Determination** | **30%** | Section 26 valuation, Award enquiry, 100% Solatium calculation, PFMS / DBT payout |
+| **4** | **Rehabilitation & Resettlement** | **25%** | Social Impact Assessment (SIA), Resettlement colony allotment, Livelihood grants |
+| **5** | **Statutory Approvals & NOCs** | **5%** | Stage-1/2 Forest Clearance, Wildlife clearance, Railway/Defense NOCs |
+| **6** | **Physical Possession Handover** | **10%** | Section 38 spot possession, Panchnama with 2 witnesses, Handover to user agency |
 
 ---
 
-#### 📌 Test Case 3: Approvals Department (Stage-1 Forest Land Diversion)
-* **Target Department**: `Approvals` (DisplayName: `Approvals`)
-* **Issue Type**: `Forest Clearance Pending`
-* **Severity**: `High Priority`
-* **Test Issue Description to Enter**:
-  > `Stage-1 Forest Clearance for 23 hectare forest land diversion pending with MoEFCC`
-* **How to Verify**:
-  1. Go to **Alerts** → click **"Report Bottleneck"**.
-  2. Select Department: **`Approvals`**, Severity: **`High`**, paste the description above, and Submit.
-  3. As **Senior Officer** or **Administrator**, open the alert and click **"Post Decision"**.
-  4. Click **"Generate AI Directive"**.
-* **Expected AI Output**:
-  - **Confidence**: `75.2% Match` (Matched Historical Case `#LA_015`)
-  - **Headline**: `Directive: Resolution Protocol for Stage-1 Forest Clearance Pending`
-  - **Statutory Precedent**: `Forest Conservation Act 1980 & MoEFCC Parivesh Single-Window Regulatory Portal`
-  - **Action Checklist**:
-    1. File compliance report on Parivesh portal with complete documentation package.
-    2. Submit compensatory afforestation (CA) land proposal for non-forest land identified.
-    3. Deposit NPV amount in CAMPA account.
-    4. Coordinate with Regional Chief Conservator of Forests for formal Stage-1 Working Permission.
+## 🤖 AI Bottleneck Resolution Copilot
+
+The AI Copilot is accessible directly from every alert card via the **"AI Chatbot"** button or inside the **"Post Decision"** modal.
+
+### How It Works:
+1. **Precedent Matching**: Runs Cosine Similarity via TF-IDF over historical cases to find exact or near-match resolutions with confidence scores (e.g., 93.3% Match on Boundary Overlap).
+2. **Interactive Chat (`POST /chat`)**: Officers can ask follow-up questions in natural language:
+   - 📌 *"What is the immediate next step?"* → Breaks down Step 1 vs Step 2 with field guidance.
+   - 👤 *"Who is the responsible authority?"* → Returns executing officers (CALA, SDM, Tahsildar, DFO) and oversight bodies.
+   - ⏱ *"What is the turnaround time / SLA?"* → Explains statutory compliance windows and escalation timelines.
+   - 📄 *"What documents are required?"* → Lists mandatory forms, Panchnama templates, and statutory records.
+   - 🔍 *"Explain Step 1"* → In-depth operational field procedure.
+3. **1-Click Apply**: Inserts the synthesized directive directly into the official resolution text box.
+4. **Continuous Self-Learning (`POST /learn`)**: When a deadlock is marked as resolved with an official order number, the ML service dynamically learns the resolution in under 1 second.
 
 ---
 
-#### ⚠️ Edge Case Test 4: Unrecognized Problem / No Similar Old Case Found
-BhoomiSetu includes strict **semantic vocabulary verification** to prevent hallucinating solutions when gibberish or an unrecognized issue is submitted.
+## ⚡ Step-by-Step Setup Guide (Run in 5 Minutes)
 
-* **Target Department**: `Survey` (or any department)
-* **Test Issue Description to Enter**:
-  > `jguigubuguj` (or non-domain random text)
-* **How to Verify**:
-  1. Raise an alert with description: `jguigubuguj`.
-  2. Click **"Post Decision"** → click **"Generate AI Directive"**.
-* **Expected AI Output**:
-  - **Confidence**: `0% Match` (`is_low_confidence: true`)
-  - **Headline**: `No Historical Precedent Found (0% Match)`
-  - **Notice**:
-    > *"⚠️ Unrecognized Issue: The description 'jguigubuguj' was not recognized in our 100 historical land acquisition bottleneck cases. Please provide a descriptive issue or select from standard precedents."*
-  - **Clickable Precedent Presets**: The UI presents 1-click shortcut buttons for **Survey (Demarcation overlap)**, **Compensation (PFMS DBT mismatch)**, and **Approvals (Stage-1 Forest Clearance)** so the user can immediately load a recognized precedent with one click.
+### Prerequisites:
+- **Node.js**: v18 or v20 LTS installed ([Download](https://nodejs.org/))
+- **Python**: v3.10+ installed ([Download](https://python.org/))
+- **MongoDB**: Active connection string (MongoDB Atlas or Local MongoDB)
 
 ---
 
-## 💻 Tech Stack Summary
-
-| Layer | Technologies |
-|---|---|
-| **Frontend** | React 18, Vite, Tailwind CSS, Zustand, React Leaflet (OpenStreetMap GIS), Recharts, Lucide React, React Hot Toast |
-| **Backend** | Node.js 20 LTS, Express.js, JWT Authentication, bcryptjs, Nodemailer (Gmail SMTP), Axios |
-| **ML Microservice** | Python 3.13, Flask, Scikit-Learn, Pandas, NumPy, TF-IDF + NearestNeighbors |
-| **Database** | MongoDB & MongoDB Atlas via Mongoose ODM |
-| **DevOps & Tooling** | Git, GitHub Actions, Powershell/Bash automation scripts |
-
----
-
-## ⚡ Quick Start & Local Setup
-
-### Prerequisites
-- **Node.js**: v18 or v20 LTS
-- **Python**: v3.10+ (with pip)
-- **MongoDB**: Local MongoDB on `mongodb+srv://keshawjha2005_db_user:r27tZvcAHqCyUMak@cluster1.bsxiklt.mongodb.net/bhoomisetu?retryWrites=true&w=majority&appName=Cluster1` or MongoDB Atlas URI
-
-### 1. Clone & Install Dependencies
+### Step 1: Clone Repository & Install Dependencies
+Open your terminal in the root directory:
 ```bash
-# Clone the repository
 git clone https://github.com/Aadityasingh0709/bhoomisetu-sih26016.git
 cd bhoomisetu-sih26016
 
-# Install backend and frontend dependencies
+# Install dependencies for root, backend, and frontend
 npm run install:all
 ```
 
-### 2. Configure Backend Environment
-Create `backend/.env` (or copy from `backend/.env.example`):
+---
+
+### Step 2: Configure Environment Variables
+Create a `.env` file inside the `backend/` directory:
 ```env
 PORT=5000
 MONGO_URI=mongodb+srv://keshawjha2005_db_user:r27tZvcAHqCyUMak@cluster1.bsxiklt.mongodb.net/bhoomisetu?retryWrites=true&w=majority&appName=Cluster1
@@ -282,43 +265,53 @@ SMTP_PASS=your_gmail_app_password
 SMTP_FROM="BhoomiSetu National Portal" <bhoomisetu61@gmail.com>
 ```
 
-### 3. Seed Initial Projects & Accounts
+---
+
+### Step 3: Seed Test Database
+Populate initial national projects, demo officers, and baseline alerts:
 ```bash
-cd backend
 npm run seed
-cd ..
 ```
 
-### 4. Start the 3 Services
+---
 
-#### Terminal 1 — Start ML Recommendation Microservice:
+### Step 4: Run the Application (All 3 Services)
+
+#### Terminal 1 — Start ML Microservice (Port 5001):
 ```bash
 cd bhoomisetu-ml-service
 pip install -r requirements.txt
 python app.py
-# Running on http://127.0.0.1:5001
 ```
+*(You will see: `Running on http://127.0.0.1:5001`)*
 
-#### Terminal 2 — Start Backend & Frontend:
+#### Terminal 2 — Start Backend & Frontend Simultaneously:
 ```bash
 # From the root directory:
 npm run dev
 ```
 
-- **Frontend Portal**: `http://localhost:5173/`
-- **Backend REST API**: `http://localhost:5000`
-- **ML Microservice**: `http://localhost:5001`
+- 🌐 **Frontend Application**: `http://localhost:5173`
+- ⚙️ **Backend REST API**: `http://localhost:5000`
+- 🧠 **ML Microservice**: `http://localhost:5001`
 
 ---
 
-## 🔑 Demo Accounts
+## 🔑 Demo Accounts & Credentials
 
-Each role has a unique, secure password for testing:
+### 1. Executive Logins (Direct Sign-In)
+| Role | Email | Password | Primary Purpose |
+|---|---|---|---|
+| **Administrator** | `admin@landacquisition.gov.in` | `Admin@2026Secure!` | Full platform administration, project creation & credential management |
+| **Senior Officer** | `senior@landacquisition.gov.in` | `Senior@2026Officer!` | Review alerts, run AI Copilot, issue statutory decision orders |
 
-| Role | Email | Password |
+### 2. Project-Scoped Officer Logins (2-Step Sign-In)
+To log in as a field officer, select the **Project Officer Login** tab:
+1. **Enter Project Code**: `NH44-P2-2026` *(NH-44 Highway Expansion Phase 2)*
+2. **Enter Credentials**:
+
+| Department | Email | Password |
 |---|---|---|
-| **Administrator** | `admin@landacquisition.gov.in` | `Admin@2026Secure!` |
-| **Senior Officer** | `senior@landacquisition.gov.in` | `Senior@2026Officer!` |
 | **Survey Officer** | `survey@landacquisition.gov.in` | `Survey@2026Land!` |
 | **Legal Verification** | `legal@landacquisition.gov.in` | `Legal@2026Verify!` |
 | **Compensation Officer** | `compensation@landacquisition.gov.in` | `Compensation@2026!` |
@@ -326,91 +319,144 @@ Each role has a unique, secure password for testing:
 | **Approvals Officer** | `approvals@landacquisition.gov.in` | `Approvals@2026!` |
 | **Possession Officer** | `possession@landacquisition.gov.in` | `Possession@2026!` |
 
-### 📌 Project Scopes & 2-Step Sign-In
-To sign in as any of the departmental officers above, use the **Project Officer Login** tab:
-1. **Enter Project Code**: `NH44-P2-2026` *(NH-44 Highway Expansion Phase 2 — Belagavi, Karnataka)*
-2. **Enter Officer Email & Password** from the table above (e.g., `survey@landacquisition.gov.in` / `Survey@2026Land!`).
-
-*Note: For the second seeded project **Eastern Dedicated Freight Corridor (`EFC-LP-2026`)**, officer emails follow the format `<role>.efc@landacquisition.gov.in` with password `<Role>@2026Efc!` (e.g. `survey.efc@landacquisition.gov.in` / `Survey@2026Efc!`).*
+*(Note: For the second project `EFC-LP-2026`, replace email with `<role>.efc@landacquisition.gov.in` and password `<Role>@2026Efc!`)*
 
 ---
+
+## 🧪 Step-by-Step End-to-End Demo Script
+
+When presenting or testing the platform, follow this exact 5-minute flow:
+
+### Phase 1: Executive Overview & GIS Map
+1. Log in as **Administrator** (`admin@landacquisition.gov.in` / `Admin@2026Secure!`).
+2. Show the **Executive Dashboard**:
+   - Interactive GIS Map with clickable project markers and geo-polygons.
+   - High-level KPIs: Total Projects, Land Acquired, Active Bottlenecks, Average Turnaround.
+
+### Phase 2: 1-Click Project & Credential Creation
+1. Go to **Projects** → Click **"Create Project"**.
+2. Enter project details (e.g. `Delhi-Mumbai Expressway Spur`, District, Land Area).
+3. Fill in the 6 departmental officer emails/phones → Click **"Create & Dispatch"**.
+4. Show how all 6 accounts are automatically generated and dispatched via Email/WhatsApp!
+5. Demonstrate **In-Place Credential Editing** on the Project Dossier to fix any typos without recreating the project.
+
+### Phase 3: Field Officer Execution (2-Step Login)
+1. Sign out and click **"Project Officer Login"**.
+2. Step 1: Enter Project Code `NH44-P2-2026` → Verified Project banner appears!
+3. Step 2: Enter `survey@landacquisition.gov.in` / `Survey@2026Land!`.
+4. Navigate to **Department Workspace** → Update milestone progress and upload survey documents.
+
+### Phase 4: Bottleneck Reporting & AI Copilot Chat
+1. In **Alerts**, report a new bottleneck:
+   - Department: `Survey`
+   - Issue Type: `Boundary Dispute`
+   - Description: `Survey boundary overlap between Khasra 45 and 46 causing demarcation conflict with adjoining landholders`
+2. Sign in as **Senior Officer** (`senior@landacquisition.gov.in` / `Senior@2026Officer!`).
+3. Click **"AI Chatbot"** on the alert:
+   - See the matched precedent `#LA_001` with **93.3% Confidence** and statutory reference.
+   - Click the chip: *"What should be our next step?"* → AI returns immediate Step 1 & Step 2 roadmap.
+   - Click *"What documents are required?"* → AI returns mandatory Panchnama and cadastral sheets.
+4. Click **"Apply to Resolution"** → Directive auto-populates into the order box!
+
+### Phase 5: Continuous Self-Learning
+1. Complete the resolution and submit the official order number.
+2. The Python microservice automatically ingests the resolution via `/api/ai/learn` and retrains the model in real time!
 
 ---
 
 ## 📑 Complete API Reference
 
-### Auth & User APIs
-- `POST /api/auth/login` — Executive & standard user sign-in.
-- `POST /api/auth/validate-project` — Validates Project ID / Code for 2-step departmental officer authentication.
-- `GET /api/auth/me` — Retrieves authenticated user context and active project permissions.
+### 🔐 Authentication & Access APIs
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|:---:|
+| `POST` | `/api/auth/login` | Executive & direct user sign-in | No |
+| `POST` | `/api/auth/validate-project` | Validates Project Code for 2-step officer sign-in | No |
+| `GET` | `/api/auth/me` | Fetch authenticated user profile & permissions | Yes (JWT) |
 
-### Project Management APIs
-- `GET /api/projects` — Fetch list of national projects (with search & filter).
-- `POST /api/projects` — Create new project and auto-provision 6 departmental credentials.
-- `GET /api/projects/:id` — Retrieve comprehensive project dossier, GIS coordinates, and stage progress.
-- `PATCH /api/projects/:id/departments/:deptId/officer` — Update officer email/phone and optionally trigger instant re-dispatch.
-- `PATCH /api/projects/:id/stages/:stageId` — Update stage milestones, progress percentage, and uploaded documents.
+### 📁 Project Management APIs
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|:---:|
+| `GET` | `/api/projects` | List all projects with search, filter, and pagination | Yes (JWT) |
+| `POST` | `/api/projects` | Create project & auto-provision 6 officer credentials | Admin |
+| `GET` | `/api/projects/:id` | Get detailed project dossier, stages & GIS data | Yes (JWT) |
+| `PATCH` | `/api/projects/:id/departments/:deptId/officer` | Edit officer credentials with optional instant re-dispatch | Admin |
+| `PATCH` | `/api/projects/:id/stages/:stageId` | Update stage milestones, progress % and documents | Officer/Admin |
 
-### AI & Bottleneck APIs
-- `POST /api/ai/suggest` — Query KNN model for similar cases, recommendations, and estimated resolution duration.
-- `POST /api/ai/learn` — Ingest a newly resolved bottleneck into the AI training dataset.
-- `GET /api/ai/stats` — Retrieve total trained cases and vocabulary metrics.
-- `GET /api/alerts` — Fetch active and resolved alerts across projects.
-- `POST /api/alerts` — Report a new bottleneck or cross-stage dependency delay.
-- `POST /api/alerts/:id/decision` — Senior Authority order/decision dispatch.
-- `POST /api/alerts/:id/resolve` — Final resolution submission with auditable order number.
+### 🤖 AI Copilot & Bottleneck APIs
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|:---:|
+| `POST` | `/api/ai/suggest` | Query KNN model for similar cases & resolution templates | Yes (JWT) |
+| `POST` | `/api/ai/chat` | Conversational follow-up assistant for next steps, SLA, docs | Yes (JWT) |
+| `POST` | `/api/ai/learn` | Ingest a resolved case and trigger incremental retraining | Yes (JWT) |
+| `GET` | `/api/ai/stats` | Retrieve total trained precedents and vocabulary stats | Yes (JWT) |
+| `GET` | `/api/alerts` | Fetch active and resolved bottlenecks across projects | Yes (JWT) |
+| `POST` | `/api/alerts` | Raise a new bottleneck or cross-department delay | Yes (JWT) |
+| `POST` | `/api/alerts/:id/decision` | Post senior authority directive/order | Senior Officer |
+| `POST` | `/api/alerts/:id/resolve` | Final closure with auditable resolution order number | Officer/Senior |
 
 ---
 
-## 📽️ SIH Presentation & PPT Deck Structure (6-Slide Hackathon Pitch)
+## 📽️ 6-Slide SIH Pitch Deck Structure
 
-Use this exact 6-slide structure to build your evaluation presentation for jury members and technical judges:
+Use this exact structure for presenting to the evaluation panel and jury:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                   BHOOMISETU — 6-SLIDE OFFICIAL SIH PITCH DECK                         │
 ├─────────┬──────────────────────────────────────────────────────────────────────────────┤
-│ Slide 1 │ TITLE & EXECUTIVE PROBLEM STATEMENT                                          │
-│         │ • Project Title: BhoomiSetu — Real-Time Land Acquisition Governance Platform │
-│         │ • Problem Statement: SIH 26016 · Ministry of Rural Development (DoLR)        │
-│         │ • Core Pain Points: Multi-departmental silos, 40%+ national infra delays,   │
-│         │   untracked legal bottlenecks, repetitive disputes & paper-based reporting.  │
-│         │ • Team: Anvesha Singh & Aaditya Singh & Keshaw Jha & Sudhanshu Singh
-              & Garima Gupta & Vivek kr Das                         │
+│ Slide 1 │ TITLE & PROBLEM STATEMENT                                                    │
+│         │ • Title: BhoomiSetu — Real-Time Land Acquisition Governance Platform         │
+│         │ • Ministry: Rural Development — Department of Land Resources (PS-26016)      │
+│         │ • Core Problem: 40%+ infra delays, siloed departments, paper-based reporting.│
 ├─────────┼──────────────────────────────────────────────────────────────────────────────┤
-│ Slide 2 │ THE BHOOMISETU SOLUTION & CORE VALUE PROPOSITION                             │
-│         │ • Unified 6-Stage Digital Lifecycle (Survey → Legal → Comp → Rehab → Poss.) │
-│         │ • Weighted Multi-Stage Telemetry Engine (0% to 100% unified project score).  │
-│         │ • 2-Step Project-Scoped Security (eliminates multi-project login collisions).│
-│         │ • Multi-Channel Onboarding: Live Gmail SMTP & WhatsApp Credential Dispatch.  │
+│ Slide 2 │ THE BHOOMISETU SOLUTION                                                      │
+│         │ • Unified 6-Stage Digital Lifecycle with Weighted Progress Telemetry (0-100%).│
+│         │ • 2-Step Project-Scoped RBAC preventing cross-project login collisions.      │
+│         │ • 1-Click Credential Dispatch via Gmail SMTP & WhatsApp.                     │
 ├─────────┼──────────────────────────────────────────────────────────────────────────────┤
-│ Slide 3 │ SYSTEM ARCHITECTURE & MULTI-TIER WORKFLOW                                    │
-│         │ • Frontend: React 18, Vite, Tailwind CSS, Leaflet GIS Geo-Parcels.           │
-│         │ • Backend: Node.js 20 LTS, Express REST API, MongoDB Mongoose ODM.          │
-│         │ • ML Microservice: Python 3.13, Flask, Scikit-Learn TF-IDF KNN Engine.       │
-│         │ • Multi-Tier Roles: Admin (National) → Senior Officer → Ground Officers.     │
+│ Slide 3 │ SYSTEM ARCHITECTURE & GIS TELEMETRY                                          │
+│         │ • Frontend: React 18, Vite, Tailwind, Leaflet GIS Geo-Parcels.               │
+│         │ • Backend: Node.js 20 LTS, Express REST API, MongoDB Atlas.                  │
+│         │ • ML Service: Python 3.13 Flask, TF-IDF + Cosine NearestNeighbors (KNN).     │
 ├─────────┼──────────────────────────────────────────────────────────────────────────────┤
-│ Slide 4 │ AI BOTTLENECK ADVISOR (KNN + CONTINUOUS SELF-LEARNING)                       │
-│         │ • Pre-Trained on 12,424 Real-World Cases (Safety, Legal, Site & Clearances). │
-│         │ • Cosine K-Nearest Neighbors matching with ≥90% confidence & duration ETA.  │
-│         │ • Self-Learning Feedback Loop: Every resolved alert dynamically updates the │
-│         │   model index in real-time, making institutional suggestions smarter.        │
+│ Slide 4 │ AI BOTTLENECK RESOLUTION COPILOT                                             │
+│         │ • Precedent Engine: 100+ authentic legal/administrative resolution cases.    │
+│         │ • Conversational Chatbot: Answers Next Steps, Responsible Authority, SLAs.   │
+│         │ • Continuous Self-Learning: Dynamically updates model on every resolved alert│
 ├─────────┼──────────────────────────────────────────────────────────────────────────────┤
-│ Slide 5 │ ADMINISTRATIVE CONTROL & OPERATIONAL RESILIENCE                               │
-│         │ • 1-Click Multi-Department Credential Provisioning per project.              │
-│         │ • In-Place Officer Credential Editing (fix mistyped emails & instantly       │
-│         │   re-dispatch credentials without deleting or restarting projects).          │
-│         │ • Real-time SLA monitors, dependency cascade alerts & dispute order trails.  │
+│ Slide 5 │ ADMINISTRATIVE RESILIENCE & OFFICER EMPOWERMENT                              │
+│         │ • 1-Click Multi-Officer Provisioning per project.                            │
+│         │ • In-Place Officer Credential Editing (fix typos without deleting projects). │
+│         │ • Real-Time SLA monitors, cross-stage dependency tracking & dispute trails.  │
 ├─────────┼──────────────────────────────────────────────────────────────────────────────┤
-│ Slide 6 │ NATIONAL IMPACT, FEASIBILITY & ROADMAP                                       │
-│         │ • Impact: 40% reduction in land acquisition turnaround time (TAT).           │
-│         │ • Scalability: Cloud-native, microservices-based, ready for national rollout.│
-│         │ • Future Roadmap: Drone LIDAR auto-mapping, DigiLocker & Blockchain Registry.│
+│ Slide 6 │ NATIONAL IMPACT & FEASIBILITY                                                │
+│         │ • 40% reduction in land acquisition Turnaround Time (TAT).                   │
+│         │ • 100% auditable digital paper trail for every legal order & award.          │
+│         │ • Future Scope: Drone LIDAR integration, DigiLocker & Blockchain Registry.   │
 └─────────┴──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📜 License
+## ❓ Frequently Asked Questions (FAQ)
 
-This project is developed for **Smart India Hackathon 2026** under the **Ministry of Rural Development (DoLR)** and is available for public sector digital governance initiatives.
+<details>
+<summary><b>Q1: Why does BhoomiSetu use 2-Step Authentication for field officers?</b></summary>
+Ground officers (e.g. Tehsildars, Surveyors) often work on multiple infrastructure projects simultaneously (e.g. NH-44 and Eastern Freight Corridor). If they had a single generic login, their actions would cross-contaminate different project dossiers. The 2-Step login binds their session strictly to the selected project code.
+</details>
+
+<details>
+<summary><b>Q2: What happens if the AI does not find a matching historical precedent?</b></summary>
+BhoomiSetu contains strict semantic validation. If an unrecognizable problem or typo is entered, the AI will not hallucinate. Instead, it flags a <code>0% Match</code>, generates a Standard Operating Procedure (SOP) baseline, and offers 1-click recognized precedent presets.
+</details>
+
+<details>
+<summary><b>Q3: How does the AI self-learning loop work?</b></summary>
+When an alert is marked as resolved by an officer or magistrate, the backend calls <code>POST /api/ai/learn</code> on the Python microservice. The microservice appends the new resolution to <code>cases.csv</code> and re-indexes the TF-IDF vectorizer and KNN model in memory in less than 1 second.
+</details>
+
+---
+
+## 📜 License & Intellectual Property
+
+Developed for **Smart India Hackathon 2026** under the aegis of the **Ministry of Rural Development — Department of Land Resources (DoLR)**. All rights reserved for public sector governance modernization.
