@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Send,
@@ -351,21 +352,30 @@ export default function AIChatDrawer({ isOpen, onClose, target, onApply }) {
     handleSendMessage(question);
   };
 
+  // Lock body scroll while open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Semi-transparent backdrop */}
       <div
-        className="absolute inset-0 bg-ink-950/50 backdrop-blur-xs transition-opacity duration-300"
+        className="absolute inset-0 bg-ink-950/60 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
       />
 
-      {/* Slide-in Chatbot Panel from Right */}
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-out border-l border-ink-100">
+      {/* Centered Chatbot Panel */}
+      <div className="relative w-full max-w-xl flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden" style={{ maxHeight: "min(90vh, 700px)" }}>
           {/* Header */}
-          <div className="bg-gradient-to-r from-violet-700 via-indigo-700 to-blue-700 px-5 py-4 text-white flex items-center justify-between shrink-0 shadow-md">
+          <div className="bg-gradient-to-r from-violet-700 via-indigo-700 to-blue-700 px-5 py-4 text-white flex items-center justify-between shrink-0 shadow-md rounded-t-2xl">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 shadow-inner">
                 <Bot size={20} className="text-white" />
@@ -570,7 +580,7 @@ export default function AIChatDrawer({ isOpen, onClose, target, onApply }) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
+      </div>,
+      document.body
+    );
+  }

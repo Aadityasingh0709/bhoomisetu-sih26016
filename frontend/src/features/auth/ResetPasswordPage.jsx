@@ -66,7 +66,7 @@ export default function ResetPasswordPage() {
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-black tracking-tight text-white">BhoomiSetu</span>
                 <span className="rounded-full bg-ochre-500/20 border border-ochre-500/30 px-2.5 py-0.5 text-[10px] font-bold text-ochre-300">
-                  SIH 26016
+                  Secure Access Portal
                 </span>
               </div>
               <p className="text-xs font-medium text-ink-300">

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>BhoomiSetu</title>
+  <rect width="64" height="64" rx="16" fill="#0b1c2d"/>
+  <path d="M16 46V25.5L32 14l16 11.5V46h-7V29H23v17z" fill="#dd6b20"/>
+  <path d="M21 46h22M27 46V34h10v12" fill="none" stroke="#fffaf0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="32" cy="23" r="3" fill="#138808"/>
+</svg>

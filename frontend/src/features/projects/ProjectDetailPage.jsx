@@ -120,7 +120,7 @@ export default function ProjectDetailPage() {
   const openOfficerEditModal = (dp) => {
     const notifEmail = dp.officerNotificationEmail || dp.assignedOfficer?.notificationEmail || "";
     const phone = dp.officerPhone || dp.assignedOfficer?.phone || "";
-    const defaultEmail = `${dp.department?.name?.toLowerCase() || "officer"}.${project?.code?.toLowerCase() || "sih"}@bhoomisetu.gov.in`;
+    const defaultEmail = `${dp.department?.name?.toLowerCase() || "officer"}.${project?.code?.toLowerCase() || "project"}@bhoomisetu.gov.in`;
     const loginEmail = dp.assignedOfficer?.email || defaultEmail;
 
     setEditingOfficerDept(dp);
@@ -472,7 +472,7 @@ export default function ProjectDetailPage() {
                 <span className="text-xs text-ink-300">completed</span>
               </div>
               <p className="text-[11px] text-ink-400 mt-1">
-                Calculated per SIH 26016 stage weights
+                Calculated per national lifecycle stage weights
               </p>
             </div>
           </div>
@@ -803,7 +803,7 @@ export default function ProjectDetailPage() {
                   `Change your password after first login.`,
                   ``,
                   `Regards,`,
-                  `System Administrator, BhoomiSetu – SIH 26016`,
+                  `System Administrator, BhoomiSetu National Land Management Portal`,
                 ].join("\n")
               );
               window.open(`mailto:${to}?subject=${subject}&body=${body}`, "_blank");

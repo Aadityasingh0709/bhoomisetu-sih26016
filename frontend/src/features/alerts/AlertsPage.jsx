@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import {
@@ -89,6 +90,17 @@ export default function AlertsPage() {
     setChatDrawerApplyFn(() => applyCallback);
     setChatDrawerOpen(true);
   };
+
+  // ── Lock body scroll when any modal is open ─────────────────────────────
+  useEffect(() => {
+    const anyOpen = !!decisionTarget || !!resolveTarget || !!officerResolveTarget || reportModalOpen;
+    if (anyOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [decisionTarget, resolveTarget, officerResolveTarget, reportModalOpen]);
 
   // ── In-Modal AI Resolution Assistant State ─────────────────────────────
   const [aiLoading, setAiLoading] = useState(false);
@@ -485,7 +497,7 @@ export default function AlertsPage() {
       <div className="rounded-2xl border border-ink-200/80 bg-white p-4 shadow-sm text-xs space-y-2">
         <div className="flex items-center gap-2 font-bold text-ink-900">
           <Sparkles size={16} className="text-ochre-500" />
-          <span>How BhoomiSetu Raises Intelligent Alerts (SIH PS 26016)</span>
+          <span>How BhoomiSetu Raises Intelligent Alerts</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-ink-600">
           <div className="rounded-xl bg-ink-50/70 p-3 border border-ink-100">
@@ -804,7 +816,7 @@ export default function AlertsPage() {
       </Card>
 
       {/* ── Authority: Post Decision Modal ── */}
-      {decisionTarget && (
+      {decisionTarget && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/60 backdrop-blur-sm"
           onClick={() => !submittingDecision && setDecisionTarget(null)}
@@ -1076,11 +1088,12 @@ export default function AlertsPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Officer: Mark Fixed Modal ── */}
-      {officerResolveTarget && (
+      {officerResolveTarget && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/60 backdrop-blur-sm"
           onClick={() => !submittingOfficerResolve && setOfficerResolveTarget(null)}
@@ -1237,11 +1250,12 @@ export default function AlertsPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Authority: Final Close Alert Modal ── */}
-      {resolveTarget && (
+      {resolveTarget && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/60 backdrop-blur-sm"
           onClick={() => !submittingResolve && setResolveTarget(null)}
@@ -1386,11 +1400,12 @@ export default function AlertsPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Report Bottleneck / Obstruction Modal ── */}
-      {reportModalOpen && (
+      {reportModalOpen && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/60 backdrop-blur-sm"
           onClick={() => !submittingNewAlert && setReportModalOpen(false)}
@@ -1541,7 +1556,8 @@ export default function AlertsPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Slide-in Chatbot AI Resolution Drawer ── */}

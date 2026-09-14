@@ -16,6 +16,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    transition: background-color 300ms ease, color 300ms ease;
   }
 
   body {
@@ -28,6 +29,7 @@
       rgba(240, 244, 248, 0.8) 0%,
       rgba(248, 250, 252, 1) 90%
     );
+    transition: background 300ms ease, color 300ms ease;
   }
 
   body::selection,
@@ -102,6 +104,21 @@
       0 10px 20px -2px rgba(0, 0, 0, 0.04);
   }
 
+  .app-shell {
+    min-height: 100%;
+    background: #f8fafc;
+    color: #0b1c2d;
+    transition: background-color 300ms ease, color 300ms ease;
+  }
+
+  .page-transition {
+    animation: pageEnter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .theme-toggle svg {
+    animation: iconPop 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
   /* Official National Tricolor top stripe */
   .tricolor-stripe {
     background: linear-gradient(
@@ -163,6 +180,117 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes iconPop {
+  from {
+    opacity: 0;
+    transform: scale(0.65) rotate(-20deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+/* Keep the existing feature pages themeable without duplicating page markup. */
+.dark body {
+  background: radial-gradient(circle at 10% 20%, #172333 0%, #0b1420 82%);
+  color: #e5edf5;
+}
+
+.dark .app-shell {
+  background: #0b1420;
+  color: #e5edf5;
+}
+
+.dark .bg-white,
+.dark .bg-white\/80,
+.dark .bg-white\/90,
+.dark .bg-white\/95 {
+  background-color: #142131 !important;
+}
+
+.dark .bg-slate-50,
+.dark .bg-ink-50,
+.dark .bg-ink-50\/50,
+.dark .bg-ink-50\/80 {
+  background-color: #101c2b !important;
+}
+
+.dark .text-ink-900,
+.dark .text-ink-800 {
+  color: #e5edf5 !important;
+}
+
+.dark .text-ink-700,
+.dark .text-ink-600 {
+  color: #c5d2df !important;
+}
+
+.dark .text-ink-500 {
+  color: #a5b7c9 !important;
+}
+
+.dark .text-ink-400 {
+  color: #8da2b7 !important;
+}
+
+.dark .border-ink-100,
+.dark .border-ink-100\/80,
+.dark .border-ink-200,
+.dark .border-ink-200\/80 {
+  border-color: #2a3b4d !important;
+}
+
+.dark .hover\:bg-ink-50:hover,
+.dark .hover\:bg-ink-50\/50:hover,
+.dark .hover\:bg-white:hover {
+  background-color: #1b2b3d !important;
+}
+
+.dark .glass-panel {
+  background-color: rgb(20 33 49 / 0.88);
+  border-color: rgb(80 105 128 / 0.35);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.2);
+}
+
+.dark .input,
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #101c2b;
+  color: #e5edf5;
+  border-color: #34495d;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #101c2b inset !important;
+  -webkit-text-fill-color: #e5edf5 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

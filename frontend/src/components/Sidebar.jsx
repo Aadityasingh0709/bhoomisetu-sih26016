@@ -153,7 +153,7 @@ export default function Sidebar({ isOpen = false, onClose }) {
           <div className="rounded-xl bg-ink-900/90 border border-ink-800 p-3">
             <div className="flex items-center gap-2">
               <Info size={14} className="text-ochre-400" />
-              <span className="text-[11px] font-bold text-white">SIH 2026 · PS 26016</span>
+              <span className="text-[11px] font-bold text-white">BhoomiSetu Mission Portal</span>
             </div>
             <p className="mt-1 text-[10px] text-ink-400 leading-relaxed">
               Real-Time Land Acquisition Lifecycle &amp; Inter-Departmental Sync

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,6 +25,8 @@ import {
   Phone,
   Send,
   Edit3,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import {
   createProject,
@@ -75,6 +78,13 @@ export default function CreateProjectModal({ onClose, onCreated }) {
   const [copiedAll, setCopiedAll] = useState(false);
   const [dispatching, setDispatching] = useState({});
 
+  // Custom department form state
+  const [showAddDept, setShowAddDept] = useState(false);
+  const [newDeptForm, setNewDeptForm] = useState({
+    displayName: "",
+    weight: 10,
+  });
+
   const {
     register,
     handleSubmit,
@@ -84,6 +94,15 @@ export default function CreateProjectModal({ onClose, onCreated }) {
   } = useForm({ resolver: zodResolver(schema) });
 
   const watchedCode = watch("code");
+
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
 
   useEffect(() => {
     fetchDepartments()
@@ -109,6 +128,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
         password: `${d.name}@2026Secure!`,
         phone: "",
         notificationEmail: "",
+        isCustom: !!d.isCustom,
       };
     });
     setOfficerCredentials(initial);
@@ -133,6 +153,52 @@ export default function CreateProjectModal({ onClose, onCreated }) {
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
+  };
+
+  const handleAddCustomDept = (e) => {
+    e?.preventDefault();
+    if (!newDeptForm.displayName.trim()) {
+      toast.error("Please enter a department / clearance stage name");
+      return;
+    }
+    const rawSlug = newDeptForm.displayName.trim().replace(/[^a-zA-Z0-9]/g, "");
+    const deptSlug = rawSlug || `Dept${Date.now().toString().slice(-4)}`;
+    const cleanCode = (watchedCode || "PROJ").toLowerCase().replace(/[^a-z0-9]/g, "");
+    
+    const newDeptObj = {
+      _id: `custom_${Date.now()}`,
+      name: deptSlug,
+      displayName: newDeptForm.displayName.trim(),
+      weight: Number(newDeptForm.weight) || 10,
+      order: departments.length + 1,
+      isCustom: true,
+    };
+
+    const newOfficer = {
+      departmentId: newDeptObj._id,
+      departmentName: newDeptObj.name,
+      displayName: newDeptObj.displayName,
+      weight: newDeptObj.weight,
+      name: `${newDeptObj.displayName} Lead Officer`,
+      email: `${deptSlug.toLowerCase()}.${cleanCode || "proj"}@landacquisition.gov.in`,
+      password: `${deptSlug}@2026Secure!`,
+      phone: "",
+      notificationEmail: "",
+      isCustom: true,
+    };
+
+    setDepartments((prev) => [...prev, newDeptObj]);
+    setOfficerCredentials((prev) => [...prev, newOfficer]);
+    setNewDeptForm({ displayName: "", weight: 10 });
+    setShowAddDept(false);
+    toast.success(`Added "${newDeptObj.displayName}" department to project!`);
+  };
+
+  const handleRemoveCustomDept = (idx) => {
+    const target = officerCredentials[idx];
+    setOfficerCredentials((prev) => prev.filter((_, i) => i !== idx));
+    setDepartments((prev) => prev.filter((d) => d.name !== target.departmentName && d._id !== target.departmentId));
+    toast.success(`Removed "${target.displayName}" department`);
   };
 
   const handleGenerateRandomPasswords = () => {
@@ -269,7 +335,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
         ``,
         `Regards,`,
         `System Administrator`,
-        `BhoomiSetu – SIH 26016`,
+        `BhoomiSetu National Land Management Portal`,
       ].join("\n")
     );
     window.open(`mailto:${toEmail}?subject=${subject}&body=${body}`, "_blank");
@@ -393,7 +459,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
   // If created, render Credentials Distribution Screen
   if (createdProjectSummary) {
     const { project, credentials } = createdProjectSummary;
-    return (
+    return createPortal(
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/70 backdrop-blur-sm p-3 sm:p-4">
         <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-emerald-100 bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 text-white">
@@ -742,18 +808,19 @@ export default function CreateProjectModal({ onClose, onCreated }) {
             </div>
           </div>
         )}
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/60 backdrop-blur-sm p-3 sm:p-4">
       <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-ink-100 bg-white px-4 sm:px-6 py-3.5 sm:py-4">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-ink-900">Create New Project &amp; Issue Department IDs</h2>
-            <p className="text-xs text-ink-400">Land acquisition project under SIH 26016 with project-scoped department accounts</p>
+            <p className="text-xs text-ink-400">Land acquisition project with project-scoped department accounts</p>
           </div>
           <button
             onClick={onClose}
@@ -840,14 +907,24 @@ export default function CreateProjectModal({ onClose, onCreated }) {
           <Section
             title="2. Department Officer Accounts & Passwords (Project-Scoped)"
             action={
-              <button
-                type="button"
-                onClick={handleGenerateRandomPasswords}
-                className="flex items-center gap-1 rounded-lg border border-ochre-300 bg-ochre-50 px-2.5 py-1 text-[11px] font-bold text-ochre-800 hover:bg-ochre-100 transition-colors"
-              >
-                <Sparkles size={12} />
-                <span>Generate Passwords</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddDept((prev) => !prev)}
+                  className="flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer"
+                >
+                  <Plus size={13} />
+                  <span>Add Custom Department</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerateRandomPasswords}
+                  className="flex items-center gap-1 rounded-lg border border-ochre-300 bg-ochre-50 px-2.5 py-1 text-[11px] font-bold text-ochre-800 hover:bg-ochre-100 transition-colors cursor-pointer"
+                >
+                  <Sparkles size={12} />
+                  <span>Generate Passwords</span>
+                </button>
+              </div>
             }
           >
             <p className="text-xs text-ink-500 mb-3">
@@ -857,12 +934,68 @@ export default function CreateProjectModal({ onClose, onCreated }) {
               <strong>notification email</strong> so credentials can be dispatched directly.
             </p>
 
+            {/* Inline Custom Department Creator Form */}
+            {showAddDept && (
+              <div className="rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/60 p-3.5 mb-3 space-y-3 animate-fadeIn">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building size={15} className="text-indigo-600" />
+                    <span className="text-xs font-black text-indigo-950">Add Additional Project Department / Clearance Stage</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddDept(false)}
+                    className="text-xs text-ink-400 hover:text-ink-700 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] font-bold uppercase text-ink-600 block mb-1">
+                      Department / Stage Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newDeptForm.displayName}
+                      onChange={(e) => setNewDeptForm((prev) => ({ ...prev, displayName: e.target.value }))}
+                      placeholder="e.g. Forest Clearance, Wildlife & Ecology, Utility Shifting"
+                      className="input text-xs py-1.5 w-full bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-ink-600 block mb-1">
+                      Weight (%)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={newDeptForm.weight}
+                      onChange={(e) => setNewDeptForm((prev) => ({ ...prev, weight: e.target.value }))}
+                      className="input text-xs py-1.5 w-full bg-white"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleAddCustomDept}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 transition-all shadow-sm cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    <span>Add Department &amp; Officer</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               {officerCredentials.map((oc, idx) => {
                 const Icon = DEPT_ICONS[oc.departmentName] || Building;
                 return (
                   <div
-                    key={oc.departmentName}
+                    key={oc.departmentId || oc.departmentName}
                     className="rounded-xl border border-ink-200 bg-ink-50/40 p-3.5 space-y-2.5 hover:border-ink-300 transition-colors"
                   >
                     <div className="flex items-center justify-between">
@@ -873,10 +1006,27 @@ export default function CreateProjectModal({ onClose, onCreated }) {
                         <span className="text-xs font-bold text-ink-900">
                           Stage #{idx + 1}: {oc.displayName}
                         </span>
+                        {oc.isCustom && (
+                          <span className="rounded bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 text-[9px] font-black uppercase text-indigo-800">
+                            Custom Stage
+                          </span>
+                        )}
                         <span className="rounded bg-white border border-ink-200 px-1.5 py-0.5 text-[10px] font-bold text-ink-600">
                           {oc.weight}% Weight
                         </span>
                       </div>
+
+                      {oc.isCustom && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCustomDept(idx)}
+                          className="flex items-center gap-1 text-[11px] text-rose-600 hover:text-rose-800 hover:bg-rose-50 px-2 py-1 rounded transition-colors cursor-pointer"
+                          title="Remove custom department"
+                        >
+                          <Trash2 size={12} />
+                          <span>Remove</span>
+                        </button>
+                      )}
                     </div>
 
                     {/* Row 1: Name, Login Email, Password */}
@@ -1029,7 +1179,8 @@ export default function CreateProjectModal({ onClose, onCreated }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

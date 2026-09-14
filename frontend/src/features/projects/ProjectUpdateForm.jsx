@@ -258,7 +258,7 @@ export default function ProjectUpdateForm() {
         <div className="rounded-2xl border border-amber-300 bg-amber-50/80 p-4 text-xs text-amber-900 shadow-sm space-y-1">
           <div className="flex items-center gap-2 font-bold text-amber-950">
             <AlertTriangle size={16} className="text-amber-600" />
-            <span>SIH 26016 Automated Rule Trigger Preview</span>
+            <span>Automated Rule Trigger Preview</span>
           </div>
           {willBeAtRisk && (
             <p>

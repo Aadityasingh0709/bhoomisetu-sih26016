@@ -227,7 +227,7 @@ export default function DepartmentWorkspace() {
               <span>Report Bottleneck</span>
             </button>
             <span className="rounded-xl bg-ink-50 px-3 py-2 font-mono text-xs font-bold text-ink-700 border border-ink-200">
-              SIH Stage #{user?.department?.order || "—"} of 6
+              Lifecycle Stage #{user?.department?.order || "—"} of 6
             </span>
           </div>
         </div>

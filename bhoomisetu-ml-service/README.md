@@ -29,9 +29,15 @@ cd bhoomisetu-ml-service
 start.bat
 ```
 
-Or run directly with Python 3.13:
-```bat
-C:\Users\HP\AppData\Local\Programs\Python\Python313\python.exe app.py
+Or run directly with Python:
+```bash
+python app.py
+```
+Or from the project root:
+```bash
+npm run dev:ml
+# or
+npm run ml
 ```
 
 Server runs on **http://localhost:5001**

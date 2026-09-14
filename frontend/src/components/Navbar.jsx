@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { LogOut, Landmark, Bell, Shield, User, ChevronDown, Check, Sparkles, Menu, X } from "lucide-react";
+import { LogOut, Landmark, Bell, Shield, User, ChevronDown, Check, Sparkles, Menu, X, Moon, Sun } from "lucide-react";
 import { useAuthStore } from "../store/authStore.js";
 import { useNavigate, Link } from "react-router-dom";
 import { DEMO_ACCOUNTS } from "../utils/demoAccounts.js";
@@ -7,7 +7,7 @@ import { loginRequest } from "../api/auth.js";
 import { fetchAlerts } from "../api/alerts.js";
 import toast from "react-hot-toast";
 
-export default function Navbar({ sidebarOpen = false, onToggleSidebar }) {
+export default function Navbar({ sidebarOpen = false, onToggleSidebar, darkMode = false, onToggleDarkMode }) {
   const { user, logout, setSession } = useAuthStore();
   const navigate = useNavigate();
 
@@ -228,6 +228,16 @@ export default function Navbar({ sidebarOpen = false, onToggleSidebar }) {
               )}
             </div>
           )}
+
+          {/* Quick Notifications Bell */}
+          <button
+            onClick={onToggleDarkMode}
+            className="theme-toggle rounded-xl border border-ink-100 bg-white p-2 text-ink-500 shadow-sm transition-all hover:bg-ink-50 hover:text-ink-900"
+            title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
 
           {/* Quick Notifications Bell */}
           <div className="relative" ref={alertsMenuRef}>

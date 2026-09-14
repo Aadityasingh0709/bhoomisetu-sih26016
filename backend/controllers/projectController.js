@@ -187,13 +187,49 @@ export const getProject = asyncHandler(async (req, res) => {
 // POST /api/projects  (Administrator / ProjectManager)
 export const createProject = asyncHandler(async (req, res) => {
   const { departmentOfficers, ...projectData } = req.body;
-  const departments = await Department.find();
+  let departments = await Department.find();
 
-  // Create initial project document
+  // If custom departments or officers are supplied, ensure all departments exist in DB
+  if (Array.isArray(departmentOfficers) && departmentOfficers.length > 0) {
+    for (const officerData of departmentOfficers) {
+      let dept = departments.find(
+        (d) =>
+          String(d._id) === String(officerData.departmentId) ||
+          d.name.toLowerCase() === String(officerData.departmentName || "").toLowerCase() ||
+          d.displayName.toLowerCase() === String(officerData.displayName || "").toLowerCase()
+      );
+      if (!dept && (officerData.displayName || officerData.departmentName)) {
+        const rawName = (officerData.departmentName || officerData.displayName || "CustomDept")
+          .replace(/[^a-zA-Z0-9]/g, "");
+        const deptName = rawName || `Dept${Date.now()}`;
+        dept = await Department.findOne({ name: deptName });
+        if (!dept) {
+          const deptCount = await Department.countDocuments();
+          dept = await Department.create({
+            name: deptName,
+            displayName: officerData.displayName || officerData.departmentName || deptName,
+            weight: Number(officerData.weight) || 10,
+            order: deptCount + 1,
+          });
+        }
+        officerData.departmentId = dept._id;
+        officerData.departmentName = dept.name;
+        departments.push(dept);
+      }
+    }
+  }
+
+  // Create initial project document with all relevant departments
+  const projectDeptIds = Array.isArray(departmentOfficers) && departmentOfficers.length > 0
+    ? departmentOfficers.map((o) => String(o.departmentId)).filter(Boolean)
+    : departments.map((d) => String(d._id));
+
+  const uniqueDeptIds = Array.from(new Set([...departments.map((d) => String(d._id)), ...projectDeptIds]));
+
   const project = new Project({
     ...projectData,
-    departments: departments.map((d) => ({
-      department: d._id,
+    departments: uniqueDeptIds.map((dId) => ({
+      department: dId,
     })),
   });
 
@@ -205,7 +241,8 @@ export const createProject = asyncHandler(async (req, res) => {
       const dept = departments.find(
         (d) =>
           String(d._id) === String(officerData.departmentId) ||
-          d.name.toLowerCase() === String(officerData.departmentName || "").toLowerCase()
+          d.name.toLowerCase() === String(officerData.departmentName || "").toLowerCase() ||
+          d.displayName.toLowerCase() === String(officerData.displayName || "").toLowerCase()
       );
       if (!dept) continue;
 
@@ -238,15 +275,17 @@ export const createProject = asyncHandler(async (req, res) => {
       }
 
       // Link officer to the project's department progress item
-      const deptEntry = project.departments.find(
+      let deptEntry = project.departments.find(
         (dp) => String(dp.department) === String(dept._id)
       );
-      if (deptEntry) {
-        deptEntry.assignedOfficer = user._id;
-        if (officerData.phone) deptEntry.officerPhone = officerData.phone.trim();
-        if (officerData.notificationEmail) {
-          deptEntry.officerNotificationEmail = officerData.notificationEmail.toLowerCase().trim();
-        }
+      if (!deptEntry) {
+        deptEntry = { department: dept._id };
+        project.departments.push(deptEntry);
+      }
+      deptEntry.assignedOfficer = user._id;
+      if (officerData.phone) deptEntry.officerPhone = officerData.phone.trim();
+      if (officerData.notificationEmail) {
+        deptEntry.officerNotificationEmail = officerData.notificationEmail.toLowerCase().trim();
       }
 
       // Direct Automated Dispatch: Transmit official credentials directly to officer via Email and WhatsApp

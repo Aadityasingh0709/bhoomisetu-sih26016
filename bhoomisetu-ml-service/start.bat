@@ -5,13 +5,52 @@ echo  KNN Model - Port 5001
 echo ====================================================
 echo.
 
-set PYTHON=C:\Users\HP\AppData\Local\Programs\Python\Python313\python.exe
+cd /d "%~dp0"
 
+set PYTHON=
+
+if defined LOCALAPPDATA (
+    if exist "%LOCALAPPDATA%\Programs\Python\Python313\python.exe" (
+        set PYTHON="%LOCALAPPDATA%\Programs\Python\Python313\python.exe"
+    )
+)
+
+if not defined PYTHON (
+    py -3.13 --version >nul 2>nul
+    if %errorlevel% equ 0 (
+        set PYTHON=py -3.13
+    )
+)
+
+if not defined PYTHON (
+    py -3 --version >nul 2>nul
+    if %errorlevel% equ 0 (
+        set PYTHON=py -3
+    )
+)
+
+if not defined PYTHON (
+    where python >nul 2>nul
+    if %errorlevel% equ 0 (
+        set PYTHON=python
+    ) else (
+        where py >nul 2>nul
+        if %errorlevel% equ 0 (
+            set PYTHON=py
+        ) else (
+            echo [ERROR] Python not found in PATH. Please install Python 3.10+ and add it to PATH.
+            pause
+            exit /b 1
+        )
+    )
+)
+
+echo Using Python runtime: %PYTHON%
 echo Checking Python packages...
-%PYTHON% -c "import flask, sklearn, pandas, scipy; print('[OK] All packages ready')"
+%PYTHON% -c "import flask, flask_cors, sklearn, pandas, numpy, scipy; print('[OK] All packages ready')"
 if %errorlevel% neq 0 (
     echo Installing required packages...
-    %PYTHON% -m pip install flask flask-cors scikit-learn pandas numpy scipy
+    %PYTHON% -m pip install -r requirements.txt
 )
 
 echo.
@@ -20,3 +59,4 @@ echo Press Ctrl+C to stop.
 echo.
 
 %PYTHON% app.py
+
