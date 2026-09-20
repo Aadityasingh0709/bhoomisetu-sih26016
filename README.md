@@ -6,6 +6,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-20%20LTS-339933.svg?style=for-the-badge&logo=node.js)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg?style=for-the-badge&logo=react)](https://reactjs.org/)
 [![Python](https://img.shields.io/badge/Python-3.13%20ML-3776AB.svg?style=for-the-badge&logo=python)](https://python.org/)
+[![Embeddings](https://img.shields.io/badge/Embeddings-Sentence--Transformers%20(MiniLM)--L6--v2-8A2BE2.svg?style=for-the-badge)](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg?style=for-the-badge&logo=mongodb)](https://mongodb.com/)
 
 ---
@@ -46,8 +47,8 @@ Large-scale national infrastructure initiatives (Highways, Dedicated Freight Cor
 - 🗺️ **Live GIS Map & Weighted Telemetry**: Real-time project completion calculation (0% to 100%) weighted by statutory effort.
 - 🔐 **2-Step Project-Scoped RBAC**: Eliminates login collisions for ground officers deployed across multiple regional projects.
 - 📲 **Automated Multi-Channel Dispatch**: 1-click credential distribution to ground officers via Gmail SMTP & WhatsApp with in-place credential editing.
-- 🤖 **AI Bottleneck Copilot & Interactive Chatbot**: A scikit-learn KNN engine trained on 100+ authentic legal/administrative precedents that provides real-time resolution steps, statutory act references, turnaround time estimates, and answers natural follow-up questions.
-- 🔄 **Continuous Self-Learning Loop**: Whenever an officer resolves a deadlock, the resolution steps are ingested by the AI microservice in real time to train future suggestions.
+- 🤖 **AI Bottleneck Copilot & Interactive Chatbot**: High-dimensional neural semantic embeddings (`sentence-transformers / all-MiniLM-L6-v2`, 384 dense vector dimensions) paired with a cosine NearestNeighbors (KNN) engine trained on 100+ authentic legal/administrative precedents. Provides real-time resolution steps, statutory act references, turnaround time estimates, and answers natural follow-up questions with context-aware semantic search.
+- 🔄 **Continuous Self-Learning Loop**: Whenever an officer resolves a deadlock, the resolution steps are ingested and embedded by the AI microservice in real time to train future suggestions.
 
 ---
 
@@ -126,10 +127,10 @@ To understand BhoomiSetu easily, think of it as a 4-layer engine:
                                                   ▼                         ▼
             ┌───────────────────────────────────────────────┐     ┌─────────────────────────────────────────┐
             │               MongoDB Database                │     │     BhoomiSetu ML Recommendation Engine │
-            │   - Projects & Geo-Parcels                    │     │     (Python 3.13 / Flask / Scikit-Learn)│
-            │   - Users & Scoped Department Assignments     │     │   - TF-IDF Vectorizer (Unigrams+Bigrams)│
+            │   - Projects & Geo-Parcels                    │     │     (Python 3.13 / Flask / MiniLM / KNN)│
+            │   - Users & Scoped Department Assignments     │     │   - all-MiniLM-L6-v2 384D Dense Vectors │
             │   - Alerts, Decisions & Dispute Audits        │     │   - Cosine NearestNeighbors (KNN)       │
-            │   - Historical Statutory Knowledge Base       │     │   - Conversational Q&A Intent Router    │
+            │   - Historical Statutory Knowledge Base       │     │   - Robust Dual-Engine Fallback (TF-IDF)│
             └───────────────────────────────────────────────┘     └─────────────────────────────────────────┘
 ```
 
@@ -209,36 +210,83 @@ Every project is automatically calculated from **0% to 100% completion** using w
 
 ---
 
-## 🤖 AI Bottleneck Resolution Copilot
+## 🤖 AI Bottleneck Resolution Copilot (Neural Semantic Search)
 
 The AI Copilot is accessible directly from every alert card via the **"AI Chatbot"** button or inside the **"Post Decision"** modal.
 
 ### How It Works:
-1. **Precedent Matching**: Runs Cosine Similarity via TF-IDF over historical cases to find exact or near-match resolutions with confidence scores (e.g., 93.3% Match on Boundary Overlap).
-2. **Interactive Chat (`POST /chat`)**: Officers can ask follow-up questions in natural language:
+1. **Dense Semantic Embeddings (`sentence-transformers / all-MiniLM-L6-v2`)**: Transforms bottleneck alerts, departmental context, and problem causes into 384-dimensional dense semantic vectors. Unlike lexical keyword matching, neural embeddings capture contextual nuances, statutory abbreviations, and legal terminology (e.g., matching compensation disbursement delays to PFMS DBT settlement failure protocols).
+2. **High-Dimensional Cosine KNN Retrieval**: Computes cosine distance against indexed historical precedents using `NearestNeighbors(metric='cosine')` to fetch top-K nearest legal resolutions with exact confidence match scores (e.g., `⚡ 93.3% Semantic Match`).
+3. **Dual-Engine Robust Fallback**: If transformer weights are loading or dependencies are minimal, the service automatically falls back to an n-gram TF-IDF vectorizer, ensuring 100% service availability.
+4. **Interactive Chat (`POST /chat`)**: Officers can ask follow-up questions in natural language:
    - 📌 *"What is the immediate next step?"* → Breaks down Step 1 vs Step 2 with field guidance.
    - 👤 *"Who is the responsible authority?"* → Returns executing officers (CALA, SDM, Tahsildar, DFO) and oversight bodies.
    - ⏱ *"What is the turnaround time / SLA?"* → Explains statutory compliance windows and escalation timelines.
    - 📄 *"What documents are required?"* → Lists mandatory forms, Panchnama templates, and statutory records.
    - 🔍 *"Explain Step 1"* → In-depth operational field procedure.
-3. **1-Click Apply**: Inserts the synthesized directive directly into the official resolution text box.
-4. **Continuous Self-Learning (`POST /learn`)**: When a deadlock is marked as resolved with an official order number, the ML service dynamically learns the resolution in under 1 second.
+5. **1-Click Apply**: Inserts the synthesized directive directly into the official resolution text box.
+6. **Continuous Self-Learning (`POST /learn`)**: When a deadlock is marked as resolved with an official order number, the ML service dynamically embeds the new resolution into the vector space in real time.
 
 ---
 
-
+## ⚡ Step-by-Step Setup Guide (Run in 5 Minutes)
 
 ### Prerequisites:
 - **Node.js**: v18 or v20 LTS installed ([Download](https://nodejs.org/))
 - **Python**: v3.10+ installed ([Download](https://python.org/))
 - **MongoDB**: Active connection string (MongoDB Atlas or Local MongoDB)
 
+### 1️⃣ Clone the Repository
+```bash
+git clone https://github.com/Aadityasingh0709/bhoomisetu-sih26016.git
+cd bhoomisetu-sih26016
+```
+
+### 2️⃣ Install All Dependencies (1 Command)
+```bash
+npm run install:all
+```
+*Installs root dependencies (`concurrently`), backend packages (`express`, `mongoose`, `jsonwebtoken`), and frontend packages (`react`, `vite`, `tailwindcss`, `lucide-react`).*
+
+### 3️⃣ Configure Environment Variables
+Create a `.env` file in the `backend/` directory:
+```env
+PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/bhoomisetu
+JWT_SECRET=bhoomisetu_super_secret_jwt_key_2026
+ML_SERVICE_URL=http://localhost:5001
+FRONTEND_URL=http://localhost:5173
+```
+
+### 4️⃣ Seed Test Data
+Populate the database with pre-configured infrastructure projects (NH-44, Freight Corridor), 6 statutory departments, and demo officer accounts:
+```bash
+npm run seed
+```
+
+### 5️⃣ Launch the Entire Platform (1 Command)
+```bash
+npm run dev
+```
+*`npm run dev` automatically runs:*
+- 🟢 **Backend API** at `http://localhost:5000`
+- 🔵 **Frontend Web App** at `http://localhost:5173`
+- 🟡 **ML Semantic Microservice** at `http://localhost:5001` *(via `run.js` with automatic Python detection, virtual environment resolution, and sentence-transformers verification)*
+
 ---
 
+## 🔑 Demo Accounts & Credentials
 
-
----
-
+| Role | Email | Password | Access Scope |
+|---|---|---|---|
+| **Administrator** | `admin@landacquisition.gov.in` | `Admin@2026Secure!` | Global National Dashboard, Project Creation & Credential Dispatch |
+| **Senior Officer** | `senior@landacquisition.gov.in` | `Senior@2026Officer!` | State/District Escalations, AI Chatbot Directives, Statutory Approval |
+| **Project Officer (Survey)** | `survey@landacquisition.gov.in` | `Survey@2026Land!` | Project Code: `NH44-P2-2026` (Milestone progress & Panchnama uploads) |
+| **Project Officer (Legal)** | `legal@landacquisition.gov.in` | `Legal@2026Land!` | Project Code: `NH44-P2-2026` (Section 11/19 Gazette notifications) |
+| **Project Officer (Compensation)** | `compensation@landacquisition.gov.in` | `Comp@2026Land!` | Project Code: `NH44-P2-2026` (Section 26 Awards & PFMS disbursements) |
+| **Project Officer (R&R)** | `rehab@landacquisition.gov.in` | `Rehab@2026Land!` | Project Code: `NH44-P2-2026` (SIA entitlements & resettlement allotments) |
+| **Project Officer (Approvals)** | `approvals@landacquisition.gov.in` | `Appr@2026Land!` | Project Code: `NH44-P2-2026` (Forest Stage 1/2 NOC tracking) |
+| **Project Officer (Possession)** | `possession@landacquisition.gov.in` | `Poss@2026Land!` | Project Code: `NH44-P2-2026` (Section 38 Physical Possession Panchnama) |
 
 ---
 
@@ -336,10 +384,10 @@ Use this exact structure for presenting to the evaluation panel and jury:
 │ Slide 3 │ SYSTEM ARCHITECTURE & GIS TELEMETRY                                          │
 │         │ • Frontend: React 18, Vite, Tailwind, Leaflet GIS Geo-Parcels.               │
 │         │ • Backend: Node.js 20 LTS, Express REST API, MongoDB Atlas.                  │
-│         │ • ML Service: Python 3.13 Flask, TF-IDF + Cosine NearestNeighbors (KNN).     │
+│         │ • ML Service: Python 3.13 Flask, Sentence-Transformers (all-MiniLM-L6-v2) +KNN│
 ├─────────┼──────────────────────────────────────────────────────────────────────────────┤
 │ Slide 4 │ AI BOTTLENECK RESOLUTION COPILOT                                             │
-│         │ • Precedent Engine: 100+ authentic legal/administrative resolution cases.    │
+│         │ • Precedent Engine: 384D Dense Vector Embeddings + 100+ Precedent Cases.     │
 │         │ • Conversational Chatbot: Answers Next Steps, Responsible Authority, SLAs.   │
 │         │ • Continuous Self-Learning: Dynamically updates model on every resolved alert│
 ├─────────┼──────────────────────────────────────────────────────────────────────────────┤
@@ -371,7 +419,12 @@ BhoomiSetu contains strict semantic validation. If an unrecognizable problem or 
 
 <details>
 <summary><b>Q3: How does the AI self-learning loop work?</b></summary>
-When an alert is marked as resolved by an officer or magistrate, the backend calls <code>POST /api/ai/learn</code> on the Python microservice. The microservice appends the new resolution to <code>cases.csv</code> and re-indexes the TF-IDF vectorizer and KNN model in memory in less than 1 second.
+When an alert is marked as resolved by an officer or magistrate, the backend calls <code>POST /api/ai/learn</code> on the Python microservice. The microservice appends the new resolution to <code>cases.csv</code> and dynamically encodes the new resolution into the high-dimensional vector space in less than 1 second.
+</details>
+
+<details>
+<summary><b>Q4: Why does BhoomiSetu use Sentence-Transformers (all-MiniLM-L6-v2) for Semantic Embeddings?</b></summary>
+Traditional lexical matching algorithms (like simple keywords or TF-IDF alone) fail when field officers use varying phrases for the same root cause (e.g. "PFMS DBT disbursement failure" vs "compensation bank transaction returned"). The 384-dimensional dense semantic embeddings capture conceptual statutory meaning and contextual relationships, ensuring accurate precedent matching regardless of phrasing, with automatic fallback to TF-IDF for zero downtime.
 </details>
 
 ---

@@ -1,6 +1,6 @@
 # BhoomiSetu AI Recommendation Microservice
 
-A dedicated **Flask + KNN** microservice that helps departmental officers, senior officers, and system administrators resolve land acquisition bottlenecks by finding similar historical precedent cases and prescribing actionable, statutory resolution directives.
+A dedicated **Flask + Neural Semantic Embeddings (Sentence-Transformers) + KNN** microservice that helps departmental officers, senior officers, and system administrators resolve land acquisition bottlenecks by finding similar historical precedent cases and prescribing actionable, statutory resolution directives.
 
 ## Architecture
 
@@ -12,15 +12,16 @@ BhoomiSetu Backend (Node.js:5000)
             └── GET  http://localhost:5001/stats     ← model health & dataset metrics
 ```
 
-## How the Semantic KNN Engine Works
+## How the Semantic Embedding & KNN Engine Works
 
 | Pipeline Step | Description |
 |---|---|
-| **Problem Feature Vector** | Unigrams + Bigrams TF-IDF vectorization with English stop-words filtering and sublinear term frequency over department + issue type + problem description (`cause`). |
-| **Domain Alignment** | Maps queries across the 6 existing statutory departments: `Survey`, `Legal Verification`, `Compensation`, `Rehabilitation`, `Approvals`, `Possession`. |
-| **Distance Metric** | Cosine distance across the TF-IDF feature space (`scikit-learn NearestNeighbors`). |
-| **Strict Out-of-Vocabulary / Gibberish Detection** | If an unrecognized problem (e.g. `jguigubuguj`) is submitted, the model identifies zero vocabulary overlap (`nnz == 0`) and returns `0% Match` (`is_low_confidence: true`) with helpful guidance instead of hallucinating. |
-| **Directive Synthesis** | Automatically extracts actionable steps directly from the highest-matching precedent resolution, attaches the governing statutory reference (RFCTLARR Act, Forest Conservation Act), and estimates turnaround duration. |
+| **Neural Dense Vectorization** | Uses **`sentence-transformers` (`all-MiniLM-L6-v2`)** to produce 384-dimensional dense semantic vector embeddings over department, issue type, and problem description (`cause`). Unlike lexical matching, neural embeddings understand legal synonyms and administrative context. |
+| **Domain Alignment** | Encodes contextual department priors across the 6 statutory departments: `Survey`, `Legal Verification`, `Compensation`, `Rehabilitation`, `Approvals`, `Possession`. |
+| **Distance Metric** | Cosine distance across the dense 384-dimensional vector space via `scikit-learn NearestNeighbors(metric='cosine')`. |
+| **Robust Dual-Engine Fallback** | If transformer dependencies or PyTorch are unavailable in minimal environments, the engine gracefully falls back to an n-gram TF-IDF vectorizer, ensuring zero downtime. |
+| **Strict Out-of-Distribution / Gibberish Detection** | Evaluates similarity thresholds against historical precedents; ungrounded queries or gibberish trigger `is_low_confidence: true` with a standard fallback SOP rather than hallucinations. |
+| **Directive Synthesis** | Automatically extracts actionable steps directly from the highest-matching precedent resolution, attaches the governing statutory reference (RFCTLARR Act, Forest Conservation Act), tags `retrieval_method: "semantic_embedding"`, and calculates turnaround duration. |
 
 ## Start the Server
 
@@ -64,6 +65,7 @@ Get top-K similar precedent cases and synthesized resolution directives.
   "recommendation": {
     "headline": "Directive: Resolution Protocol for Boundary Dispute",
     "confidence_score": 93.3,
+    "retrieval_method": "semantic_embedding",
     "is_low_confidence": false,
     "statutory_precedent": "RFCTLARR Act 2013 & State Survey and Land Records Demarcation Manual",
     "estimated_turnaround_days": "7-11 Days",
