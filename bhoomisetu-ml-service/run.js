@@ -30,7 +30,7 @@ function findBestPython() {
 
   // Pass 1: find one that already has all dependencies ready
   for (const cmd of candidates) {
-    if (testCommand(cmd, '-c "import flask, flask_cors, sklearn, pandas, numpy, scipy"')) {
+    if (testCommand(cmd, '-c "import flask, flask_cors, sklearn, pandas, numpy, scipy, sentence_transformers"')) {
       return { cmd, ready: true };
     }
   }

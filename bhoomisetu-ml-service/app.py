@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import io
 import logging
 import pickle
@@ -18,6 +19,27 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import normalize
+
+# ---------------------------------------------------------------------------
+# Optional semantic embedding via sentence-transformers
+# Falls back to pure TF-IDF if the package is not installed.
+# ---------------------------------------------------------------------------
+try:
+    from sentence_transformers import SentenceTransformer
+    SEMANTIC_AVAILABLE = True
+except ImportError:
+    SEMANTIC_AVAILABLE = False
+    logger_pre = logging.getLogger("bhoomisetu-ml")
+    logger_pre.warning(
+        "sentence-transformers not installed. "
+        "Falling back to TF-IDF only. "
+        "Run: pip install sentence-transformers>=2.7.0"
+    )
+
+# The pre-trained model is ~80 MB and is downloaded from HuggingFace on first
+# use. Subsequent runs load it from the local HF cache (~/.cache/huggingface).
+SEMANTIC_MODEL_NAME = "all-MiniLM-L6-v2"
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger("bhoomisetu-ml")
@@ -35,6 +57,11 @@ STATE = {
     "knn": None,
     "df": None,
     "tfidf": None,
+    # --- Semantic embedding additions ---
+    "semantic_model": None,       # SentenceTransformer instance (not persisted in pickle)
+    "corpus_embeddings": None,    # np.ndarray shape (n_cases, 384) — persisted
+    "knn_semantic": None,         # NearestNeighbors fitted on semantic embeddings
+    # ------------------------------------
     "trained_at": None,
     "total_cases": 0,
     "risk_model": None,
@@ -130,6 +157,41 @@ def build_corpus_text(task_group: str, task_type: str, cause: str) -> str:
     return f"{tg} {tg} {tt} {tt} {c}".strip()
 
 
+def _load_semantic_model() -> "SentenceTransformer | None":
+    """Load (or return cached) the SentenceTransformer model."""
+    if not SEMANTIC_AVAILABLE:
+        return None
+    if STATE["semantic_model"] is not None:
+        return STATE["semantic_model"]
+    try:
+        logger.info("Loading semantic embedding model '%s'…", SEMANTIC_MODEL_NAME)
+        model = SentenceTransformer(SEMANTIC_MODEL_NAME)
+        STATE["semantic_model"] = model
+        logger.info("Semantic model loaded successfully.")
+        return model
+    except Exception as exc:
+        logger.error("Could not load semantic model: %s", exc)
+        return None
+
+
+def build_embeddings(texts: list) -> "np.ndarray | None":
+    """
+    Encode a list of strings into L2-normalised dense embeddings.
+    Returns None when sentence-transformers is unavailable.
+    """
+    model = _load_semantic_model()
+    if model is None:
+        return None
+    embeddings = model.encode(
+        texts,
+        batch_size=64,
+        show_progress_bar=False,
+        convert_to_numpy=True,
+        normalize_embeddings=True,   # L2-normalise → cosine ≡ dot product
+    )
+    return embeddings.astype(np.float32)
+
+
 def train_model(df: pd.DataFrame) -> dict:
     df = clean_df(df)
     # Ensure mandatory fields
@@ -142,6 +204,7 @@ def train_model(df: pd.DataFrame) -> dict:
         for _, row in df.iterrows()
     ]
 
+    # ── TF-IDF (kept for gibberish detection & hybrid scoring) ──────────────
     tfidf = TfidfVectorizer(
         ngram_range=(1, 2),
         stop_words="english",
@@ -149,30 +212,46 @@ def train_model(df: pd.DataFrame) -> dict:
         min_df=1,
         norm="l2",
     )
-    X = tfidf.fit_transform(corpus)
+    X_tfidf = tfidf.fit_transform(corpus)
 
-    knn = NearestNeighbors(
+    knn_tfidf = NearestNeighbors(
         n_neighbors=min(10, len(df)),
         metric="cosine",
         algorithm="brute",
     )
-    knn.fit(X)
+    knn_tfidf.fit(X_tfidf)
+
+    # ── Semantic embeddings (sentence-transformers) ──────────────────────────
+    corpus_embeddings = build_embeddings(corpus)  # None if unavailable
+    knn_semantic = None
+    if corpus_embeddings is not None:
+        logger.info("Semantic embeddings built: shape %s", corpus_embeddings.shape)
+        knn_semantic = NearestNeighbors(
+            n_neighbors=min(10, len(df)),
+            metric="cosine",
+            algorithm="brute",
+        )
+        knn_semantic.fit(corpus_embeddings)
 
     now = datetime.utcnow().isoformat()
     STATE.update({
-        "knn": knn,
+        "knn": knn_tfidf,
         "df": df,
         "tfidf": tfidf,
+        "corpus_embeddings": corpus_embeddings,
+        "knn_semantic": knn_semantic,
         "trained_at": now,
         "total_cases": len(df),
     })
     risk_metrics = train_risk_model(df)
 
-    # Persist
+    # Persist (semantic_model itself is NOT pickled — it reloads from HF cache)
     save_payload = {
-        "knn": knn,
+        "knn": knn_tfidf,
         "df": df,
         "tfidf": tfidf,
+        "corpus_embeddings": corpus_embeddings,
+        "knn_semantic": knn_semantic,
         "trained_at": now,
         "total_cases": len(df),
         "risk_model": STATE["risk_model"],
@@ -181,7 +260,11 @@ def train_model(df: pd.DataFrame) -> dict:
     with open(MODEL_PATH, "wb") as f:
         pickle.dump(save_payload, f)
 
-    logger.info("Model saved successfully: %d cases -> %s", len(df), MODEL_PATH)
+    semantic_status = "enabled" if knn_semantic is not None else "disabled (fallback: TF-IDF)"
+    logger.info(
+        "Model saved: %d cases → %s | semantic=%s",
+        len(df), MODEL_PATH, semantic_status,
+    )
     return {"total_cases": len(df), "trained_at": now, "risk_metrics": risk_metrics}
 
 
@@ -192,11 +275,26 @@ def load_model() -> bool:
         with open(MODEL_PATH, "rb") as f:
             saved = pickle.load(f)
         STATE.update(saved)
+
+        # Existing pickles may lack semantic embeddings — retrain transparently.
+        needs_retrain = False
+        if SEMANTIC_AVAILABLE and STATE.get("corpus_embeddings") is None and STATE.get("df") is not None:
+            logger.info("Old pickle detected — retraining with semantic embeddings…")
+            needs_retrain = True
+
         # Existing precedent model files remain valid; add the new risk layer
         # from the same curated dataset when it is first loaded.
         if STATE.get("risk_model") is None and STATE.get("df") is not None:
             train_risk_model(STATE["df"])
-        logger.info("Model loaded from disk: %s cases", saved.get("total_cases", "?"))
+
+        if needs_retrain:
+            train_model(STATE["df"])
+
+        semantic_status = "enabled" if STATE.get("knn_semantic") is not None else "disabled"
+        logger.info(
+            "Model loaded from disk: %s cases | semantic=%s",
+            saved.get("total_cases", "?"), semantic_status,
+        )
         return True
     except Exception as exc:
         logger.error("Failed to load model: %s", exc)
@@ -333,7 +431,7 @@ def get_suggestions(query: dict, k: int = 5) -> dict:
     issue_type = query.get("issue_type", "")
     desc = query.get("issue_description", "").strip()
 
-    # Check if the description has recognized tokens in the TF-IDF vocabulary
+    # ── Gibberish / out-of-vocabulary detection (TF-IDF vocabulary check) ───
     desc_matched = True
     if len(desc) >= 3:
         desc_vec = STATE["tfidf"].transform([desc])
@@ -344,10 +442,34 @@ def get_suggestions(query: dict, k: int = 5) -> dict:
     if not query_text.strip():
         return {"suggestions": [], "recommendation": None}
 
-    Xq = STATE["tfidf"].transform([query_text])
     n = min(k, STATE["total_cases"])
-    dists, idxs = STATE["knn"].kneighbors(Xq, n_neighbors=n)
     df = STATE["df"]
+
+    # ── Choose semantic or TF-IDF retrieval ─────────────────────────────────
+    use_semantic = (
+        STATE.get("knn_semantic") is not None
+        and STATE.get("corpus_embeddings") is not None
+        and SEMANTIC_AVAILABLE
+    )
+
+    if use_semantic:
+        # Embed the query with the same SentenceTransformer
+        model = _load_semantic_model()
+        if model is not None:
+            query_emb = model.encode(
+                [query_text],
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+            ).astype(np.float32)
+            dists, idxs = STATE["knn_semantic"].kneighbors(query_emb, n_neighbors=n)
+        else:
+            # Model failed to load at query time → fallback
+            use_semantic = False
+
+    if not use_semantic:
+        # Fallback: TF-IDF sparse retrieval
+        Xq = STATE["tfidf"].transform([query_text])
+        dists, idxs = STATE["knn"].kneighbors(Xq, n_neighbors=n)
 
     results = []
     for d, i in zip(dists[0], idxs[0]):
@@ -369,6 +491,7 @@ def get_suggestions(query: dict, k: int = 5) -> dict:
             "urgency": str(row.get("urgency_level", "High")),
             "was_overdue": bool(int(row.get("overdue_label", 0))),
             "had_comments": bool(int(row.get("has_comments", 0))),
+            "retrieval_method": "semantic" if use_semantic else "tfidf",
         })
 
     sorted_results = sorted(results, key=lambda x: x["similarity"], reverse=True)
@@ -377,6 +500,7 @@ def get_suggestions(query: dict, k: int = 5) -> dict:
     return {
         "suggestions": sorted_results if desc_matched else [],
         "recommendation": recommendation,
+        "retrieval_method": "semantic" if use_semantic else "tfidf",
     }
 
 
@@ -392,6 +516,11 @@ def health():
         "total_cases": STATE["total_cases"],
         "trained_at": STATE["trained_at"],
         "risk_model_loaded": STATE["risk_model"] is not None,
+        "semantic_embedding": {
+            "available": SEMANTIC_AVAILABLE,
+            "model": SEMANTIC_MODEL_NAME if SEMANTIC_AVAILABLE else None,
+            "loaded": STATE.get("knn_semantic") is not None,
+        },
     })
 
 
