@@ -15,6 +15,9 @@ import {
   Lightbulb,
   CornerDownRight,
   Shield,
+  Zap,
+  Brain,
+  Info,
 } from "lucide-react";
 import { getAISuggestions, chatWithAI } from "../api/ai.js";
 import toast from "react-hot-toast";
@@ -61,6 +64,14 @@ function BotResponseBubble({ rec, suggestions, onApply, onClose }) {
 
   return (
     <div className="max-w-[95%] space-y-2.5 text-xs text-ink-800 animate-fadeIn">
+      {/* Semantic engine badge */}
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 border border-violet-300 px-2 py-0.5 text-[9.5px] font-bold text-violet-800 uppercase tracking-wider">
+          <Zap size={9} className="text-violet-600" />
+          Semantic Embedding · all-MiniLM-L6-v2
+        </span>
+      </div>
+
       {/* Status card */}
       <div
         className={`rounded-2xl rounded-tl-none border p-3.5 shadow-sm space-y-2 ${
@@ -85,13 +96,15 @@ function BotResponseBubble({ rec, suggestions, onApply, onClose }) {
             </span>
           </div>
           <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
               isLow
                 ? "bg-amber-200 text-amber-900"
                 : "bg-emerald-100 text-emerald-800"
             }`}
           >
-            {isLow ? "Fallback SOP" : `${rec.confidence_score}% Match`}
+            {isLow ? "Fallback SOP" : (
+              <><Zap size={9} />{rec.confidence_score}% Semantic Match</>
+            )}
           </span>
         </div>
 
@@ -144,14 +157,27 @@ function BotResponseBubble({ rec, suggestions, onApply, onClose }) {
 
       {/* Top Precedent Cases */}
       {!isLow && suggestions && suggestions.length > 0 && (
-        <div className="rounded-xl bg-white border border-ink-100 p-2.5 text-[10px] space-y-1.5">
-          <span className="font-black uppercase tracking-wider text-ink-400 block">
-            Top Matched Precedents ({suggestions.length})
-          </span>
+        <div className="rounded-xl bg-white border border-violet-100 p-2.5 text-[10px] space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="font-black uppercase tracking-wider text-ink-400">
+              Top Matched Precedents ({suggestions.length})
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 border border-violet-200 px-1.5 py-0.5 text-[9px] font-bold text-violet-700">
+              <Brain size={8} />
+              Neural Search
+            </span>
+          </div>
           {suggestions.slice(0, 3).map((s, i) => (
             <div key={i} className="flex items-center justify-between gap-2 border-b border-ink-50 last:border-none pb-1">
               <span className="truncate text-ink-700 font-medium">#{s.case_id} · {s.issue_type}</span>
-              <span className="font-bold text-emerald-600 shrink-0">{s.similarity}%</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {s.retrieval_method === "semantic" && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 border border-violet-200 px-1.5 py-0.5 text-[8.5px] font-bold text-violet-700">
+                    <Zap size={7} />Semantic
+                  </span>
+                )}
+                <span className="font-bold text-emerald-600">{s.similarity}%</span>
+              </div>
             </div>
           ))}
         </div>
@@ -381,14 +407,17 @@ export default function AIChatDrawer({ isOpen, onClose, target, onApply }) {
                 <Bot size={20} className="text-white" />
               </div>
               <div>
-                <h3 className="font-black text-sm flex items-center gap-1.5">
+                <h3 className="font-black text-sm flex items-center gap-1.5 flex-wrap">
                   <span>BhoomiSetu AI Copilot</span>
-                  <span className="text-[10px] bg-emerald-400/30 text-emerald-200 border border-emerald-300/40 px-1.5 py-0.2 rounded-full font-bold">
-                    KNN Conversational
+                  <span className="inline-flex items-center gap-1 text-[9.5px] bg-violet-400/30 text-violet-100 border border-violet-300/50 px-1.5 py-0.5 rounded-full font-bold">
+                    <Zap size={9} />Semantic AI
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[9.5px] bg-emerald-400/20 text-emerald-200 border border-emerald-300/40 px-1.5 py-0.5 rounded-full font-bold">
+                    <Brain size={9} />MiniLM · KNN
                   </span>
                 </h3>
                 <p className="text-[10px] text-violet-200">
-                  Interactive Land Acquisition Resolution Chatbot
+                  Neural Semantic Search · Land Acquisition Resolution Engine
                 </p>
               </div>
             </div>
@@ -419,13 +448,35 @@ export default function AIChatDrawer({ isOpen, onClose, target, onApply }) {
             {messages.length === 0 && !loading && (
               <div className="flex flex-col items-center justify-center h-full text-center p-6 space-y-3">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
-                  <Sparkles size={24} />
+                  <Brain size={28} />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-black text-sm text-ink-800">BhoomiSetu Chatbot Assistant</h4>
+                  <h4 className="font-black text-sm text-ink-800">BhoomiSetu Semantic AI Assistant</h4>
                   <p className="text-xs text-ink-500 max-w-xs">
-                    Analyzing bottleneck against statutory frameworks &amp; 100 historical precedents.
+                    Powered by <strong>sentence-transformers (all-MiniLM-L6-v2)</strong> — neural semantic search across historical precedents.
                   </p>
+                </div>
+                {/* Semantic engine info card */}
+                <div className="w-full rounded-xl border border-violet-200 bg-violet-50 px-3.5 py-2.5 text-left space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black text-violet-800 uppercase tracking-wider">
+                    <Zap size={11} className="text-violet-600" />
+                    <span>Semantic Embedding Engine</span>
+                  </div>
+                  <p className="text-[10.5px] text-violet-700 leading-relaxed">
+                    Matches your bottleneck using <strong>dense 384-dim neural vectors</strong>, not just keyword overlap.
+                    Understands paraphrases like <em>"land parcel dispute"</em> ≈ <em>"boundary conflict"</em> across 100+ historical cases.
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 border border-violet-300 px-2 py-0.5 text-[9px] font-bold text-violet-800">
+                      <Brain size={8} />all-MiniLM-L6-v2
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[9px] font-bold text-indigo-700">
+                      <Zap size={8} />384-dim Embeddings
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700">
+                      <CheckCircle2 size={8} />Cosine KNN
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
